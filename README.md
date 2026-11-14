@@ -15,6 +15,8 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | --- | --- |
 | WASD, Shift, Ctrl, Q/E, Spacja | ruch, sprint, kucanie, wychylanie, skok i wspinanie |
 | T | tryb chwytania: lewy przycisk przytrzymany chwyta rzecz pod kursorem (też drzwi za klamkę), puszczony puszcza, prawy rzuca, kółko odsuwa; T ponownie wyłącza |
+| kółko (kliknięcie) | tryb walki: LPM cios, PPM przytrzymany garda, PPM + LPM odepchnięcie; ponowne kliknięcie wyłącza |
+| Z | chwyt oburącz przedmiotu z prawej ręki (łom) i z powrotem; okienko „Oburącz” w ekwipunku |
 | numpad 0 | paski i liczby postępu pracy (domyślnie wyłączone: postęp widać na gwoździach i wkrętach) |
 | F | użycie: klamka i pchnięcie drzwi, zamek (z kluczem albo od środka), szafka, podniesienie przedmiotu |
 | lewy / prawy przycisk | lewa / prawa ręka: każdy przycisk działa tym, co trzyma jego ręka; trzymany przy łomie i śrubokręcie przełącza mysz z kamery na narzędzie aż do puszczenia |

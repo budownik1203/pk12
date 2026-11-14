@@ -11,10 +11,11 @@ const Grid := preload("res://scripts/inventory/grid.gd")
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
 const START_PATH := "res://data/start.json"
 
-const SLOT_ORDER := ["glowa", "twarz", "kurtka", "kamizelka", "plecak", "pas", "spodnie", "rekawice", "buty", "plecy", "w_lewej", "w_reku"]
+const SLOT_ORDER := ["glowa", "twarz", "kurtka", "kamizelka", "plecak", "pas", "spodnie", "rekawice", "buty", "plecy", "w_lewej", "oburacz", "w_reku"]
 const GRID_SLOTS := ["spodnie", "kurtka", "kamizelka", "pas", "plecak"]   # kolejność szukania miejsca
 const HAND := "w_reku"        # prawa ręka
 const LEFT_HAND := "w_lewej"  # lewa ręka
+const TWO_HANDS := "oburacz"  # chwyt oburącz (łom, deski): zajmuje obie ręce
 
 const COMFORT_MASS := 18.0     # kg odczuwane: do tej masy bez kar
 const HEAVY_MASS := 45.0       # kg odczuwane: najwolniej
@@ -187,7 +188,7 @@ func felt_mass() -> float:
 	var m := 0.0
 	for s in slots:
 		var it = slots[s]
-		m += it.felt_mass() if s != HAND and s != LEFT_HAND else it.total_mass()
+		m += it.felt_mass() if s != HAND and s != LEFT_HAND and s != TWO_HANDS else it.total_mass()
 	return m
 
 
@@ -215,16 +216,44 @@ func rattle_count() -> int:
 
 
 func hand_item():
-	return slots.get(HAND)
+	return hand("r")
 
 
 ## Przedmiot w ręce: "l" lewa, "r" prawa.
+## Przy chwycie oburącz przedmiot liczy się jako trzymany w prawej ręce, lewa jest zajęta.
 func hand(side: String):
+	if slots.has(TWO_HANDS):
+		return slots[TWO_HANDS] if side == "r" else null
 	return slots.get(LEFT_HAND if side == "l" else HAND)
 
 
-static func hand_slot(side: String) -> String:
+func hand_slot(side: String) -> String:
+	if side == "r" and slots.has(TWO_HANDS):
+		return TWO_HANDS
 	return LEFT_HAND if side == "l" else HAND
+
+
+## Coś jest trzymane oburącz (i nie właśnie odkładane).
+func hands_two() -> bool:
+	var it = slots.get(TWO_HANDS)
+	return it != null and not _leaving(it)
+
+
+## Przełącza przedmiot z prawej ręki na chwyt oburącz i z powrotem (klawisz Z).
+func toggle_two_hands() -> bool:
+	var it = slots.get(TWO_HANDS)
+	if it != null:
+		if it.is_bulky():
+			return _fail("INV_ERR_BULKY")
+		return move_to_slot(it, HAND)
+	it = slots.get(HAND)
+	if it == null:
+		return _fail("INV_ERR_HAND_EMPTY")
+	return move_to_slot(it, TWO_HANDS)
+
+
+static func can_two_hand(item) -> bool:
+	return item.is_bulky() or bool(item.get_def().get("two_hand", false))
 
 
 ## Ile sztuk dużego przedmiotu postać uniesie naraz (siła × współczynnik z danych).
@@ -234,16 +263,18 @@ func bulky_limit(item) -> int:
 	return maxi(1, int(floor(strength * per + 0.0001)))
 
 
-## Prawa ręka trzyma duży przedmiot oburącz (lewa jest zajęta).
+## Duży przedmiot w obu rękach.
 func hands_bulky() -> bool:
-	var it = slots.get(HAND)
+	var it = slots.get(TWO_HANDS)
 	return it != null and it.is_bulky() and not _leaving(it)
 
 
 func slot_accepts(item, slot: String) -> bool:
 	if item.is_bulky():
-		return slot == HAND
-	if slot == LEFT_HAND and hands_bulky():
+		return slot == TWO_HANDS
+	if slot == TWO_HANDS:
+		return can_two_hand(item)
+	if (slot == LEFT_HAND or slot == HAND) and hands_two() and slots[TWO_HANDS] != item:
 		return false
 	var sd: Dictionary = ItemDB.slot_def(slot)
 	if sd.is_empty():
@@ -285,7 +316,7 @@ func _access(loc: Dictionary, item) -> float:
 		"grid":
 			return loc["grid"].access_time
 		"slot":
-			return HAND_ACCESS if loc["slot"] == HAND else WEAR_TIME * 0.5
+			return HAND_ACCESS if loc["slot"] in [HAND, LEFT_HAND, TWO_HANDS] else WEAR_TIME * 0.5
 		"world":
 			return WORLD_ACCESS
 	return 0.3
@@ -293,7 +324,7 @@ func _access(loc: Dictionary, item) -> float:
 
 func _duration(src: Dictionary, dst: Dictionary, item) -> float:
 	var t: float = _access(src, item) + _access(dst, item) + item.total_mass() * MASS_TIME
-	if dst.get("kind", "") == "slot" and dst["slot"] != HAND:
+	if dst.get("kind", "") == "slot" and not dst["slot"] in [HAND, LEFT_HAND, TWO_HANDS]:
 		t = maxf(t, WEAR_TIME)
 	return snappedf(t, 0.05)
 
@@ -363,8 +394,10 @@ func move_to_slot(item, slot: String) -> bool:
 		return _fail("INV_ERR_SAME")
 	if slot_reserved.has(slot) or (slots.has(slot) and not _leaving(slots[slot])):
 		return _fail("INV_ERR_SLOT_TAKEN")
-	if item.is_bulky() and (slot_reserved.has(LEFT_HAND) or (slots.has(LEFT_HAND) and not _leaving(slots[LEFT_HAND]))):
-		return _fail("INV_ERR_HANDS_FULL")
+	if slot == TWO_HANDS:
+		for hs in [HAND, LEFT_HAND]:
+			if slot_reserved.has(hs) or (slots.has(hs) and slots[hs] != item and not _leaving(slots[hs])):
+				return _fail("INV_ERR_HANDS_FULL")
 	var src := _location(item)
 	slot_reserved[slot] = item
 	_queue(item, src, {"kind": "slot", "slot": slot})
@@ -423,26 +456,27 @@ func pick_up(body: RigidBody3D) -> bool:
 		var spot: Dictionary = g.find_space(item)
 		if not spot.is_empty() and can_place_in_grid(item, g, spot["pos"], spot["rot"]):
 			return move_to_grid(item, g, spot["pos"], spot["rot"])
-	for hs in [HAND, LEFT_HAND]:
-		if not slots.has(hs) and not slot_reserved.has(hs):
-			return move_to_slot(item, hs)
+	if not hands_two():
+		for hs in [HAND, LEFT_HAND]:
+			if not slots.has(hs) and not slot_reserved.has(hs):
+				return move_to_slot(item, hs)
 	return _fail("INV_ERR_NO_ROOM")
 
 
 ## Duży przedmiot trafia do obu rąk; kolejna sztuka dokłada się do niesionego stosu.
 func _pick_up_bulky(item) -> bool:
-	var held = slots.get(HAND)
+	var held = slots.get(TWO_HANDS)
 	if held != null and held.def_id == item.def_id and held.is_bulky():
 		if held.pending:
 			return _fail("INV_ERR_BUSY")
 		if held.count + item.count > bulky_limit(held):
 			return _fail("INV_ERR_TOO_MANY")
 		return merge_into(item, held)
-	if held != null or slot_reserved.has(HAND):
+	if held != null or slot_reserved.has(TWO_HANDS):
 		return _fail("INV_ERR_HANDS_FULL")
 	if item.count > bulky_limit(item):
 		return _fail("INV_ERR_TOO_MANY")
-	return move_to_slot(item, HAND)
+	return move_to_slot(item, TWO_HANDS)
 
 
 ## Klawisz 1–9: wyjęcie przypisanego przedmiotu do ręki albo odłożenie z ręki.
@@ -452,11 +486,11 @@ func use_hotkey(n: int) -> bool:
 	var item = find_uid(hotkeys[n])
 	if item == null:
 		return _fail("INV_ERR_GONE")
-	if item.slot == HAND:
+	if item.slot == HAND or item.slot == TWO_HANDS:
 		return put_away_hand()
 	if not is_quick(item):
 		return _fail("INV_ERR_NOT_QUICK")
-	if slots.has(HAND) and not put_away_hand():
+	if (slots.has(HAND) or slots.has(TWO_HANDS)) and not put_away_hand():
 		return false
 	hand_origin[item.uid] = {"grid": item.parent_grid, "pos": item.pos, "rot": item.rot}
 	return move_to_slot(item, HAND)
@@ -464,7 +498,7 @@ func use_hotkey(n: int) -> bool:
 
 ## Odłożenie przedmiotu z ręki: na jego poprzednie miejsce, a jak zajęte, gdziekolwiek.
 func put_away_hand() -> bool:
-	var item = slots.get(HAND)
+	var item = slots.get(TWO_HANDS, slots.get(HAND))
 	if item == null:
 		return _fail("INV_ERR_HAND_EMPTY")
 	var o: Dictionary = hand_origin.get(item.uid, {})
@@ -478,7 +512,7 @@ func put_away_hand() -> bool:
 
 
 func set_hotkey(n: int, item) -> bool:
-	if not is_quick(item) and item.slot != HAND:
+	if not is_quick(item) and item.slot != HAND and item.slot != TWO_HANDS:
 		return _fail("INV_ERR_NOT_QUICK")
 	for k in hotkeys.keys():
 		if hotkeys[k] == item.uid:
@@ -694,7 +728,7 @@ func give(item) -> String:
 		if place_now(item, g):
 			return "grid"
 	for hs in [HAND, LEFT_HAND]:
-		if not slots.has(hs) and not slot_reserved.has(hs):
+		if not hands_two() and not slots.has(hs) and not slot_reserved.has(hs):
 			slots[hs] = item
 			item.slot = hs
 			changed.emit()

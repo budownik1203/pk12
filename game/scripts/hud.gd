@@ -45,6 +45,7 @@ var _textures := {}
 var _cursor := ""
 var _message_time := 0.0
 var _work_label: Label
+var _mode_label: Label
 var _work_back: ColorRect
 var _work_fill: ColorRect
 
@@ -119,6 +120,15 @@ func _init() -> void:
 	remove_child(_work_label)
 	center.add_child(_work_label)
 	_work_label.position = Vector2(-350, 30)
+	# tryb rąk (walka) nad celownikiem
+	_mode_label = _label(15)
+	_mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_mode_label.size = Vector2(300, 24)
+	_mode_label.modulate = Color(1.0, 0.55, 0.45)
+	remove_child(_mode_label)
+	center.add_child(_mode_label)
+	_mode_label.position = Vector2(-150, -44)
+	_mode_label.visible = false
 	_work_back = ColorRect.new()
 	_work_back.color = Color(0, 0, 0, 0.6)
 	_work_back.size = Vector2(160, 8)
@@ -192,6 +202,11 @@ func set_work(text: String, ratio: float) -> void:
 	_work_label.visible = text != ""
 	_work_back.visible = ratio >= 0.0
 	_work_fill.size.x = 156.0 * clampf(ratio, 0.0, 1.0)
+
+
+func set_mode(text: String) -> void:
+	_mode_label.text = text
+	_mode_label.visible = text != ""
 
 
 func work_text() -> String:

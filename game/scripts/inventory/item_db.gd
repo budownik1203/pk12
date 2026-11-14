@@ -7,6 +7,7 @@ const PATH := "res://data/items.json"
 static var defs: Dictionary = {}
 static var slots: Array = []
 static var liquids: Dictionary = {}
+static var fists: Dictionary = {}     # walka bez niczego w rękach
 
 
 static func ensure_loaded() -> void:
@@ -19,6 +20,7 @@ static func ensure_loaded() -> void:
 	defs = data.get("items", {})
 	slots = data.get("slots", [])
 	liquids = data.get("liquids", {})
+	fists = data.get("fists", {})
 
 
 static func get_def(id: String) -> Dictionary:

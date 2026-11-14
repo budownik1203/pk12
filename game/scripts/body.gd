@@ -312,6 +312,15 @@ func _physics_process(delta: float) -> void:
 			break
 		if item == null or (side == "r" and has_held) or (side == "l" and two_hands):
 			_update_hand_visual(side, null)
+			var ft = player.work_targets.get(side)
+			var fr = player.work_rots.get(side)
+			if ft != null and fr != null and not has_held:
+				# pusta dłoń w pozie (pięść w walce, druga ręka na trzonku)
+				targets[side] = ft
+				stiff[side] = HAND_STIFF_GRIP
+				_turn_hand(side, fr, delta * 3.0)
+				if side == "l":
+					left_busy = true
 			continue
 		var wt = player.work_targets.get(side)
 		var wr = player.work_rots.get(side)
@@ -333,6 +342,13 @@ func _physics_process(delta: float) -> void:
 			stiff[side] = HAND_STIFF_VIEW
 			_turn_hand(side, cam_q, delta)
 		_update_hand_visual(side, item)
+	if player.hand_items.get("two", false) and bulky == null and not has_held and player.work_targets.get("l") == null:
+		# chwyt oburącz (łom): lewa dłoń wyżej na trzonku, w tej samej linii
+		var hbr := Basis(hand_rot["r"])
+		targets["l"] = targets["r"] + hbr * Vector3(0, 0, -0.22)
+		stiff["l"] = HAND_STIFF_GRIP
+		_turn_hand("l", hand_rot["r"], delta * 3.0)
+		left_busy = true
 	lamp_on = lamp_on and not left_busy  # z czymś w lewej ręce latarka wisi na piersi
 	if lamp_on and not two_hands:
 		targets["l"] = camera.global_transform * LAMP_HAND

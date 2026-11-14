@@ -91,3 +91,11 @@
 - **Tryb chwytania (T):** przełącznik zamiast pojedynczego chwytu; lewy przycisk przytrzymany trzyma, puszczony puszcza, prawy rzuca. Rzut przez środek masy z lekkim obrotem (wcześniej siła w punkcie chwytu rozkręcała przedmioty).
 - **Postać:** nowe segmenty z Blendera (sylwetka V, kurtka z kołnierzem, pas, dżinsy, buty robocze z podeszwą, dłonie z palcami). Stopy stawiane pionowo pod biodrami (wcześniej wysunięte przed tułów, przez co postać wyglądała na przygarbioną).
 - **Modele przedmiotów** (`assets_src/blender/przedmioty.py` → `game/models/przedmioty.glb`): młotek, łom z hakiem, śrubokręt, nóż, wiązka gwoździ, pudełko wkrętów, deska ze sfazowanymi krawędziami, nakładka, zamek, klucz. Bryły kolizji bez zmian (`model.size`).
+
+
+## Build 4.3 (15.11.2026): drzwi, walka, chwyt oburącz
+
+- **Drzwi:** otwierają się tylko do pokoju (limit zawiasu od -105° do 0°), opierają się o ościeżnicę. 34 kg, tłumienie obrotu 4. Zaskakują, gdy kąt spadnie poniżej 0,08 rad i skrzydło jedzie w stronę framugi (także trzymane w ręce; chwyt wtedy puszcza) albo stoi. Klamka otwiera zawsze do pokoju.
+- **Trzy tryby rąk:** praca (domyślny, LPM/PPM to ręce), chwytanie (T), walka (kliknięcie kółkiem, 0,3 s na przełożenie chwytu). W walce: LPM cios, PPM garda (3 wytrzymałości/s), PPM+LPM odepchnięcie (15 wytrzymałości, co 0,8 s). Profile w items.json, pole `combat` (obrażenia, zamach, powrót, zasięg, garda, wytrzymałość, siła), pięści w `fists`. Trafienie liczy się w 20% powrotu (gdy narzędzie przechodzi przez cel); trzy promienie na łuku zamachu.
+- **Chwyt oburącz:** slot `oburacz` między rękami; przyjmuje przedmioty z `two_hand: true` (łom) i duże (`bulky`, deski). Zajmuje obie ręce, w kodzie liczy się jako prawa ręka. Klawisz Z przekłada. Oburącz: cios ×1,35, zamach ×1,15 wolniej, garda ×1,3, pchnięcie ×1,3, dźwignia przy podważaniu ×1,3.
+- **Worek treningowy** (40 kg, 500 punktów życia) w pokoju do prób ciosów; zombie od buildu 7.

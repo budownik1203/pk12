@@ -18,6 +18,7 @@ const InventoryUIScript := preload("res://scripts/ui/inventory_ui.gd")
 const WorkScript := preload("res://scripts/work/work_system.gd")
 const NoiseScript := preload("res://scripts/noise.gd")
 const SoundScript := preload("res://scripts/sound.gd")
+const CombatScript := preload("res://scripts/combat.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -49,6 +50,7 @@ var inv_ui: InventoryUIScript
 var work: WorkScript
 var noise: NoiseScript
 var sound: SoundScript
+var combat: CombatScript
 var window_boards: WindowScript
 var door_sys: DoorScript
 var bodies: Array = []
@@ -107,6 +109,11 @@ func _ready() -> void:
 	work.name = "PracaNarzedziem"
 	add_child(work)
 	work.setup(self)
+
+	combat = CombatScript.new()
+	combat.name = "Walka"
+	add_child(combat)
+	combat.setup(self)
 
 	window_boards = WindowScript.new()
 	window_boards.name = "OknoZDeskami"
@@ -265,6 +272,17 @@ func _input(event: InputEvent) -> void:
 			else:
 				player.look(event.relative)
 	elif event is InputEventMouseButton:
+		if captured and event.button_index == MOUSE_BUTTON_MIDDLE:
+			if event.pressed:
+				combat.toggle()  # kółko: tryb walki
+			return
+		if combat.active and captured:
+			if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
+				if event.pressed:
+					combat.press(event.button_index)
+				else:
+					combat.release(event.button_index)
+			return
 		if interaction.grab_mode and captured:
 			_grab_mode_button(event)
 			return
@@ -299,7 +317,12 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action("grab"):
 			work.end()
+			if combat.active:
+				combat.toggle()
 			interaction.toggle_grab_mode()
+		elif event.physical_keycode == KEY_Z:
+			if not inventory.toggle_two_hands():
+				hud.show_message(tr(inventory.last_error))
 		elif event.is_action("interact"):
 			interaction.use()
 		elif event.is_action("flashlight"):
@@ -363,7 +386,7 @@ func _dev_key(key: int) -> void:
 func _process(_delta: float) -> void:
 	player.load_factor = inventory.speed_factor()
 	player.load_stamina = inventory.stamina_factor()
-	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r")}
+	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r"), "two": inventory.hands_two()}
 	hud.set_stamina(player.stamina, player.STAMINA_MAX, player.exhausted)
 	if not dev_visible:
 		return

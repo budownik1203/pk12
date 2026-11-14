@@ -53,14 +53,20 @@
 		},
 		{
 			"id": "w_reku",
-			"pl": "Prawa ręka",
-			"en": "Right hand",
+			"pl": "Prawa",
+			"en": "Right",
 			"any": true
 		},
 		{
 			"id": "w_lewej",
-			"pl": "Lewa ręka",
-			"en": "Left hand",
+			"pl": "Lewa",
+			"en": "Left",
+			"any": true
+		},
+		{
+			"id": "oburacz",
+			"pl": "Oburącz",
+			"en": "Both hands",
 			"any": true
 		}
 	],
@@ -100,7 +106,17 @@
 				"podwazanie": 3,
 				"obuch": 2
 			},
-			"length": 0.75
+			"length": 0.75,
+			"two_hand": true,
+			"combat": {
+				"damage": 32,
+				"windup": 0.38,
+				"recover": 0.5,
+				"reach": 1.25,
+				"block": 0.65,
+				"stamina": 13,
+				"force": 90
+			}
 		},
 		"srubokret": {
 			"pl": "Śrubokręt",
@@ -134,7 +150,16 @@
 			"length": 0.21,
 			"wear": 0.004,
 			"desc_pl": "Wkręca i wykręca wkręty. Końcówka się wyrabia; zużyta zrywa łby wkrętów.",
-			"desc_en": "Drives and removes screws. The tip wears; a worn one strips screw heads."
+			"desc_en": "Drives and removes screws. The tip wears; a worn one strips screw heads.",
+			"combat": {
+				"damage": 9,
+				"windup": 0.14,
+				"recover": 0.22,
+				"reach": 0.85,
+				"block": 0.1,
+				"stamina": 4,
+				"force": 15
+			}
 		},
 		"mlotek": {
 			"pl": "Młotek",
@@ -169,7 +194,16 @@
 			"length": 0.32,
 			"desc_pl": "Wbija gwoździe. Pazurem wyciąga wygięte gwoździe i słabo podważa.",
 			"desc_en": "Drives nails. The claw pulls bent nails and pries weakly.",
-			"grip": "up"
+			"grip": "up",
+			"combat": {
+				"damage": 20,
+				"windup": 0.22,
+				"recover": 0.32,
+				"reach": 0.95,
+				"block": 0.3,
+				"stamina": 7,
+				"force": 45
+			}
 		},
 		"pistolet": {
 			"pl": "Pistolet (atrapa)",
@@ -195,6 +229,15 @@
 					0.1,
 					0.11
 				]
+			},
+			"combat": {
+				"damage": 11,
+				"windup": 0.2,
+				"recover": 0.3,
+				"reach": 0.85,
+				"block": 0.2,
+				"stamina": 6,
+				"force": 30
 			}
 		},
 		"naboje_9mm": {
@@ -617,6 +660,15 @@
 					0.58
 				],
 				"mesh": "noz"
+			},
+			"combat": {
+				"damage": 15,
+				"windup": 0.14,
+				"recover": 0.22,
+				"reach": 0.85,
+				"block": 0.15,
+				"stamina": 5,
+				"force": 20
 			}
 		},
 		"deska": {
@@ -778,5 +830,14 @@
 			"en": "Water",
 			"density": 1.0
 		}
+	},
+	"fists": {
+		"damage": 6,
+		"windup": 0.16,
+		"recover": 0.24,
+		"reach": 0.75,
+		"block": 0.1,
+		"stamina": 5,
+		"force": 25
 	}
 }

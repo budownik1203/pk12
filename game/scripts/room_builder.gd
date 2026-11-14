@@ -243,6 +243,14 @@ static func _physics_props(world: Node3D, bodies: Array) -> void:
 	bodies.append(_rigid_box(world, "skrzynka_mala_b", Vector3(1.3, 1.6, -1.5), Vector3(0.4, 0.4, 0.4), 6.0, crate))
 	bodies.append(_rigid_box(world, "deska", Vector3(1.4, 0.05, 3.0), Vector3(1.8, 0.04, 0.16), 3.0, wood))
 	# ciężka skrzynia w ciemnej komórce
+	# worek treningowy: ciężki, stojący, do próbowania ciosów (ma punkty życia)
+	var bag_mat := StandardMaterial3D.new()
+	bag_mat.albedo_color = Color(0.32, 0.12, 0.09)
+	bag_mat.roughness = 0.9
+	var bag := _rigid_cylinder(world, "worek_treningowy", Vector3(2.7, 0.62, 2.3), 0.2, 1.2, 40.0, bag_mat, false)
+	bag.set_meta("hp", 500.0)
+	bag.set_meta("hit_sound", "land")
+	bodies.append(bag)
 	bodies.append(_rigid_box(world, "skrzynia_komorka", Vector3(6.2, 0.45, -1.8), Vector3(1.0, 0.9, 0.7), 70.0, crate))
 	# beczka
 	bodies.append(_rigid_cylinder(world, "beczka", Vector3(3.2, 0.45, 2.3), 0.29, 0.9, 25.0, metal, false))

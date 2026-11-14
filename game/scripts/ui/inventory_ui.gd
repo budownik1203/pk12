@@ -131,15 +131,19 @@ func _layout() -> void:
 	var bottom_limit := size.y - 120.0
 
 	var y := float(TOP + 36)
-	# obie ręce w jednym wierszu: lewa po lewej, prawa po prawej
-	var rows: int = inv.SLOT_ORDER.size() - 1
+	# ręce w jednym wierszu: lewa, oburącz, prawa
+	var rows: int = inv.SLOT_ORDER.size() - 2
 	var slot_h := clampf((size.y - 44.0 - y) / rows - 4.0, 40.0, SLOT_H)
+	var third := (SLOT_W - 8.0) / 3.0
 	for s in inv.SLOT_ORDER:
 		if s == inv.LEFT_HAND:
-			slot_rects[s] = Rect2(SLOT_X, y, SLOT_W / 2.0 - 3.0, slot_h)
+			slot_rects[s] = Rect2(SLOT_X, y, third, slot_h)
+			continue
+		if s == inv.TWO_HANDS:
+			slot_rects[s] = Rect2(SLOT_X + third + 4.0, y, third, slot_h)
 			continue
 		if s == inv.HAND:
-			slot_rects[s] = Rect2(SLOT_X + SLOT_W / 2.0 + 3.0, y, SLOT_W / 2.0 - 3.0, slot_h)
+			slot_rects[s] = Rect2(SLOT_X + (third + 4.0) * 2.0, y, third, slot_h)
 		else:
 			slot_rects[s] = Rect2(SLOT_X, y, SLOT_W, slot_h)
 		y += slot_h + 4
@@ -391,7 +395,10 @@ func _draw_slot(s: String, r: Rect2) -> void:
 	_text(r.position + Vector2(8, 17), ItemDB.slot_name(s), 13, C_DIM)
 	if it != null:
 		var col: Color = C_TEXT if not it.pending else C_DIM
-		_text(r.position + Vector2(8, r.size.y - 9), it.display_name(), 16, col, r.size.x - 16)
+		var nm: String = it.display_name() if r.size.x > 120.0 else ItemDB.short_name_of(it.def_id)
+		if it.count > 1:
+			nm += " ×%d" % it.count
+		_text(r.position + Vector2(8, r.size.y - 9), nm, 16 if r.size.x > 120.0 else 13, col, r.size.x - 12)
 	elif reserved:
 		_text(r.position + Vector2(8, r.size.y - 9), "…", 16, C_DIM)
 	else:

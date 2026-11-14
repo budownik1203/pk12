@@ -25,6 +25,7 @@ const MARKER_RANGE := 3.0
 const LEVER_RATE := 0.005          # postęp na piksel w dół (narzędzie poziomu 3, ramię 0,6 m)
 const WHEEL_TURN := 1.0 / 12.0     # obrót na jeden ząbek kółka
 const STRIKE_COOLDOWN := 0.45      # sekundy między uderzeniami młotka
+const TWO_HAND_LEVER := 1.3        # chwyt oburącz przy dźwigni
 const SWING_HIT := 0.09            # od kliknięcia do trafienia obuchem w gwóźdź
 const SWING_HOLD := 0.16           # do tej chwili młotek leży na gwoździu
 const SWING_END := 0.42            # do tej chwili wraca do tyłu
@@ -178,8 +179,8 @@ func _physics_process(delta: float) -> void:
 		if not nail_point.enabled or not _is_nails(hand(nail_side)) or cam_pos.distance_to(nail_point.world_pos()) > REACH + 0.3:
 			nail_point = null
 	if active == null and nail_point == null:
-		var grabbing: bool = main.interaction != null and main.interaction.grab_mode
-		candidate = null if grabbing else find_candidate()
+		var busy: bool = (main.interaction != null and main.interaction.grab_mode) or (main.combat != null and main.combat.active)
+		candidate = null if busy else find_candidate()
 	_update_markers()
 	_update_hud()
 	_update_pose()
@@ -288,6 +289,8 @@ func mouse(rel: Vector2) -> void:
 		"lever":
 			if rel.y > 0.0:
 				var amount := rel.y * LEVER_RATE * (lvl / 3.0) * arm_factor(it)
+				if main.inventory.hands_two():
+					amount *= TWO_HAND_LEVER  # oburącz łom podważa mocniej
 				_phase = fmod(_phase + rel.y * 0.006, 1.0)
 				active.owner.work_apply(active, {"type": "lever", "amount": amount, "tool": it})
 		"rotate":
@@ -405,6 +408,8 @@ func _make_marker() -> MeshInstance3D:
 ## Dłonie idą do punktu pracy: ręka z narzędziem na punkt; przy wbijaniu jedna
 ## przytrzymuje gwóźdź, a druga z młotkiem wisi nad nim i opada przy uderzeniu.
 func _update_pose() -> void:
+	if main.combat != null and main.combat.active:
+		return  # w walce dłonie ustawia system walki
 	var player = main.player
 	var targets := {"l": null, "r": null}
 	var rots := {"l": null, "r": null}

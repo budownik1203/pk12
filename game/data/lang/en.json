@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab mode (LMB grabs, RMB throws) · F use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop from right / left hand · X flashlight\nLMB: left hand · RMB: right hand (hold: work with tool) · O highlights · numpad 0 bars · F5 save · F9 load · F6 language · F10 data",
+	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab mode (LMB grabs, RMB throws) · wheel click: combat (LMB attack, RMB guard, RMB+LMB shove) · Z two-handed grip\nF use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop right / left · X flashlight · LMB / RMB: left / right hand · O highlights · numpad 0 bars · F5 / F9 save / load",
 	"STYLE_SOFT": "Soft PS1",
 	"STYLE_CLEAR": "Classic PS1",
 	"STYLE_RAW": "Raw PS1",
@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 4.2 · sound, PS1, two-handed planks",
+	"DEV_BUILD": "PSK-12 · build 4.3 · combat and two-handed grip",
 	"DEV_STAMINA": "Stamina: %d",
 	"DEV_HELD": "Holding: %s (%.1f kg)",
 	"INV_TITLE_BODY": "ON BODY",
@@ -102,5 +102,12 @@
 	"MSG_BARS_OFF": "Progress bars off (numpad 0)",
 	"INV_ERR_BULKY": "Too big for a bag: carry it in your hands",
 	"INV_ERR_HANDS_FULL": "You need both hands free",
-	"INV_ERR_TOO_MANY": "You can't carry any more"
+	"INV_ERR_TOO_MANY": "You can't carry any more",
+	"MSG_COMBAT_ON": "Combat mode: left attacks, right guards, right + left shoves (wheel click turns off)",
+	"MSG_COMBAT_OFF": "Combat mode off",
+	"MODE_COMBAT": "COMBAT",
+	"MSG_CANT_FIGHT_BULKY": "You can't fight carrying planks",
+	"MSG_TOO_TIRED": "Too tired",
+	"MSG_HIT": "Hit: %.0f",
+	"NOISE_HIT": "blow"
 }

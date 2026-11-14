@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD ruch · Shift sprint · Ctrl kucanie · Q / E wychylanie · Spacja skok i wspinanie\nT tryb chwytania (LPM chwyta, PPM rzuca) · F użycie i podnoszenie · Tab ekwipunek · 1–9 skróty · G / Shift+G upuść z prawej / lewej ręki · X latarka\nLPM: lewa ręka · PPM: prawa ręka (przytrzymaj: praca narzędziem) · O podświetlenie · numpad 0 paski · F5 zapis · F9 odczyt · F6 język · F10 dane",
+	"HINTS": "WASD ruch · Shift sprint · Ctrl kucanie · Q / E wychylanie · Spacja skok i wspinanie\nT tryb chwytania (LPM chwyta, PPM rzuca) · kółko: tryb walki (LPM cios, PPM garda, PPM+LPM odepchnięcie) · Z chwyt oburącz\nF użycie i podnoszenie · Tab ekwipunek · 1–9 skróty · G / Shift+G upuść z prawej / lewej · X latarka · LPM / PPM: lewa / prawa ręka · O podświetlenie · numpad 0 paski · F5 / F9 zapis / odczyt",
 	"STYLE_SOFT": "Łagodny PS1",
 	"STYLE_CLEAR": "Klasyczny PS1",
 	"STYLE_RAW": "Surowy PS1",
@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Bryły aktywne: %d z %d",
 	"DEV_STYLE": "Styl: %s",
 	"DEV_ENGINE": "Godot %s · fizyka: %s",
-	"DEV_BUILD": "PSK-12 · build 4.2 · dźwięk, PS1, deski oburącz",
+	"DEV_BUILD": "PSK-12 · build 4.3 · walka i chwyt oburącz",
 	"DEV_STAMINA": "Wytrzymałość: %d",
 	"DEV_HELD": "Trzymasz: %s (%.1f kg)",
 	"INV_TITLE_BODY": "NA CIELE",
@@ -102,5 +102,12 @@
 	"MSG_BARS_OFF": "Paski postępu wyłączone (numpad 0)",
 	"INV_ERR_BULKY": "Za duże do plecaka: nosi się w rękach",
 	"INV_ERR_HANDS_FULL": "Potrzebujesz obu wolnych rąk",
-	"INV_ERR_TOO_MANY": "Więcej nie uniesiesz"
+	"INV_ERR_TOO_MANY": "Więcej nie uniesiesz",
+	"MSG_COMBAT_ON": "Tryb walki: lewy cios, prawy garda, prawy + lewy odepchnięcie (kółko wyłącza)",
+	"MSG_COMBAT_OFF": "Tryb walki wyłączony",
+	"MODE_COMBAT": "WALKA",
+	"MSG_CANT_FIGHT_BULKY": "Z deskami w rękach nie powalczysz",
+	"MSG_TOO_TIRED": "Brak sił",
+	"MSG_HIT": "Trafienie: %.0f",
+	"NOISE_HIT": "cios"
 }

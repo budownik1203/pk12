@@ -57,6 +57,7 @@ static func _finish(main: Node, limit: float = 8.0) -> void:
 static func _hand(main: Node, def_id: String, props: Dictionary = {}, side: String = "r", count: int = 1):
 	var inv = main.inventory
 	inv.cancel_all()
+	inv.slots.erase("oburacz")
 	var slot: String = inv.hand_slot(side)
 	inv.slots.erase(slot)
 	var it = ItemScript.new(def_id, count)
@@ -696,6 +697,7 @@ static func run_tests(main: Node) -> void:
 
 	# 17a. deski oburącz: nie do plecaka, stos zależny od siły, upuszczone osobno
 	inv.cancel_all()
+	inv.slots.erase("oburacz")
 	inv.slots.erase("w_reku")
 	inv.slots.erase("w_lewej")
 	_place(main, Vector3(-0.6, 0.02, 2.35), 0.0)
@@ -799,6 +801,77 @@ static func run_tests(main: Node) -> void:
 	var lean := Vector2(pel.x - feet_mid.x, pel.z - feet_mid.z).length()
 	if lean > 0.06:
 		errors.append("17e: stopy %.2f m od pionu pod miednicą" % lean)
+
+	# 18a. chwyt oburącz: łom z prawej ręki na oba, lewa ręka zajęta, mocniejsza dźwignia
+	inv.cancel_all()
+	inv.slots.erase("oburacz")
+	inv.slots.erase("w_lewej")
+	var crow = _hand(main, "lom")
+	if not inv.toggle_two_hands():
+		errors.append("18a: Z nie przekłada łomu na oburącz (%s)" % inv.last_error)
+	await _finish(main)
+	if inv.slots.get("oburacz") != crow or inv.hand("r") != crow or inv.hand("l") != null or not inv.hands_two():
+		errors.append("18a: łom nie jest trzymany oburącz")
+	if inv.slot_accepts(ItemScript.new("bandaz"), "w_lewej"):
+		errors.append("18a: przy chwycie oburącz lewa ręka przyjmuje rzeczy")
+	if inv.slot_accepts(ItemScript.new("srubokret"), "oburacz"):
+		errors.append("18a: śrubokręt da się chwycić oburącz")
+	inv.toggle_two_hands()
+	await _finish(main)
+	if inv.slots.get("w_reku") != crow:
+		errors.append("18a: drugie Z nie wraca łomu do prawej ręki")
+	inv.toggle_two_hands()
+	await _finish(main)
+	# 18b. walka: kółko włącza, cios łomem trafia worek, garda, odepchnięcie
+	var cb = main.combat
+	var wbag := _body(main, "worek_treningowy")
+	_place(main, wbag.global_position + Vector3(-0.85, 0.0, 0.0) - Vector3(0, wbag.global_position.y - 0.02, 0), -90.0)
+	await _wait(tree, 4)
+	_aim(main, wbag.global_position + Vector3(0, 0.25, 0))
+	player.stamina = player.STAMINA_MAX
+	cb.toggle()
+	if not cb.active or main.work.candidate != null:
+		errors.append("18b: kółko nie włącza trybu walki")
+	cb.attack()
+	if cb.state != "idle":
+		errors.append("18b: cios przed przełożeniem chwytu")
+	await _wait(tree, 25)
+	var hp_before: float = wbag.get_meta("hp")
+	var bag_pos := wbag.global_position
+	var stam_before: float = player.stamina
+	cb.press(MOUSE_BUTTON_LEFT)
+	await _wait(tree, 60)
+	var bag_hp: float = wbag.get_meta("hp")
+	if bag_hp >= hp_before:
+		errors.append("18b: cios łomem nie trafił worka (hp %.0f)" % bag_hp)
+	elif absf((hp_before - bag_hp) - 32.0 * cb.TWO_HAND_DAMAGE) > 0.5:
+		errors.append("18b: oburącz cios zadał %.1f zamiast %.1f" % [hp_before - bag_hp, 32.0 * cb.TWO_HAND_DAMAGE])
+	if player.stamina >= stam_before:
+		errors.append("18b: cios nie kosztuje wytrzymałości")
+	print("walka: cios łomem oburącz %.0f, worek przesunięty o %.2f m" % [hp_before - bag_hp, wbag.global_position.distance_to(bag_pos)])
+	cb.press(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 5)
+	if not cb.blocking or player.work_targets.get("r") == null:
+		errors.append("18b: prawy przycisk nie podnosi gardy")
+	var bag_before_shove := wbag.global_position
+	cb.press(MOUSE_BUTTON_LEFT)
+	await _wait(tree, 30)
+	cb.release(MOUSE_BUTTON_RIGHT)
+	if cb.blocking:
+		errors.append("18b: puszczenie prawego nie opuszcza gardy")
+	var shoved := false
+	for h in cb.hits:
+		if h.get("shove", false):
+			shoved = true
+	if not shoved:
+		errors.append("18b: odepchnięcie nic nie pchnęło")
+	print("walka: odepchnięcie przesunęło worek o %.2f m" % wbag.global_position.distance_to(bag_before_shove))
+	cb.toggle()
+	if cb.active:
+		errors.append("18b: kółko nie wyłącza trybu walki")
+	inv.slots.erase("oburacz")
+	crow.slot = ""
+	await _wait(tree, 240)  # pchnięty worek i to, w co uderzył, musi się uspokoić
 
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
@@ -1022,6 +1095,26 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	player.camera.make_current()
 	ext.queue_free()
 	await _wait(tree, 30)
+	# kadry: walka łomem oburącz (postawa, zamach, garda) i pięściami
+	var cbt = main.combat
+	var wb := _body(main, "worek_treningowy")
+	_place(main, wb.global_position + Vector3(-0.9, 0.0, 0.0) - Vector3(0, wb.global_position.y - 0.02, 0), -90.0, -5.0)
+	_hand(main, "lom")
+	inv.toggle_two_hands()
+	await _finish(main)
+	cbt.toggle()
+	await _wait(tree, 30)
+	await _shot(main, dir + "/walka_postawa.png")
+	cbt.press(MOUSE_BUTTON_LEFT)
+	await _shot(main, dir + "/walka_zamach.png", 18)
+	await _wait(tree, 40)
+	cbt.press(MOUSE_BUTTON_RIGHT)
+	await _shot(main, dir + "/walka_garda.png", 20)
+	cbt.release(MOUSE_BUTTON_RIGHT)
+	inv.slots.erase("oburacz")
+	await _shot(main, dir + "/walka_piesci.png", 20)
+	cbt.toggle()
+	await _wait(tree, 20)
 	# kadr: styl klasyczny PS1
 	_place(main, Vector3(-1.0, 0.02, 2.6), -35.0, -8.0)
 	main.set_style(1, false)
