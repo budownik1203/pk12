@@ -20,7 +20,7 @@ const SCREW_TURNS := 4.0            # pełne obroty na wkręt (narzędzie poziom
 const HOLE_WEAR := 0.35             # każde wykręcenie osłabia otwór
 const STRIP_BELOW := 0.3            # poniżej tego stanu końcówka zrywa łby
 const STRIP_CHANCE := 0.08          # na obrót
-const LATCH_ANGLE := 0.04           # radiany: tak blisko zamknięcia drzwi zaskakują
+const LATCH_ANGLE := 0.08           # radiany: tak blisko zamknięcia drzwi zaskakują (ok. 4,5°)
 const HANDLE_PULL := 0.17           # radiany pochylenia wzroku, by nacisnąć klamkę ręką
 const PRY_LATCHED := 1.2
 const PRY_LOCKED := 2.0
@@ -241,12 +241,19 @@ func toggle_lock() -> bool:
 
 
 ## Pchnięcie skrzydła od gracza (otwiera albo domyka, zależnie od strony).
+## Otwarcie po naciśnięciu klamki: skrzydło idzie zawsze do pokoju (jedyna strona,
+## w którą się otwiera); z komórki to pchnięcie, z pokoju pociągnięcie do siebie.
 func _push_away() -> void:
 	var edge := door.global_transform * Vector3(0, 0, 0.4)
-	var dir: Vector3 = edge - main.player.global_position
-	dir.y = 0.0
 	door.sleeping = false
-	door.apply_impulse(dir.normalized() * 14.0, edge - door.global_position)
+	door.apply_impulse(Vector3.LEFT * 20.0, edge - door.global_position)
+
+
+## Czy skrzydło porusza się w stronę framugi (krawędź drzwi jedzie w +X).
+func _swinging_shut() -> bool:
+	var edge := door.global_transform * Vector3(0, 0, 0.4)
+	var v: Vector3 = door.angular_velocity.cross(edge - door.global_position)
+	return v.x > 0.05
 
 
 ## Chwyt T na drzwiach z zatrzaskiem: pochylenie wzroku naciska klamkę.
@@ -267,9 +274,14 @@ func _physics_process(delta: float) -> void:
 		_handle_angle = move_toward(_handle_angle, 0.0, 3.0 * delta)
 	for h in _handles:
 		h.rotation.x = -_handle_angle
-	# domknięte drzwi zaskakują
-	if not latched and _relatch_block <= 0.0 and main.interaction.held != door:
-		if door_angle() < LATCH_ANGLE and door.angular_velocity.length() < 0.8:
+	# domknięte drzwi zaskakują: wystarczy machnąć nimi w stronę framugi, także
+	# trzymając je w ręce (wtedy chwyt puszcza); otwarcie wymaga znów klamki
+	if not latched and _relatch_block <= 0.0 and door_angle() < LATCH_ANGLE:
+		var held: bool = main.interaction.held == door
+		var closing: bool = _swinging_shut() or (not held and door.angular_velocity.length() < 0.6)
+		if closing:
+			if main.interaction.held == door:
+				main.interaction.release()
 			_set_latched(true)
 			main.noise.emit_noise(door.global_position, 35.0, "NOISE_DOOR_CLICK")
 

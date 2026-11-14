@@ -212,8 +212,8 @@ static func _door(world: Node3D, bodies: Array) -> void:
 	var size := Vector3(0.04, 2.04, 0.94)
 	var hinge_z := 0.72
 	var center := Vector3(ROOM_W / 2.0, 0.02 + size.y / 2.0, hinge_z + size.z / 2.0 + 0.005)
-	var door := _rigid("drzwi_komorka", center, 22.0)
-	door.angular_damp = 1.5
+	var door := _rigid("drzwi_komorka", center, 34.0)
+	door.angular_damp = 4.0  # ciężkie skrzydło szybko traci rozpęd
 	_add_box(door, size, wood)
 	world.add_child(door)
 	var joint := HingeJoint3D.new()
@@ -223,8 +223,10 @@ static func _door(world: Node3D, bodies: Array) -> void:
 	world.add_child(joint)
 	joint.node_a = joint.get_path_to(door)
 	joint.set_flag(HingeJoint3D.FLAG_USE_LIMIT, true)
-	joint.set_param(HingeJoint3D.PARAM_LIMIT_LOWER, deg_to_rad(-100.0))
-	joint.set_param(HingeJoint3D.PARAM_LIMIT_UPPER, deg_to_rad(100.0))
+	# drzwi otwierają się tylko do pokoju (ujemny kąt zawiasu); w zamkniętej pozycji
+	# opierają się o ościeżnicę i nie przelatują na drugą stronę
+	joint.set_param(HingeJoint3D.PARAM_LIMIT_LOWER, deg_to_rad(-105.0))
+	joint.set_param(HingeJoint3D.PARAM_LIMIT_UPPER, 0.0)
 	bodies.append(door)
 
 
