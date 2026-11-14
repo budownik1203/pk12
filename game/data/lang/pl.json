@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD ruch · Shift sprint · Spacja skok · T latarka\nF1 / F2 / F3 styl · F4 bez efektów · F5 zapis · F9 odczyt\nF6 język · F10 dane deweloperskie · F11 okno · Esc mysz",
+	"HINTS": "WASD ruch · Shift sprint · Ctrl kucanie · Q / E wychylanie · Spacja skok i wspinanie\nT chwyt i puszczenie (kółko: bliżej, dalej · lewy przycisk: rzut) · F użycie · X latarka\nF1–F4 styl · F5 zapis · F9 odczyt · F6 język · F10 dane · F11 okno · Esc mysz",
 	"STYLE_SOFT": "Łagodny",
 	"STYLE_CLEAR": "Wyraźny",
 	"STYLE_RAW": "Surowy",
@@ -15,5 +15,7 @@
 	"DEV_BODIES": "Bryły aktywne: %d z %d",
 	"DEV_STYLE": "Styl: %s",
 	"DEV_ENGINE": "Godot %s · fizyka: %s",
-	"DEV_BUILD": "PSK-12 · build 1 · pokój testowy"
+	"DEV_BUILD": "PSK-12 · build 2a · ruch i chwyt",
+	"DEV_STAMINA": "Wytrzymałość: %d",
+	"DEV_HELD": "Trzymasz: %s (%.1f kg)"
 }

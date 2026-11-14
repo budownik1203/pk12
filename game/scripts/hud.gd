@@ -1,10 +1,48 @@
 extends CanvasLayer
-## Interfejs builda 1 w pełnej rozdzielczości ekranu: podpowiedzi klawiszy,
-## komunikaty, celownik-kropka i ekran deweloperski.
+## Interfejs w pełnej rozdzielczości ekranu: celownik zmieniający się w dłoń,
+## pasek wytrzymałości, podpowiedzi klawiszy, komunikaty, ekran deweloperski.
+
+const ICON_SCALE := 3
+
+const HAND_OPEN := [
+	"..#.#.#....",
+	"..#.#.#.#..",
+	"..#.#.#.#..",
+	"..#.#.#.#..",
+	"#.#######..",
+	"#.#######..",
+	"#########..",
+	"#########..",
+	".########..",
+	".#######...",
+	"..######...",
+	"..#####....",
+]
+const HAND_FIST := [
+	"...........",
+	"...........",
+	"...........",
+	"..#.#.#.#..",
+	".########..",
+	"#########..",
+	"#########..",
+	"#########..",
+	".########..",
+	".#######...",
+	"..######...",
+	"..#####....",
+]
 
 var hints: Label
 var message: Label
 var dev: Label
+var _dot: ColorRect
+var _icon: TextureRect
+var _key: Label
+var _stamina_back: ColorRect
+var _stamina_fill: ColorRect
+var _textures := {}
+var _cursor := ""
 var _message_time := 0.0
 
 
@@ -23,14 +61,55 @@ func _init() -> void:
 
 	dev = _label(20)
 	dev.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT, Control.PRESET_MODE_MINSIZE, 24)
-	dev.visible = true
 
-	var dot := ColorRect.new()
-	dot.color = Color(1, 1, 1, 0.55)
-	dot.custom_minimum_size = Vector2(4, 4)
-	dot.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
-	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(dot)
+	# celownik: kropka, dłoń otwarta, dłoń zaciśnięta
+	var center := Control.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+
+	_dot = ColorRect.new()
+	_dot.color = Color(1, 1, 1, 0.55)
+	_dot.size = Vector2(4, 4)
+	_dot.position = Vector2(-2, -2)
+	_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(_dot)
+
+	_textures["hand"] = _pixel_icon(HAND_OPEN)
+	_textures["fist"] = _pixel_icon(HAND_FIST)
+	_icon = TextureRect.new()
+	_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_icon.stretch_mode = TextureRect.STRETCH_SCALE
+	_icon.size = Vector2(13, 14) * ICON_SCALE
+	_icon.position = -_icon.size / 2.0
+	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_icon.visible = false
+	center.add_child(_icon)
+
+	_key = _label(22)
+	_key.position = Vector2(26, 6)
+	_key.visible = false
+	remove_child(_key)
+	center.add_child(_key)
+
+	# pasek wytrzymałości: widoczny tylko, gdy nie jest pełny
+	var bottom := Control.new()
+	bottom.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bottom)
+	_stamina_back = ColorRect.new()
+	_stamina_back.color = Color(0, 0, 0, 0.55)
+	_stamina_back.size = Vector2(244, 10)
+	_stamina_back.position = Vector2(-122, -46)
+	bottom.add_child(_stamina_back)
+	_stamina_fill = ColorRect.new()
+	_stamina_fill.color = Color(0.82, 0.78, 0.62, 0.9)
+	_stamina_fill.size = Vector2(240, 6)
+	_stamina_fill.position = Vector2(2, 2)
+	_stamina_back.add_child(_stamina_fill)
+	_stamina_back.visible = false
+
+	set_cursor("dot")
 
 
 func _label(font_size: int) -> Label:
@@ -43,6 +122,53 @@ func _label(font_size: int) -> Label:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
 	return l
+
+
+## Ikona z mapy znaków: biały kształt z ciemnym obrysem o grubości 1 piksela.
+func _pixel_icon(rows: Array) -> ImageTexture:
+	var h := rows.size()
+	var w: int = rows[0].length()
+	var img := Image.create(w + 2, h + 2, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for y in h:
+		for x in w:
+			if rows[y][x] == "#":
+				for dy in [-1, 0, 1]:
+					for dx in [-1, 0, 1]:
+						if img.get_pixel(x + 1 + dx, y + 1 + dy).a < 0.5:
+							img.set_pixel(x + 1 + dx, y + 1 + dy, Color(0, 0, 0, 0.75))
+	for y in h:
+		for x in w:
+			if rows[y][x] == "#":
+				img.set_pixel(x + 1, y + 1, Color(0.95, 0.93, 0.86, 1.0))
+	return ImageTexture.create_from_image(img)
+
+
+## state: "dot", "hand" (można chwycić), "fist" (trzymasz), "use" (można użyć)
+func set_cursor(state: String) -> void:
+	if state == _cursor:
+		return
+	_cursor = state
+	_dot.visible = state == "dot" or state == "use"
+	_icon.visible = state == "hand" or state == "fist"
+	if _icon.visible:
+		_icon.texture = _textures[state]
+	_key.visible = state == "hand" or state == "use"
+	if state == "hand":
+		_key.text = "T"
+	elif state == "use":
+		_key.text = "F"
+
+
+func cursor_state() -> String:
+	return _cursor
+
+
+func set_stamina(value: float, max_value: float, exhausted: bool) -> void:
+	var ratio := clampf(value / max_value, 0.0, 1.0)
+	_stamina_back.visible = ratio < 0.995
+	_stamina_fill.size.x = 240.0 * ratio
+	_stamina_fill.color = Color(0.72, 0.3, 0.24, 0.9) if exhausted else Color(0.82, 0.78, 0.62, 0.9)
 
 
 func refresh_static() -> void:

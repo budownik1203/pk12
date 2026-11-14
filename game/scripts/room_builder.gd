@@ -1,7 +1,7 @@
 extends RefCounted
 ## Buduje pokój testowy z brył zastępczych: sala główna, ciemna komórka
 ## za ścianką, stół, regał i zestaw brył fizycznych o różnej masie.
-## Zwraca listę brył fizycznych (do zapisu i ekranu deweloperskiego).
+## Zwraca słownik: "bodies" (bryły fizyczne) i "switches" (włączniki światła).
 
 const Tex := preload("res://scripts/textures.gd")
 
@@ -11,14 +11,16 @@ const ROOM_H := 3.0
 const WALL := 0.2
 
 
-static func build(world: Node3D) -> Array:
+static func build(world: Node3D) -> Dictionary:
 	var bodies: Array = []
+	var switches := {}
 	_environment(world)
 	_shell(world)
 	_furniture(world)
-	_lights(world)
+	_lights(world, switches)
 	_physics_props(world, bodies)
-	return bodies
+	_door(world, bodies)
+	return {"bodies": bodies, "switches": switches}
 
 
 static func _environment(world: Node3D) -> void:
@@ -77,18 +79,29 @@ static func _furniture(world: Node3D) -> void:
 		_static_box(world, "RegalPolka", r + Vector3(0, h, 0), Vector3(0.4, 0.04, 1.2), wood)
 
 
-static func _lights(world: Node3D) -> void:
+static func _lights(world: Node3D, switches: Dictionary) -> void:
+	var wall_x := ROOM_W / 2.0
+	# sala: lampa zapalona, włącznik przy drzwiach do komórki
+	_lamp(world, switches, "lampa_sala", Vector3(-0.5, ROOM_H - 0.35, 0), 2.2, 9.5, true,
+			Vector3(wall_x - WALL / 2.0 - 0.015, 1.3, 0.35))
+	# komórka: lampa zgaszona, włącznik po drugiej stronie tej samej ścianki
+	_lamp(world, switches, "lampa_komorka", Vector3(wall_x + 1.5, ROOM_H - 0.35, 0), 1.5, 5.5, false,
+			Vector3(wall_x + WALL / 2.0 + 0.015, 1.3, 0.35))
+
+
+static func _lamp(world: Node3D, switches: Dictionary, id: String, pos: Vector3, energy: float,
+		light_range: float, on: bool, switch_pos: Vector3) -> void:
 	var lamp := OmniLight3D.new()
-	lamp.name = "LampaSufitowa"
-	lamp.position = Vector3(-0.5, ROOM_H - 0.35, 0)
+	lamp.name = id
+	lamp.position = pos
 	lamp.light_color = Color(1.0, 0.86, 0.66)
-	lamp.light_energy = 2.2
-	lamp.omni_range = 9.5
+	lamp.light_energy = energy
+	lamp.omni_range = light_range
 	lamp.omni_attenuation = 1.4
 	lamp.shadow_enabled = true
+	lamp.visible = on
 	world.add_child(lamp)
-	# klosz lampy, żeby było widać, skąd świeci
-	var bulb := MeshInstance3D.new()
+	# żarówka, żeby było widać, skąd świeci
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.09
 	mesh.height = 0.18
@@ -96,12 +109,48 @@ static func _lights(world: Node3D) -> void:
 	mesh.rings = 4
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow.albedo_color = Color(1.0, 0.9, 0.7)
 	mesh.material = glow
+	var bulb := MeshInstance3D.new()
 	bulb.mesh = mesh
-	bulb.position = lamp.position + Vector3(0, 0.12, 0)
+	bulb.position = pos + Vector3(0, 0.12, 0)
 	bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(bulb)
+	# włącznik: płytka na ścianie, obiekt do użycia pod F
+	var plate := StandardMaterial3D.new()
+	plate.albedo_color = Color(0.78, 0.76, 0.68)
+	plate.roughness = 0.8
+	var sw := _static_box(world, "Wlacznik_" + id, switch_pos, Vector3(0.03, 0.12, 0.08), plate)
+	sw.set_meta("switch_id", id)
+	switches[id] = {"light": lamp, "glow": glow, "on": on}
+	apply_switch(switches[id])
+
+
+static func apply_switch(entry: Dictionary) -> void:
+	var on: bool = entry["on"]
+	entry["light"].visible = on
+	entry["glow"].albedo_color = Color(1.0, 0.9, 0.7) if on else Color(0.16, 0.15, 0.13)
+
+
+static func _door(world: Node3D, bodies: Array) -> void:
+	# drzwi do komórki: bryła na zawiasie; na razie bez klamki i zamka
+	var wood := Tex.material("wood", false, 1.0)
+	var size := Vector3(0.04, 2.04, 0.94)
+	var hinge_z := 0.72
+	var center := Vector3(ROOM_W / 2.0, 0.02 + size.y / 2.0, hinge_z + size.z / 2.0 + 0.005)
+	var door := _rigid("drzwi_komorka", center, 22.0)
+	door.angular_damp = 1.5
+	_add_box(door, size, wood)
+	world.add_child(door)
+	var joint := HingeJoint3D.new()
+	joint.name = "ZawiasDrzwi"
+	joint.position = Vector3(ROOM_W / 2.0, center.y, hinge_z)
+	joint.rotation_degrees = Vector3(90, 0, 0)  # oś zawiasu pionowo
+	world.add_child(joint)
+	joint.node_a = joint.get_path_to(door)
+	joint.set_flag(HingeJoint3D.FLAG_USE_LIMIT, true)
+	joint.set_param(HingeJoint3D.PARAM_LIMIT_LOWER, deg_to_rad(-100.0))
+	joint.set_param(HingeJoint3D.PARAM_LIMIT_UPPER, deg_to_rad(100.0))
+	bodies.append(door)
 
 
 static func _physics_props(world: Node3D, bodies: Array) -> void:

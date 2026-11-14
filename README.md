@@ -7,23 +7,30 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 1, pokój testowy
+## Stan: build 2a, ruch i chwyt
 
-Sala z bryłami fizycznymi i ciemna komórka za ścianką. Służy do wyboru stylu graficznego i sprawdzenia fundamentów.
+Pokój testowy z drzwiami na zawiasie, dwiema lampami z włącznikami i bryłami o masie od 0,4 do 70 kg.
 
 | Klawisz | Działanie |
 | --- | --- |
-| WASD, Shift, Spacja | ruch, sprint, skok |
-| T | latarka |
-| F1, F2, F3 | styl: łagodny, wyraźny, surowy |
-| F4 | obraz bez efektów (do porównania) |
+| WASD | ruch (z bezwładnością) |
+| Shift | sprint (zużywa wytrzymałość) |
+| Ctrl | kucanie |
+| Q, E | wychylanie |
+| Spacja | skok; przy przeszkodzie do wysokości klatki piersiowej wspinanie |
+| T | chwyt tego, na co patrzysz (celownik zmienia się w dłoń), drugi raz puszczenie |
+| kółko myszy | przy chwycie: bliżej, dalej |
+| lewy przycisk myszy | przy chwycie: rzut |
+| F | użycie (włącznik światła) |
+| X | latarka |
+| F1 do F4 | styl: łagodny (domyślny), wyraźny, surowy, bez efektów |
 | F5, F9 | zapis, odczyt |
 | F6 | język: polski / angielski |
 | F10 | ekran deweloperski |
 | F11 | okno / pełny ekran |
 | Esc | uwolnienie myszy |
 
-Zrzuty wariantów stylu: `docs/build1/`.
+Zrzuty: `docs/build1/`, `docs/build2a/`.
 
 ## Układ repozytorium
 
@@ -37,4 +44,4 @@ Zrzuty wariantów stylu: `docs/build1/`.
 tools/test.sh /sciezka/do/godot
 ```
 
-Sprawdza: uspokojenie brył, pchanie skrzynki przez gracza, zapis i odczyt stanu, odrzucenie uszkodzonego zapisu, komplet tłumaczeń.
+Sprawdza: uspokojenie brył, bezwładność ruchu, sprint i wytrzymałość, kucanie, wychylanie, wspinanie na stół, pchanie, chwyt i niesienie, wleczenie ciężkiej skrzyni, drzwi na zawiasie, włącznik światła, brak brył wylatujących z pokoju, zapis i odczyt, odrzucenie uszkodzonego zapisu, komplet tłumaczeń.

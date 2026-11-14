@@ -9,12 +9,13 @@ const KEYS := {
 	"move_right": KEY_D,
 	"sprint": KEY_SHIFT,
 	"jump": KEY_SPACE,
-	"flashlight": KEY_T,
-	# zarezerwowane na kolejne buildy:
 	"crouch": KEY_CTRL,
 	"lean_left": KEY_Q,
 	"lean_right": KEY_E,
+	"grab": KEY_T,
 	"interact": KEY_F,
+	"flashlight": KEY_X,
+	# zarezerwowane na kolejne buildy:
 	"inventory": KEY_TAB,
 	"health": KEY_H,
 	"rotate_item": KEY_R,

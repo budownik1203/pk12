@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD move · Shift sprint · Space jump · T flashlight\nF1 / F2 / F3 style · F4 no effects · F5 save · F9 load\nF6 language · F10 developer data · F11 window · Esc mouse",
+	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab and release (wheel: nearer, farther · left button: throw) · F use · X flashlight\nF1–F4 style · F5 save · F9 load · F6 language · F10 data · F11 window · Esc mouse",
 	"STYLE_SOFT": "Soft",
 	"STYLE_CLEAR": "Clear",
 	"STYLE_RAW": "Raw",
@@ -15,5 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 1 · test room"
+	"DEV_BUILD": "PSK-12 · build 2a · movement and grab",
+	"DEV_STAMINA": "Stamina: %d",
+	"DEV_HELD": "Holding: %s (%.1f kg)"
 }

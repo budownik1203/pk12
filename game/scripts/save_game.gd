@@ -13,7 +13,7 @@ static func save(main: Node, path: String = DEFAULT_PATH) -> bool:
 	var player = main.player
 	var data := {
 		"version": VERSION,
-		"build": 1,
+		"build": 2,
 		"style": main.style_index,
 		"locale": TranslationServer.get_locale(),
 		"player": {
@@ -22,9 +22,14 @@ static func save(main: Node, path: String = DEFAULT_PATH) -> bool:
 			"yaw": player.rotation.y,
 			"pitch": player.pitch,
 			"flashlight": player.lamp.visible,
+			"crouching": player.crouching,
+			"stamina": player.stamina,
 		},
+		"switches": {},
 		"bodies": {},
 	}
+	for id in main.switches:
+		data["switches"][id] = main.switches[id]["on"]
 	for body in main.bodies:
 		var q: Quaternion = body.global_transform.basis.get_rotation_quaternion()
 		data["bodies"][body.get_meta("save_id")] = {
@@ -58,10 +63,19 @@ static func load_into(main: Node, path: String = DEFAULT_PATH) -> int:
 		return Result.BAD_FILE
 
 	var player = main.player
-	player.global_position = _to_v3(p.get("position"), player.global_position)
+	player.teleport(_to_v3(p.get("position"), player.global_position))
 	player.velocity = _to_v3(p.get("velocity"), Vector3.ZERO)
 	player.set_view(float(p.get("yaw", 0.0)), float(p.get("pitch", 0.0)))
 	player.lamp.visible = bool(p.get("flashlight", false))
+	player.set_crouched(bool(p.get("crouching", false)))
+	player.stamina = float(p.get("stamina", player.STAMINA_MAX))
+	main.interaction.release()
+
+	var sw = data.get("switches", {})
+	if typeof(sw) == TYPE_DICTIONARY:
+		for id in main.switches:
+			if sw.has(id):
+				main.set_switch(id, bool(sw[id]))
 
 	for body in main.bodies:
 		var b = bodies_data.get(body.get_meta("save_id"))
