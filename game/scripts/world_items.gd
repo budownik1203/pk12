@@ -14,8 +14,26 @@ func setup(world_node: Node3D) -> void:
 	world = world_node
 
 
+static var _library := {}
+
+
+## Siatka modelu z game/models/przedmioty.glb (Blender: assets_src/blender/przedmioty.py).
+static func library_mesh(mesh_name: String) -> Mesh:
+	if _library.is_empty():
+		var scene: Node = load("res://models/przedmioty.glb").instantiate()
+		for child in scene.find_children("*", "MeshInstance3D", true, false):
+			_library[str(child.name)] = (child as MeshInstance3D).mesh
+		scene.free()
+		_library["_loaded"] = null
+	return _library.get(mesh_name)
+
+
 static func make_visual(item) -> MeshInstance3D:
 	var model: Dictionary = item.get_def().get("model", {})
+	if model.has("mesh") and library_mesh(str(model["mesh"])) != null:
+		var lm := MeshInstance3D.new()
+		lm.mesh = library_mesh(str(model["mesh"]))
+		return lm
 	var c: Array = model.get("color", [0.5, 0.5, 0.5])
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(float(c[0]), float(c[1]), float(c[2]))

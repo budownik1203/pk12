@@ -548,6 +548,8 @@ static func run_tests(main: Node) -> void:
 	var nails_before: int = inv.count_of("gwozdzie")
 	for e in 2:
 		var np = _point(main, win, {"slot": 2, "end": e, "nail": 0, "what": "nail"})
+		_place(main, Vector3(np.world_pos().x, 0.02, win.global_position.z - 0.6), 180.0)
+		await _wait(tree, 4)
 		_aim(main, np.world_pos())
 		await _wait(tree, 3)
 		if ws.candidate != np:
@@ -572,6 +574,7 @@ static func run_tests(main: Node) -> void:
 	for k in 5:
 		ws.press("r")
 		ws.release("r")
+	await _wait(tree, 12)  # obuch dochodzi do gwoździa
 	if win.boards[2]["ends"][1]["nails"][1] != 1.0:
 		errors.append("pięć szybkich kliknięć dało %.1f uderzenia zamiast 1" % win.boards[2]["ends"][1]["nails"][1])
 	ws.release("l")
@@ -690,6 +693,112 @@ static func run_tests(main: Node) -> void:
 		errors.append("puszczenie przycisku nie oddało myszy kamerze")
 	await _wait(tree, 120)
 	main.inventory.slots.erase("w_reku")
+
+	# 17a. deski oburącz: nie do plecaka, stos zależny od siły, upuszczone osobno
+	inv.cancel_all()
+	inv.slots.erase("w_reku")
+	inv.slots.erase("w_lewej")
+	_place(main, Vector3(-0.6, 0.02, 2.35), 0.0)
+	await _wait(tree, 4)
+	var planks: Array = []
+	for b in main.world_items.bodies:
+		if b.get_meta("item").def_id == "deska" and b.global_position.distance_to(Vector3(-0.6, 0.1, 3.0)) < 0.6:
+			planks.append(b)
+	if planks.size() < 4:
+		errors.append("17a: w świecie leży %d desek zamiast 4" % planks.size())
+	else:
+		for k in 3:
+			if not inv.pick_up(planks[k]):
+				errors.append("17a: deska %d nie weszła do rąk (%s)" % [k, inv.last_error])
+			await _finish(main)
+		var held_planks = inv.hand("r")
+		if held_planks == null or held_planks.def_id != "deska" or held_planks.count != 3:
+			errors.append("17a: w rękach nie ma stosu 3 desek")
+		if inv.pick_up(planks[3]) or inv.last_error != "INV_ERR_TOO_MANY":
+			errors.append("17a: siła 5 pozwoliła unieść czwartą deskę")
+		player.strength = 8
+		if inv.bulky_limit(held_planks) != 4:
+			errors.append("17a: siła 8 nie daje 4 desek (%d)" % inv.bulky_limit(held_planks))
+		player.strength = 5
+		if inv.can_place_in_grid(held_planks, inv.worn_grids()[0], Vector2i.ZERO, 0):
+			errors.append("17a: deska zmieściła się w siatce")
+		if inv.slot_accepts(ItemScript.new("bandaz"), "w_lewej"):
+			errors.append("17a: z deskami w rękach lewa ręka przyjmuje inne rzeczy")
+		var one = inv.take_hand("r")
+		if one == null or one.count != 1 or held_planks.count != 2:
+			errors.append("17a: przyłożenie nie zabiera jednej deski ze stosu")
+		held_planks.count = 3
+		var before_world := 0
+		for b in main.world_items.bodies:
+			if b.get_meta("item").def_id == "deska":
+				before_world += 1
+		inv.move_to_world(held_planks)
+		await _finish(main)
+		var after_world := 0
+		for b in main.world_items.bodies:
+			if b.get_meta("item").def_id == "deska":
+				after_world += 1
+		if after_world != before_world + 3 or inv.hand("r") != null:
+			errors.append("17a: upuszczony stos nie spadł jako 3 osobne deski (%d -> %d)" % [before_world, after_world])
+	await _wait(tree, 60)
+	# 17b. tryb chwytania: T włącza, lewy przycisk trzyma, puszczenie puszcza; rzut bez wirowania
+	var ia = main.interaction
+	var crate: RigidBody3D = null
+	for b in main.bodies:
+		if b is RigidBody3D and not b.freeze and b.mass < 10.0 and b.global_position.distance_to(player.global_position) < 6.0:
+			crate = b
+			break
+	if crate != null:
+		_place(main, crate.global_position + Vector3(0, 0, 1.0) - Vector3(0, crate.global_position.y - 0.02, 0), 0.0)
+		await _wait(tree, 4)
+		_aim(main, crate.global_position)
+		ia.toggle_grab_mode()
+		await _wait(tree, 3)
+		if ia.focus_kind != "grab" or not ia.grab_press() or ia.held != crate:
+			errors.append("17b: lewy przycisk w trybie chwytania nie chwyta (%s)" % ia.focus_kind)
+		await _wait(tree, 20)
+		ia.throw_held()
+		await _wait(tree, 2)
+		if ia.held != null:
+			errors.append("17b: rzut nie puścił przedmiotu")
+		if crate.angular_velocity.length() > 5.0:
+			errors.append("17b: rzucony przedmiot wiruje (%.1f rad/s)" % crate.angular_velocity.length())
+		ia.toggle_grab_mode()
+		if ia.grab_mode:
+			errors.append("17b: T nie wyłącza trybu chwytania")
+	else:
+		errors.append("17b: brak lekkiej bryły do chwycenia")
+	await _wait(tree, 60)
+	# 17c. kolory znaczników: dokręcony wkręt na czerwono, luźny na niebiesko, przyłożenie na żółto
+	var zp = ds.parts["zamek"]
+	var zsc: Dictionary = zp["screws"][0]
+	var saved_sc := zsc.duplicate()
+	var saved_hole: int = zp["holes"][0]
+	zp["holes"][0] = 0
+	zsc["in"] = true
+	zsc["t"] = 1.0
+	if ws.category(zp["points"][0]) != "remove":
+		errors.append("17c: dokręcony wkręt nie jest czerwony")
+	zsc["t"] = 0.5
+	if ws.category(zp["points"][0]) != "mount":
+		errors.append("17c: luźny wkręt nie jest niebieski")
+	zp["screws"][0] = saved_sc
+	zp["holes"][0] = saved_hole
+	if ws.category(win.boards[0]["points"][0]) != "place":
+		errors.append("17c: miejsce na deskę nie jest żółte")
+	# 17d. dźwięki: młotek, dobity gwóźdź, dokręcony wkręt, kroki
+	for snd in ["hammer", "nail_done", "screw_tight", "pry", "crack", "place"]:
+		if main.sound.count(snd) == 0:
+			errors.append("17d: nie zagrał dźwięk " + snd)
+	var snd_text := "hammer %d, nail_done %d, screw_tight %d, step %d" % [main.sound.count("hammer"), main.sound.count("nail_done"), main.sound.count("screw_tight"), main.sound.count("step")]
+	print("dźwięki: " + snd_text)
+	# 17e. nogi pod miednicą: stojąc, stopy nie wystają przed tułów
+	await _wait(tree, 30)
+	var pel: Vector3 = player.body.joints["miednica"]
+	var feet_mid: Vector3 = (player.body.joints["stopa_l"] + player.body.joints["stopa_r"]) / 2.0
+	var lean := Vector2(pel.x - feet_mid.x, pel.z - feet_mid.z).length()
+	if lean > 0.06:
+		errors.append("17e: stopy %.2f m od pionu pod miednicą" % lean)
 
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
@@ -877,13 +986,48 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	var np = _point(main, win, {"slot": 0, "end": 1, "nail": 0, "what": "nail"})
 	win.boards[0]["ends"][1]["nails"][0] = 1.0
 	win._refresh(0)
+	_place(main, Vector3(np.world_pos().x - 0.25, 0.02, wc.z - 0.62), 180.0)
 	_aim(main, np.world_pos())
 	await _wait(tree, 3)
 	ws.press("l")
 	await _wait(tree, 20)
 	await _shot(main, dir + "/okno_mlotek.png")
+	ws.press("r")
+	await _shot(main, dir + "/okno_mlotek_uderzenie.png", 7)
+	ws.release("r")
+	await _wait(tree, 30)
 	ws.release("l")
 	inv.slots.erase("w_lewej")
+	# kadr: postać z zewnątrz (nogi, sylwetka), stos desek w rękach
+	inv.slots.erase("w_reku")
+	var boards = ItemScript.new("deska", 3)
+	inv.slots["w_reku"] = boards
+	boards.slot = "w_reku"
+	_place(main, Vector3(0.5, 0.02, 1.0), 0.0, -5.0)
+	await _wait(tree, 30)
+	await _shot(main, dir + "/deski_oburacz.png")
+	var ext := Camera3D.new()
+	main.world.add_child(ext)
+	ext.global_position = player.global_position + Vector3(1.6, 1.3, -1.9)
+	ext.look_at(player.global_position + Vector3(0, 0.9, 0))
+	ext.make_current()
+	await _shot(main, dir + "/postac_z_zewnatrz.png")
+	inv.slots.erase("w_reku")
+	Input.action_press("move_forward")
+	await _wait(tree, 25)
+	ext.global_position = player.global_position + Vector3(2.2, 1.1, 0.4)
+	ext.look_at(player.global_position + Vector3(0, 0.85, 0))
+	await _shot(main, dir + "/postac_chod_z_boku.png")
+	Input.action_release("move_forward")
+	player.camera.make_current()
+	ext.queue_free()
+	await _wait(tree, 30)
+	# kadr: styl klasyczny PS1
+	_place(main, Vector3(-1.0, 0.02, 2.6), -35.0, -8.0)
+	main.set_style(1, false)
+	await _wait(tree, 10)
+	await _shot(main, dir + "/styl_ps1_klasyczny.png")
+	main.set_style(0, false)
 	# kadr 9: zamek na drzwiach od strony komórki, wkręcanie śrubokrętem
 	var ds = main.door_sys
 	main.set_switch("lampa_komorka", true)
@@ -911,9 +1055,9 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	tree.quit(0)
 
 
-static func _shot(main: Node, path: String) -> void:
+static func _shot(main: Node, path: String, frames: int = 10) -> void:
 	var tree := main.get_tree()
-	for k in 10:
+	for k in frames:
 		await tree.process_frame
 	await RenderingServer.frame_post_draw
 	main.get_viewport().get_texture().get_image().save_png(path)

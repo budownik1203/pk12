@@ -17,18 +17,23 @@ const WorldItemsScript := preload("res://scripts/world_items.gd")
 const InventoryUIScript := preload("res://scripts/ui/inventory_ui.gd")
 const WorkScript := preload("res://scripts/work/work_system.gd")
 const NoiseScript := preload("res://scripts/noise.gd")
+const SoundScript := preload("res://scripts/sound.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
+const Psx := preload("res://scripts/psx.gd")
 
-## Warianty stylu. Wybrany 14.11.2026: łagodny (indeks 0); pozostałe zostają
-## pod F2 do F4 do porównań. shrink: ile razy mniejsza jest rozdzielczość
-## świata od ekranu (2 = 540 linii w Full HD, 3 = 360 linii).
+## Warianty stylu PS1 (build 4.2): bez szumu na ekranie. Wygląd robi geometria
+## (psx.gd: wierzchołki przyciągane do siatki pikseli, tekstury bez korekcji
+## perspektywy) oraz nieruchomy dithering z kolorem 15-bitowym (32 poziomy).
+## shrink: ile razy mniejsza jest rozdzielczość świata od ekranu (3 = 360 linii
+## w Full HD, blisko 240 linii PS1 na monitorze 720p). snap: rozmiar oczka siatki
+## wierzchołków w pikselach świata. affine: 0 tekstury poprawne, 1 jak na PS1.
 const STYLES := [
-	{"key": "STYLE_SOFT", "shrink": 2, "levels": 48.0, "dither": 0.35, "grain": 0.05, "vignette": 0.25, "on": true},
-	{"key": "STYLE_CLEAR", "shrink": 2, "levels": 32.0, "dither": 0.65, "grain": 0.11, "vignette": 0.38, "on": true},
-	{"key": "STYLE_RAW", "shrink": 3, "levels": 16.0, "dither": 1.0, "grain": 0.2, "vignette": 0.5, "on": true},
-	{"key": "STYLE_OFF", "shrink": 1, "levels": 256.0, "dither": 0.0, "grain": 0.0, "vignette": 0.0, "on": false},
+	{"key": "STYLE_SOFT", "shrink": 2, "snap": 1.5, "affine": 0.35, "levels": 32.0, "dither": 0.45, "vignette": 0.2, "on": true},
+	{"key": "STYLE_CLEAR", "shrink": 3, "snap": 1.0, "affine": 0.8, "levels": 32.0, "dither": 0.8, "vignette": 0.25, "on": true},
+	{"key": "STYLE_RAW", "shrink": 4, "snap": 1.0, "affine": 1.0, "levels": 16.0, "dither": 1.0, "vignette": 0.35, "on": true},
+	{"key": "STYLE_OFF", "shrink": 1, "snap": 0.0, "affine": 0.0, "levels": 256.0, "dither": 0.0, "vignette": 0.0, "on": false},
 ]
 const DEFAULT_STYLE := 0
 
@@ -43,6 +48,7 @@ var world_items: WorldItemsScript
 var inv_ui: InventoryUIScript
 var work: WorkScript
 var noise: NoiseScript
+var sound: SoundScript
 var window_boards: WindowScript
 var door_sys: DoorScript
 var bodies: Array = []
@@ -55,6 +61,8 @@ var _post: ShaderMaterial
 func _ready() -> void:
 	Controls.register()
 	Lang.setup()
+	Psx.init()
+	get_tree().node_added.connect(Psx.on_node_added)
 	_build_view()
 
 	world = Node3D.new()
@@ -86,8 +94,13 @@ func _ready() -> void:
 	world_items.setup(world)
 	world_items.on_removed = func(b): if interaction.held == b: interaction.release()
 
+	sound = SoundScript.new()
+	sound.name = "Dzwiek"
+	add_child(sound)
+	sound.setup(self)
 	noise = NoiseScript.new()
 	noise.name = "Halas"
+	noise.sound = sound
 	add_child(noise)
 
 	work = WorkScript.new()
@@ -120,6 +133,7 @@ func _ready() -> void:
 	inv_ui.name = "OknoEkwipunku"
 	hud.add_child(inv_ui)
 	inv_ui.setup(inventory)
+	inv_ui.main = self
 
 	var args := OS.get_cmdline_user_args()
 	var shots := false
@@ -160,7 +174,7 @@ func set_style(index: int, announce: bool = true) -> void:
 	_post.set_shader_parameter("enabled", s["on"])
 	_post.set_shader_parameter("levels", s["levels"])
 	_post.set_shader_parameter("dither_amount", s["dither"])
-	_post.set_shader_parameter("grain", s["grain"])
+	Psx.set_style(s["snap"], s["affine"])
 	_post.set_shader_parameter("vignette", s["vignette"])
 	if announce:
 		hud.show_message(tr("MSG_STYLE") % tr(s["key"]))
@@ -171,13 +185,17 @@ func use_object(target: Object) -> void:
 	if target.has_meta("switch_id"):
 		var id: String = target.get_meta("switch_id")
 		set_switch(id, not switches[id]["on"])
+		sound.play("switch", interaction.focus_point(), -8.0)
 	elif target.has_meta("door_sys"):
 		target.get_meta("door_sys").on_use(interaction.focus_point())
 	elif target.has_meta("container_id"):
 		open_inventory(target.get_meta("container_id"))
 	elif target.has_meta("item"):
+		var at: Vector3 = (target as Node3D).global_position
 		if not inventory.pick_up(target):
 			hud.show_message(tr(inventory.last_error))
+		else:
+			sound.play("pickup", at, -6.0)
 
 
 func open_inventory(container_id: String = "") -> void:
@@ -247,6 +265,9 @@ func _input(event: InputEvent) -> void:
 			else:
 				player.look(event.relative)
 	elif event is InputEventMouseButton:
+		if interaction.grab_mode and captured:
+			_grab_mode_button(event)
+			return
 		if not event.pressed:
 			if event.button_index == MOUSE_BUTTON_RIGHT:
 				work.release("r")
@@ -277,7 +298,8 @@ func _input(event: InputEvent) -> void:
 				interaction.adjust_distance(-0.08)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action("grab"):
-			interaction.toggle_grab()
+			work.end()
+			interaction.toggle_grab_mode()
 		elif event.is_action("interact"):
 			interaction.use()
 		elif event.is_action("flashlight"):
@@ -293,6 +315,23 @@ func _input(event: InputEvent) -> void:
 			_dev_key(event.physical_keycode)
 
 
+## Tryb chwytania (T): lewy przycisk chwyta i trzyma, prawy rzuca, kółko odsuwa.
+func _grab_mode_button(event: InputEventMouseButton) -> void:
+	match event.button_index:
+		MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				interaction.grab_press()
+			else:
+				interaction.release()
+		MOUSE_BUTTON_RIGHT:
+			if event.pressed:
+				interaction.throw_held()
+		MOUSE_BUTTON_WHEEL_UP:
+			interaction.adjust_distance(0.08)
+		MOUSE_BUTTON_WHEEL_DOWN:
+			interaction.adjust_distance(-0.08)
+
+
 func _dev_key(key: int) -> void:
 	match key:
 		KEY_F1: set_style(0)
@@ -305,6 +344,9 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_KP_0:
+			work.show_bars = not work.show_bars
+			hud.show_message(tr("MSG_BARS_ON" if work.show_bars else "MSG_BARS_OFF"))
 		KEY_O:
 			work.highlights = not work.highlights
 			hud.show_message(tr("MSG_HIGHLIGHT_ON" if work.highlights else "MSG_HIGHLIGHT_OFF"))

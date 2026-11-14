@@ -227,7 +227,24 @@ static func hand_slot(side: String) -> String:
 	return LEFT_HAND if side == "l" else HAND
 
 
+## Ile sztuk dużego przedmiotu postać uniesie naraz (siła × współczynnik z danych).
+func bulky_limit(item) -> int:
+	var strength: float = float(main.player.strength) if main != null and main.player != null else 5.0
+	var per: float = float(item.get_def().get("bulky", {}).get("per_strength", 0.2))
+	return maxi(1, int(floor(strength * per + 0.0001)))
+
+
+## Prawa ręka trzyma duży przedmiot oburącz (lewa jest zajęta).
+func hands_bulky() -> bool:
+	var it = slots.get(HAND)
+	return it != null and it.is_bulky() and not _leaving(it)
+
+
 func slot_accepts(item, slot: String) -> bool:
+	if item.is_bulky():
+		return slot == HAND
+	if slot == LEFT_HAND and hands_bulky():
+		return false
 	var sd: Dictionary = ItemDB.slot_def(slot)
 	if sd.is_empty():
 		return false
@@ -305,6 +322,8 @@ func _in_reach(node: Node3D) -> bool:
 
 ## Czy przedmiot można położyć w siatce w danym miejscu (bez kolejkowania).
 func can_place_in_grid(item, grid, pos: Vector2i, rot: int) -> bool:
+	if item.is_bulky():
+		return _fail("INV_ERR_BULKY")
 	if item.is_container() and item.owns_grid(grid):
 		return _fail("INV_ERR_SELF")
 	if not grid.can_place(item, pos, rot):
@@ -344,6 +363,8 @@ func move_to_slot(item, slot: String) -> bool:
 		return _fail("INV_ERR_SAME")
 	if slot_reserved.has(slot) or (slots.has(slot) and not _leaving(slots[slot])):
 		return _fail("INV_ERR_SLOT_TAKEN")
+	if item.is_bulky() and (slot_reserved.has(LEFT_HAND) or (slots.has(LEFT_HAND) and not _leaving(slots[LEFT_HAND]))):
+		return _fail("INV_ERR_HANDS_FULL")
 	var src := _location(item)
 	slot_reserved[slot] = item
 	_queue(item, src, {"kind": "slot", "slot": slot})
@@ -393,6 +414,8 @@ func pick_up(body: RigidBody3D) -> bool:
 	var item = body.get_meta("item")
 	if not _can_move(item):
 		return false
+	if item.is_bulky():
+		return _pick_up_bulky(item)
 	if item.is_container() and str(item.get_def().get("slot", "")) != "" and not slots.has(item.get_def()["slot"]) \
 			and not slot_reserved.has(item.get_def()["slot"]):
 		return move_to_slot(item, item.get_def()["slot"])  # plecak czy kamizelkę od razu zakładamy
@@ -404,6 +427,22 @@ func pick_up(body: RigidBody3D) -> bool:
 		if not slots.has(hs) and not slot_reserved.has(hs):
 			return move_to_slot(item, hs)
 	return _fail("INV_ERR_NO_ROOM")
+
+
+## Duży przedmiot trafia do obu rąk; kolejna sztuka dokłada się do niesionego stosu.
+func _pick_up_bulky(item) -> bool:
+	var held = slots.get(HAND)
+	if held != null and held.def_id == item.def_id and held.is_bulky():
+		if held.pending:
+			return _fail("INV_ERR_BUSY")
+		if held.count + item.count > bulky_limit(held):
+			return _fail("INV_ERR_TOO_MANY")
+		return merge_into(item, held)
+	if held != null or slot_reserved.has(HAND):
+		return _fail("INV_ERR_HANDS_FULL")
+	if item.count > bulky_limit(item):
+		return _fail("INV_ERR_TOO_MANY")
+	return move_to_slot(item, HAND)
 
 
 ## Klawisz 1–9: wyjęcie przypisanego przedmiotu do ręki albo odłożenie z ręki.
@@ -547,7 +586,13 @@ func _complete(a: Dictionary) -> void:
 			item.parent_grid = null
 		"world":
 			_detach(item, src)
-			main.world_items.spawn(item, _drop_transform())
+			var xf := _drop_transform()
+			if item.is_bulky() and item.count > 1:
+				# stos desek spada jako osobne deski, jedna na drugiej
+				for k in item.count - 1:
+					main.world_items.spawn(ItemScript.new(item.def_id, 1), xf.translated(Vector3.UP * 0.05 * (k + 1)))
+				item.count = 1
+			main.world_items.spawn(item, xf)
 		"merge":
 			var target = dst["target"]
 			target.pending = false
@@ -622,6 +667,10 @@ func take_hand(side: String = "r"):
 	var it = slots.get(hs)
 	if it == null:
 		return null
+	if it.is_bulky() and it.count > 1:
+		it.count -= 1  # z niesionego stosu odchodzi jedna sztuka
+		changed.emit()
+		return ItemScript.new(it.def_id, 1)
 	slots.erase(hs)
 	it.slot = ""
 	_forget_hotkey(it)

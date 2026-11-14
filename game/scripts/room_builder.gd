@@ -203,6 +203,7 @@ static func apply_switch(entry: Dictionary) -> void:
 	var on: bool = entry["on"]
 	entry["light"].visible = on
 	entry["glow"].albedo_color = Color(1.0, 0.9, 0.7) if on else Color(0.16, 0.15, 0.13)
+	preload("res://scripts/psx.gd").refresh(entry["glow"])
 
 
 static func _door(world: Node3D, bodies: Array) -> void:

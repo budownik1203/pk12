@@ -13,12 +13,12 @@ const Tex := preload("res://scripts/textures.gd")
 const WorldItems := preload("res://scripts/world_items.gd")
 
 # wymiary w metrach
-const HIP_HEIGHT := 0.95          # staw biodrowy w pozycji stojącej
+const HIP_HEIGHT := 0.93          # staw biodrowy w pozycji stojącej (kolana minimalnie ugięte)
 const HIP_HALF := 0.1
 const THIGH := 0.44
 const SHIN := 0.44
 const ANKLE := 0.075              # kostka nad podłogą
-const SHOULDER_HALF := 0.19
+const SHOULDER_HALF := 0.205
 const UPPER_ARM := 0.31
 const FOREARM := 0.29
 const PALM := 0.07                # od nadgarstka do środka dłoni
@@ -53,6 +53,9 @@ var hand_pos := {"l": Vector3.ZERO, "r": Vector3.ZERO}
 var _hand_vel := {"l": Vector3.ZERO, "r": Vector3.ZERO}
 var hand_rot := {"l": Quaternion.IDENTITY, "r": Quaternion.IDENTITY}
 var _initialized := false
+const CARRY_BOARD_GAP := 0.027     # odstęp desek w niesionym stosie
+const GRIP_UP_OFFSET := 0.12       # środek młotka nad dłonią (ułamek długości)
+
 var _hand_visuals := {"l": null, "r": null}
 var _hand_visual_uids := {"l": -1, "r": -1}
 
@@ -114,7 +117,7 @@ func _part(id: String, mesh: Mesh, mat: Material) -> MeshInstance3D:
 # --- pomocnicze -------------------------------------------------------------
 
 func _update_hand_visual(side: String, item) -> void:
-	var uid: int = item.uid if item != null else -1
+	var uid: int = item.uid * 100 + (item.count if item.is_bulky() else 0) if item != null else -1
 	if uid == _hand_visual_uids[side]:
 		return
 	if _hand_visuals[side] != null:
@@ -122,7 +125,16 @@ func _update_hand_visual(side: String, item) -> void:
 		_hand_visuals[side] = null
 	_hand_visual_uids[side] = uid
 	if item != null:
-		var vis := WorldItems.make_visual(item)
+		var vis: Node3D
+		if item.is_bulky():
+			# niesiony stos: każda sztuka osobno, lekko przesunięte
+			vis = Node3D.new()
+			for k in item.count:
+				var piece := WorldItems.make_visual(item)
+				piece.position = Vector3(0.012 * ((k * 7) % 3 - 1), CARRY_BOARD_GAP * k, 0.006 * ((k * 5) % 3 - 1))
+				vis.add_child(piece)
+		else:
+			vis = WorldItems.make_visual(item)
 		vis.top_level = true
 		add_child(vis)
 		_hand_visuals[side] = vis
@@ -222,8 +234,9 @@ func _physics_process(delta: float) -> void:
 		var hip := pelvis + right * HIP_HALF * sign
 		var swing := sin(ph) * stride * 0.5 * _gait
 		var lift := maxf(0.0, cos(ph)) * STEP_LIFT * _gait
-		var foot := feet + right * (HIP_HALF + 0.01) * sign + move_dir * swing + up * (ANKLE + lift)
-		foot += fwd * 0.07  # stopy lekko przed tułowiem: patrząc w dół widać buty
+		# stopa pod biodrem: nogi pionowo pod miednicą, nie wysunięte przed tułów
+		var under_hip := Vector3(hip.x, feet.y, hip.z) + right * 0.015 * sign
+		var foot := under_hip + move_dir * swing + up * (ANKLE + lift)
 		if not on_floor:
 			foot += up * 0.18 - fwd * 0.05  # w powietrzu i przy wspinaniu nogi podkurczone
 		var knee_pole := hip + fwd * 0.6 + right * sign * 0.05
@@ -271,13 +284,43 @@ func _physics_process(delta: float) -> void:
 			targets["l"] = grip - right * TWO_HAND_SPREAD
 			stiff["l"] = HAND_STIFF_GRIP
 	var left_busy: bool = player.hand_items["l"] != null
+	var bulky = player.hand_items["r"]
+	if bulky != null and not bulky.is_bulky():
+		bulky = null
+	var carry_xf := Transform3D()
+	if bulky != null and not has_held:
+		# duży przedmiot oburącz: stos przed piersią, wzdłuż kierunku patrzenia, lekko w bok
+		left_busy = true
+		var pitch_q := Quaternion(right, player.pitch * 0.35)
+		var d: Vector3 = (pitch_q * Quaternion(up, deg_to_rad(28.0)) * Quaternion(right, deg_to_rad(8.0)) * fwd).normalized()
+		var c_up: Vector3 = (pitch_q * up).normalized()
+		var side_ax := d.cross(c_up).normalized()
+		var center := neck - up * 0.38 + fwd * 0.3 + right * 0.16
+		carry_xf = Transform3D(Basis(d, c_up, d.cross(c_up)), center)
+		var hq := Basis(side_ax, c_up, -d).get_rotation_quaternion()
+		targets["r"] = center + side_ax * 0.1 + c_up * 0.01
+		targets["l"] = center - side_ax * 0.1 + c_up * 0.01
+		stiff["r"] = HAND_STIFF_GRIP
+		stiff["l"] = HAND_STIFF_GRIP
+		_turn_hand("r", hq, delta * 4.0)
+		_turn_hand("l", hq, delta * 4.0)
+		_update_hand_visual("r", bulky)
+		_update_hand_visual("l", null)
 	for side in ["l", "r"]:
 		var item = player.hand_items[side]
+		if bulky != null and not has_held:
+			break
 		if item == null or (side == "r" and has_held) or (side == "l" and two_hands):
 			_update_hand_visual(side, null)
 			continue
 		var wt = player.work_targets.get(side)
-		if wt != null:
+		var wr = player.work_rots.get(side)
+		if wt != null and wr != null:
+			# praca z zadanym ułożeniem dłoni (zamach młotkiem, trzymanie gwoździa)
+			targets[side] = wt
+			stiff[side] = HAND_STIFF_GRIP
+			_turn_hand(side, wr, delta * 3.0)
+		elif wt != null:
 			# praca: dłoń na punkcie pracy, przy wkręcaniu obraca się
 			targets[side] = wt
 			stiff[side] = HAND_STIFF_GRIP
@@ -319,16 +362,23 @@ func _physics_process(delta: float) -> void:
 		joints["dlon_" + s] = wrist + along * PALM
 
 	for side in ["l", "r"]:
-		var vis: MeshInstance3D = _hand_visuals[side]
+		var vis: Node3D = _hand_visuals[side]
 		if vis == null:
 			continue
+		if bulky != null and side == "r" and not has_held:
+			vis.global_transform = carry_xf
+			continue
 		var hb := Basis(hand_rot[side])
-		var len_fwd := 0.12
-		var model: Dictionary = player.hand_items[side].get_def().get("model", {})
-		if model.get("type", "box") == "box":
-			len_fwd = float(model.get("size", [0.2])[0]) * 0.3
-		# modele leżą wzdłuż osi X; w dłoni kierujemy je do przodu (-Z)
-		vis.global_transform = Transform3D(hb * Basis(Vector3.UP, PI / 2.0), joints["dlon_" + side] + hb * Vector3(0, 0, -len_fwd))
+		var def: Dictionary = player.hand_items[side].get_def()
+		var model: Dictionary = def.get("model", {})
+		var length := float(model.get("size", [0.4])[0]) if model.get("type", "box") == "box" else 0.12
+		if str(def.get("grip", "")) == "up":
+			# trzonek pionowo w pięści (młotek): oś X modelu idzie w górę dłoni,
+			# dłoń trzyma trzonek w połowie, obuch patrzy do przodu
+			vis.global_transform = Transform3D(hb * Basis(Vector3.BACK, PI / 2.0), joints["dlon_" + side] + hb * Vector3(0, length * GRIP_UP_OFFSET, 0))
+		else:
+			# modele leżą wzdłuż osi X; w dłoni kierujemy je do przodu (-Z)
+			vis.global_transform = Transform3D(hb * Basis(Vector3.UP, PI / 2.0), joints["dlon_" + side] + hb * Vector3(0, 0, -length * 0.3))
 
 	# --- latarka: w lewej dłoni, a gdy lewa jest zajęta, przypięta do piersi
 	var lamp_xf: Transform3D

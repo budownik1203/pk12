@@ -12,6 +12,7 @@ extends Node3D
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
 const Tex := preload("res://scripts/textures.gd")
+const Fasteners := preload("res://scripts/world/fasteners.gd")
 
 const SLOTS := 3
 const HEIGHTS := [-0.36, 0.0, 0.36]
@@ -142,6 +143,30 @@ func _refresh(i: int) -> void:
 				p.enabled = on_wall and not b["ends"][d["end"]]["free"] and v >= 0.0 and v < STRIKES_PER_NAIL
 			"pull":
 				p.enabled = on_wall and b["ends"][d["end"]]["nails"][d["nail"]] < 0.0
+	_refresh_nails(i, on_wall)
+
+
+## Gwoździe widać na desce: wystają coraz mniej z każdym uderzeniem.
+func _refresh_nails(i: int, on_wall: bool) -> void:
+	var b: Dictionary = boards[i]
+	var body: Node3D = b["body"]
+	if body == null or not is_instance_valid(body):
+		return
+	if not b.has("nail_vis") or not is_instance_valid(b["nail_vis"].get("0_0")) or b["nail_vis"]["0_0"].get_parent() != body:
+		b["nail_vis"] = {}
+		for e in 2:
+			var sx := -1.0 if e == 0 else 1.0
+			for n in 2:
+				var ny := NAIL_DY if n == 0 else -NAIL_DY
+				b["nail_vis"]["%d_%d" % [e, n]] = Fasteners.make("nail", body,
+						Vector3(sx * NAIL_X, ny, -BOARD_SIZE.z / 2.0), Vector3.FORWARD)
+	for e in 2:
+		var end: Dictionary = b["ends"][e]
+		for n in 2:
+			var v: float = end["nails"][n]
+			var shown: bool = on_wall and not end["free"] and v != 0.0
+			var exposed := Fasteners.NAIL_LEN * 0.85 * (1.0 - clampf(v, 0.0, STRIKES_PER_NAIL) / STRIKES_PER_NAIL) + 0.0005
+			Fasteners.set_state(b["nail_vis"]["%d_%d" % [e, n]], exposed, float(n) * 0.13 + e * 0.31, v < 0.0, shown)
 
 
 static func driven(end: Dictionary) -> int:
@@ -208,6 +233,8 @@ func work_apply(point, ev: Dictionary) -> void:
 					return
 			main.noise.emit_noise(point.world_pos(), 70.0, "NOISE_HAMMER")
 			end["nails"][d["nail"]] = minf(maxf(v, 0.0) + float(ev.get("amount", 1.0)), STRIKES_PER_NAIL)
+			if end["nails"][d["nail"]] >= STRIKES_PER_NAIL and main.get("sound") != null:
+				main.sound.play("nail_done", point.world_pos(), -2.0)  # dobity: dźwięczne „tiiing”
 			if b["state"] == "placed" and is_secure(i):
 				b["state"] = "nailed"
 		"pull":

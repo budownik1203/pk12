@@ -30,6 +30,7 @@ var hud: HudScript
 var held: RigidBody3D = null
 var focus: Object = null
 var focus_kind := ""        # "", "grab", "use"
+var grab_mode := false      # T: tryb chwytania; lewy przycisk trzymany chwyta, puszczony puszcza
 
 var _focus_point := Vector3.ZERO
 var _local_point := Vector3.ZERO
@@ -42,6 +43,26 @@ func setup(main_node: Node) -> void:
 	main = main_node
 	player = main_node.player
 	hud = main_node.hud
+
+
+## T: włącza i wyłącza tryb chwytania. W trybie lewy przycisk chwyta rzecz pod
+## kursorem (przytrzymany trzyma, puszczony puszcza), prawy rzuca trzymaną.
+func toggle_grab_mode() -> void:
+	grab_mode = not grab_mode
+	if not grab_mode:
+		release()
+	hud.show_message(tr("MSG_GRAB_MODE_ON" if grab_mode else "MSG_GRAB_MODE_OFF"))
+
+
+## Lewy przycisk w trybie chwytania.
+func grab_press() -> bool:
+	if held != null or not (focus_kind == "grab" or focus_kind == "item"):
+		return false
+	if main.inventory != null and main.inventory.hand_item() != null:
+		hud.show_message(tr("MSG_HAND_BUSY"))
+		return false
+	_grab(focus as RigidBody3D, _focus_point)
+	return true
 
 
 func toggle_grab() -> void:
@@ -72,7 +93,14 @@ func throw_held() -> void:
 	release()
 	var dir := -player.camera.global_transform.basis.z
 	var impulse := minf(body.mass * THROW_SPEED, THROW_IMPULSE_MAX)
-	body.apply_impulse(dir * impulse, point - body.global_position)
+	# rzut przez środek masy: przedmiot leci prosto, z lekkim obrotem jak z ręki,
+	# zamiast wirować od siły przyłożonej w punkcie chwytu
+	body.angular_velocity = body.angular_velocity.limit_length(1.5)
+	body.apply_central_impulse(dir * impulse)
+	var spin_axis := player.camera.global_transform.basis.x
+	body.angular_velocity += spin_axis * clampf(3.0 / maxf(body.mass, 0.3), 0.3, 4.0)
+	if main.get("sound") != null:
+		main.sound.play("whoosh", point, -10.0)
 
 
 func release() -> void:
@@ -161,6 +189,9 @@ func _drive_held() -> void:
 
 
 func _update_cursor() -> void:
+	if grab_mode:
+		hud.set_cursor("fist" if held != null else ("hand" if focus_kind == "grab" or focus_kind == "item" else "hand_idle"))
+		return
 	if main.work != null and (main.work.is_active() or main.work.candidate != null) and held == null:
 		hud.set_cursor("dot")  # punkt pracy ma pierwszeństwo przed chwytem
 	elif held != null:

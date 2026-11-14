@@ -93,7 +93,8 @@
 					0.38,
 					0.12,
 					0.1
-				]
+				],
+				"mesh": "lom"
 			},
 			"abilities": {
 				"podwazanie": 3,
@@ -122,7 +123,8 @@
 					0.75,
 					0.6,
 					0.12
-				]
+				],
+				"mesh": "srubokret"
 			},
 			"short_pl": "Śrubokr.",
 			"short_en": "Screwdr.",
@@ -156,7 +158,8 @@
 					0.3,
 					0.22,
 					0.14
-				]
+				],
+				"mesh": "mlotek"
 			},
 			"abilities": {
 				"wbijanie": 3,
@@ -165,7 +168,8 @@
 			},
 			"length": 0.32,
 			"desc_pl": "Wbija gwoździe. Pazurem wyciąga wygięte gwoździe i słabo podważa.",
-			"desc_en": "Drives nails. The claw pulls bent nails and pries weakly."
+			"desc_en": "Drives nails. The claw pulls bent nails and pries weakly.",
+			"grip": "up"
 		},
 		"pistolet": {
 			"pl": "Pistolet (atrapa)",
@@ -240,7 +244,8 @@
 					0.45,
 					0.45,
 					0.47
-				]
+				],
+				"mesh": "gwozdzie"
 			},
 			"short_pl": "Gwoździe",
 			"short_en": "Nails"
@@ -610,7 +615,8 @@
 					0.55,
 					0.55,
 					0.58
-				]
+				],
+				"mesh": "noz"
 			}
 		},
 		"deska": {
@@ -630,8 +636,8 @@
 				"dlugie"
 			],
 			"mount": "deska",
-			"desc_pl": "Przyłóż do okna lewym przyciskiem i przybij młotkiem.",
-			"desc_en": "Hold it to a window with the left button and nail it with a hammer.",
+			"desc_pl": "Za duża do plecaka: nosi się w obu rękach, ile sztuk naraz, zależy od siły. Przyłóż do okna przyciskiem ręki i przybij młotkiem.",
+			"desc_en": "Too big for a bag: carried in both hands, how many at once depends on strength. Hold it to a window with that hand's button and nail it.",
 			"model": {
 				"type": "box",
 				"size": [
@@ -643,8 +649,13 @@
 					0.4,
 					0.3,
 					0.19
-				]
-			}
+				],
+				"mesh": "deska"
+			},
+			"bulky": {
+				"per_strength": 0.6
+			},
+			"stack": 10
 		},
 		"wkrety": {
 			"pl": "Wkręty",
@@ -669,7 +680,8 @@
 					0.5,
 					0.5,
 					0.52
-				]
+				],
+				"mesh": "wkrety"
 			}
 		},
 		"nakladka": {
@@ -698,7 +710,8 @@
 					0.6,
 					0.58,
 					0.5
-				]
+				],
+				"mesh": "nakladka"
 			}
 		},
 		"zamek_drzwiowy": {
@@ -726,7 +739,8 @@
 					0.45,
 					0.42,
 					0.36
-				]
+				],
+				"mesh": "zamek_drzwiowy"
 			}
 		},
 		"klucz": {
@@ -753,7 +767,8 @@
 					0.7,
 					0.6,
 					0.3
-				]
+				],
+				"mesh": "klucz"
 			}
 		}
 	},

@@ -14,6 +14,7 @@ extends Node
 ##     i nakładka spadają na ziemię.
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
+const Fasteners := preload("res://scripts/world/fasteners.gd")
 
 const SCREW_TURNS := 4.0            # pełne obroty na wkręt (narzędzie poziomu 3)
 const HOLE_WEAR := 0.35             # każde wykręcenie osłabia otwór
@@ -94,16 +95,29 @@ func _part(parent: Node3D, pos: Vector3, size: Vector3, screw_locals: Array, mou
 	node.position = pos
 	node.visible = false
 	parent.add_child(node)
-	var p := {"placed": false, "item": null, "node": node, "screws": [], "holes": [], "points": [], "mount": mount}
+	var p := {"placed": false, "item": null, "node": node, "screws": [], "holes": [], "points": [], "mount": mount, "vis": []}
+	var outward := Vector3.FORWARD if mount == "nakladka" else Vector3.RIGHT
 	p["attach"] = work.add_point(self, node, Vector3(0, 0, -0.01) if mount == "nakladka" else Vector3(0.02, 0, 0), "attach",
 			{"accepts": mount, "label": "WORK_PLACE_" + mount.to_upper(), "data": {"what": "attach", "part": mount}})
 	for k in screw_locals.size():
 		p["screws"].append({"in": false, "t": 0.0, "stripped": false})
 		p["holes"].append(0)
 		var local: Vector3 = screw_locals[k] - (Vector3.ZERO if mount == "nakladka" else pos)
+		p["vis"].append(Fasteners.make("screw", node, local, outward))
 		p["points"].append(work.add_point(self, node, local, "rotate",
 				{"ability": "wkrecanie", "label": "WORK_SCREW", "data": {"what": "screw", "part": mount, "screw": k}}))
 	return p
+
+
+## Wkręt dokręcony do oporu świeci na czerwono (do wykręcenia), inaczej na niebiesko.
+func work_category(point) -> String:
+	var d: Dictionary = point.data
+	if d.get("what", "") != "screw":
+		return ""
+	var p: Dictionary = parts[d["part"]]
+	var sc: Dictionary = p["screws"][d["screw"]]
+	var cap: float = 1.0 / (1.0 + HOLE_WEAR * p["holes"][d["screw"]])
+	return "remove" if sc["in"] and sc["t"] >= cap - 0.001 else "mount"
 
 
 func _refresh() -> void:
@@ -113,6 +127,10 @@ func _refresh() -> void:
 		p["attach"].enabled = not p["placed"]
 		for k in p["points"].size():
 			p["points"][k].enabled = p["placed"] and not p["screws"][k]["stripped"]
+			var sc: Dictionary = p["screws"][k]
+			# wkręt chowa się z każdym obrotem, nacięcie łba obraca się z wkrętakiem
+			Fasteners.set_state(p["vis"][k], Fasteners.SCREW_LEN * 0.9 * (1.0 - sc["t"]) + 0.0004,
+					sc["t"] * SCREW_TURNS, false, p["placed"] and sc["in"])
 	_pry_point.enabled = latched
 
 
@@ -274,6 +292,7 @@ func work_apply(point, ev: Dictionary) -> void:
 			main.noise.emit_noise(point.world_pos(), 20.0, "NOISE_PLACE")
 		"screw":
 			_screw(parts[d["part"]], d["part"], d["screw"], ev)
+			_refresh()
 		"pry":
 			var before := _pry
 			_pry += float(ev.get("amount", 0.0))
@@ -301,6 +320,8 @@ func _screw(p: Dictionary, name: String, k: int, ev: Dictionary) -> void:
 	sc["t"] = clampf(sc["t"] + turns / SCREW_TURNS, 0.0, cap)
 	if turns > 0.0 and before >= cap - 0.0001 and cap < 1.0:
 		_say("MSG_LOOSE_HOLE")
+	if turns > 0.0 and before < cap - 0.0001 and sc["t"] >= cap - 0.0001 and main.get("sound") != null:
+		main.sound.play("screw_tight", p["node"].global_position, -4.0)  # dokręcony: klik
 	# zużycie narzędzia i zrywanie łbów
 	var tool = ev.get("tool")
 	var raw := absf(float(ev.get("raw", 0.0)))

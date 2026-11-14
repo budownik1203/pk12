@@ -7,6 +7,7 @@ extends Node
 const KEEP := 40
 
 var events: Array = []
+var sound   # sound.gd: każdy hałas ma swój dźwięk
 
 
 func emit_noise(pos: Vector3, loudness: float, label_key: String) -> void:
@@ -14,6 +15,8 @@ func emit_noise(pos: Vector3, loudness: float, label_key: String) -> void:
 			"time": Time.get_ticks_msec() / 1000.0})
 	if events.size() > KEEP:
 		events.pop_front()
+	if sound != null:
+		sound.on_noise(pos, label_key)
 
 
 func last() -> Dictionary:

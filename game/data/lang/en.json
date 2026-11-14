@@ -1,8 +1,8 @@
 {
-	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab · F use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop from right / left hand · X flashlight\nLeft button: left hand · right: right hand (hold: work with tool) · O highlights · F5 save · F9 load · F6 language · F10 data",
-	"STYLE_SOFT": "Soft",
-	"STYLE_CLEAR": "Clear",
-	"STYLE_RAW": "Raw",
+	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab mode (LMB grabs, RMB throws) · F use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop from right / left hand · X flashlight\nLMB: left hand · RMB: right hand (hold: work with tool) · O highlights · numpad 0 bars · F5 save · F9 load · F6 language · F10 data",
+	"STYLE_SOFT": "Soft PS1",
+	"STYLE_CLEAR": "Classic PS1",
+	"STYLE_RAW": "Raw PS1",
 	"STYLE_OFF": "No effects",
 	"MSG_STYLE": "Style: %s",
 	"MSG_SAVED": "Saved",
@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 4.1 · two hands",
+	"DEV_BUILD": "PSK-12 · build 4.2 · sound, PS1, two-handed planks",
 	"DEV_STAMINA": "Stamina: %d",
 	"DEV_HELD": "Holding: %s (%.1f kg)",
 	"INV_TITLE_BODY": "ON BODY",
@@ -94,5 +94,13 @@
 	"BTN_L": "left button",
 	"BTN_R": "right button",
 	"WORK_KEY_NAIL": "hold %s (nails), click %s (hammer)",
-	"WORK_KEY_HIT": "click %s"
+	"WORK_KEY_HIT": "click %s",
+	"MSG_GRAB_MODE_ON": "Grab mode: left button grabs, right throws (T turns off)",
+	"MSG_GRAB_MODE_OFF": "Grab mode off",
+	"KEY_GRAB": "LMB",
+	"MSG_BARS_ON": "Progress bars on (numpad 0)",
+	"MSG_BARS_OFF": "Progress bars off (numpad 0)",
+	"INV_ERR_BULKY": "Too big for a bag: carry it in your hands",
+	"INV_ERR_HANDS_FULL": "You need both hands free",
+	"INV_ERR_TOO_MANY": "You can't carry any more"
 }

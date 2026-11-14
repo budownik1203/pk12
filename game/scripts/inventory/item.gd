@@ -58,6 +58,12 @@ func max_stack() -> int:
 	return int(get_def().get("stack", 1))
 
 
+## Duży przedmiot (deska, później kłoda, kamień): nie mieści się w plecaku,
+## nosi się w obu rękach, a ile sztuk naraz, zależy od siły postaci.
+func is_bulky() -> bool:
+	return get_def().has("bulky")
+
+
 func is_container() -> bool:
 	return not grids.is_empty()
 

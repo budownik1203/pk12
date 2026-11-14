@@ -44,6 +44,7 @@ const CATEGORY_COLORS := {
 }
 
 var inv                         # inventory.gd
+var main                        # main.gd (dźwięk przekładania)
 var font: Font
 var blocks: Array = []          # {"grid", "rect": Rect2}
 var headers: Array = []         # {"pos": Vector2, "text": String, "close": Rect2, "item"}
@@ -337,6 +338,8 @@ func drop_at(p: Vector2) -> bool:
 			return false
 	if not ok:
 		show_message(tr(inv.last_error))
+	elif main != null and main.get("sound") != null:
+		main.sound.play_ui("inv")
 	return ok
 
 

@@ -11,13 +11,23 @@ extends Node
 ## Zdolności narzędzi pochodzą z danych: items.json, pole "abilities".
 
 const PointScript := preload("res://scripts/work/work_point.gd")
+const Psx := preload("res://scripts/psx.gd")
 
-const REACH := 1.7                 # zasięg pracy w metrach
+## Kolory znaczników: czerwony demontaż (podważanie, wyciąganie, wykręcanie),
+## żółty dołożenie części, niebieski montaż (wbijanie, wkręcanie).
+const MARK_COLORS := {"remove": Color(0.95, 0.22, 0.18), "place": Color(0.98, 0.82, 0.25), "mount": Color(0.25, 0.55, 1.0)}
+
+const REACH := 1.7                 # zasięg pracy w metrach (przykładanie części)
+## zasięg wg rodzaju pracy: ręka musi sięgnąć narzędziem do punktu
+const KIND_REACH := {"strike": 0.95, "rotate": 1.0, "lever": 1.3, "attach": 1.7}
 const RAY_TOLERANCE := 0.09        # jak daleko od promienia wzroku może być punkt
 const MARKER_RANGE := 3.0
 const LEVER_RATE := 0.005          # postęp na piksel w dół (narzędzie poziomu 3, ramię 0,6 m)
 const WHEEL_TURN := 1.0 / 12.0     # obrót na jeden ząbek kółka
 const STRIKE_COOLDOWN := 0.45      # sekundy między uderzeniami młotka
+const SWING_HIT := 0.09            # od kliknięcia do trafienia obuchem w gwóźdź
+const SWING_HOLD := 0.16           # do tej chwili młotek leży na gwoździu
+const SWING_END := 0.42            # do tej chwili wraca do tyłu
 const NAILS := "gwozdzie"
 
 var main
@@ -29,12 +39,16 @@ var nail_point = null              # gwóźdź przytrzymywany jedną ręką
 var nail_side := ""
 var holds := {"l": false, "r": false}
 var highlights := true
+var show_bars := false             # paski i liczby postępu (numpad 0); docelowo postęp widać na przedmiocie
 
 var _virtual := Vector2.ZERO
 var _phase := 0.0
 var _cooldown := 0.0
-var _impact := 0.0                 # 1 w chwili uderzenia, potem opada
+var _impact := 0.0                 # 0 młotek z tyłu, 1 obuch na gwoździu
+var _swing := -1.0                 # czas od kliknięcia (ujemny: brak zamachu)
+var _pending = null                # uderzenie czekające na trafienie obuchem
 var _markers := {}
+var _mark_mats := {}
 
 
 func setup(main_node) -> void:
@@ -108,6 +122,20 @@ func side_for(p) -> String:
 	return ""
 
 
+## Rodzaj pracy w punkcie: "remove", "place" albo "mount" (kolor znacznika).
+func category(p) -> String:
+	if p.owner != null and p.owner.has_method("work_category"):
+		var c: String = p.owner.work_category(p)
+		if c != "":
+			return c
+	match p.kind:
+		"attach":
+			return "place"
+		"strike", "rotate":
+			return "mount"
+	return "remove"
+
+
 func usable(p) -> bool:
 	return p.enabled and side_for(p) != ""
 
@@ -125,7 +153,22 @@ func _physics_process(delta: float) -> void:
 	if main == null or main.player == null:
 		return
 	_cooldown = maxf(0.0, _cooldown - delta)
-	_impact = maxf(0.0, _impact - delta * 6.0)
+	if _swing >= 0.0:
+		_swing += delta
+		if _swing < SWING_HIT:
+			_impact = _swing / SWING_HIT
+		elif _swing < SWING_HOLD:
+			_impact = 1.0
+		elif _swing < SWING_END:
+			_impact = 1.0 - (_swing - SWING_HOLD) / (SWING_END - SWING_HOLD)
+		else:
+			_impact = 0.0
+			_swing = -1.0
+		if _pending != null and (_swing >= SWING_HIT or _swing < 0.0):
+			var pd: Dictionary = _pending
+			_pending = null
+			if pd["point"].enabled:
+				pd["point"].owner.work_apply(pd["point"], pd["ev"])
 	var cam_pos: Vector3 = main.player.camera.global_position
 	if active != null:
 		var lost: bool = not active.enabled or tool_level(hand(active_side), active.ability) < active.min_level
@@ -135,7 +178,8 @@ func _physics_process(delta: float) -> void:
 		if not nail_point.enabled or not _is_nails(hand(nail_side)) or cam_pos.distance_to(nail_point.world_pos()) > REACH + 0.3:
 			nail_point = null
 	if active == null and nail_point == null:
-		candidate = find_candidate()
+		var grabbing: bool = main.interaction != null and main.interaction.grab_mode
+		candidate = null if grabbing else find_candidate()
 	_update_markers()
 	_update_hud()
 	_update_pose()
@@ -157,7 +201,7 @@ func find_candidate():
 			continue
 		var wp: Vector3 = p.world_pos()
 		var t := (wp - o).dot(dir)
-		if t < 0.1 or t > REACH or t > block + 0.12:
+		if t < 0.1 or t > float(KIND_REACH.get(p.kind, REACH)) or t > block + 0.12:
 			continue
 		var off := (wp - (o + dir * t)).length()
 		if off > RAY_TOLERANCE:
@@ -279,10 +323,11 @@ func _strike(p, side: String) -> void:
 	if _cooldown > 0.0:
 		return
 	_cooldown = STRIKE_COOLDOWN
-	_impact = 1.0
+	_swing = 0.0
 	var it = hand(side)
 	var amount := tool_level(it, p.ability) / 3.0
-	p.owner.work_apply(p, {"type": "strike", "amount": amount, "tool": it, "nail_side": nail_side})
+	# uderzenie liczy się w chwili, gdy obuch dochodzi do gwoździa (dźwięk w tym samym momencie)
+	_pending = {"point": p, "ev": {"type": "strike", "amount": amount, "tool": it, "nail_side": nail_side}}
 
 
 # --- podpowiedzi, znaczniki, poza dłoni -----------------------------------------
@@ -296,10 +341,10 @@ func _update_hud() -> void:
 	var shown = active if active != null else nail_point
 	if shown != null:
 		var st: Dictionary = shown.owner.work_status(shown)
-		var text := str(st.get("text", ""))
+		var text := str(st.get("text", "")) if show_bars else tr(shown.label_key)
 		if shown == nail_point:
 			text += " · " + tr("WORK_KEY_HIT") % _btn(other(nail_side))
-		hud.set_work(text, float(st.get("ratio", -1.0)))
+		hud.set_work(text, float(st.get("ratio", -1.0)) if show_bars else -1.0)
 	elif candidate != null:
 		var side := side_for(candidate)
 		var key := ""
@@ -329,17 +374,26 @@ func _update_markers() -> void:
 			_markers[p] = m
 		m.visible = true
 		m.global_position = p.world_pos()
+		var cat := category(p)
+		if m.get_meta("cat", "") != cat:
+			m.set_meta("cat", cat)
+			m.material_override = _mark_mat(cat)
 		var big: bool = p == candidate or p == active or p == nail_point
 		m.scale = Vector3.ONE * (1.6 if big else 1.0)
 
 
+func _mark_mat(cat: String) -> Material:
+	if not _mark_mats.has(cat):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = MARK_COLORS[cat]
+		_mark_mats[cat] = Psx.material(mat)
+	return _mark_mats[cat]
+
+
 func _make_marker() -> MeshInstance3D:
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(0.95, 0.8, 0.35)
 	var box := BoxMesh.new()
 	box.size = Vector3(0.022, 0.022, 0.022)
-	box.material = mat
 	var m := MeshInstance3D.new()
 	m.mesh = box
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -353,6 +407,7 @@ func _make_marker() -> MeshInstance3D:
 func _update_pose() -> void:
 	var player = main.player
 	var targets := {"l": null, "r": null}
+	var rots := {"l": null, "r": null}
 	var roll := 0.0
 	if active != null:
 		var lift := 0.0
@@ -363,10 +418,32 @@ func _update_pose() -> void:
 		targets[active_side] = active.world_pos() + Vector3.UP * lift
 	if nail_point != null:
 		var np: Vector3 = nail_point.world_pos()
-		var toward: Vector3 = (player.camera.global_position - np).normalized()
-		targets[nail_side] = np + toward * 0.03
-		var hammer_lift := 0.02 + 0.16 * (1.0 - _impact)
-		targets[other(nail_side)] = np + Vector3.UP * hammer_lift + toward * 0.05
+		var cam_pos: Vector3 = player.camera.global_position
+		var toward: Vector3 = Vector3(cam_pos.x - np.x, 0.0, cam_pos.z - np.z).normalized()
+		var side_ax := Vector3.UP.cross(toward).normalized()  # w prawo patrząc na gwóźdź
+		var face_basis := Basis(side_ax, Vector3.UP, toward)  # przód dłoni (-Z) w stronę ściany
+		var hit_basis := Basis(side_ax, deg_to_rad(-18.0)) * face_basis  # obuch lekko wychylony do ściany
+		# ręka z gwoździami: palce przy gwoździu, trochę pod nim i z boku
+		var hold_sign := -1.0 if nail_side == "l" else 1.0
+		targets[nail_side] = np + toward * 0.035 - Vector3.UP * 0.035 + side_ax * 0.035 * hold_sign
+		rots[nail_side] = face_basis.get_rotation_quaternion()
+		# ręka z młotkiem: zamach przód-tył. Trzonek pionowo, obuch w stronę ściany;
+		# przy uderzeniu powierzchnia obucha trafia w łepek, potem młotek wraca
+		# do tyłu (przechylony ku graczowi) i czeka na następne kliknięcie.
+		var hs := other(nail_side)
+		var it = hand(hs)
+		var length := 0.32
+		if it != null:
+			length = float(it.get_def().get("model", {}).get("size", [0.32])[0])
+		var face_local := Vector3(0, length * 0.12 + length * 0.42, -0.06)  # powierzchnia obucha w układzie dłoni
+		var swing := _impact * _impact
+		var back_basis := Basis(side_ax, deg_to_rad(65.0)) * hit_basis
+		var hb: Basis = back_basis.slerp(hit_basis, swing)
+		var hit_palm := np + toward * 0.004 - hit_basis * face_local
+		var back_palm := hit_palm + toward * 0.1 - Vector3.UP * 0.04
+		targets[hs] = back_palm.lerp(hit_palm, swing)
+		rots[hs] = hb.get_rotation_quaternion()
 	player.work_targets = targets
+	player.work_rots = rots
 	player.work_roll = roll
 	player.work_side = active_side

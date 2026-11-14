@@ -78,3 +78,16 @@
 - **Okno w ścianie południowej** z kawałkiem gruntu i niewidzialnymi granicami za nim.
 - **Zapis:** wersja 3 (okno i drzwi). Starsze zapisy są odrzucane.
 - **Odłożone:** blokowanie czynności przez brak umiejętności (build 9), klinowanie drzwi, osobne modele narzędzi (na razie bryły zastępcze), dźwięk.
+
+
+## Build 4.2 (14.11.2026): poprawki po testach
+
+- **Styl PS1 w geometrii, bez szumu:** usunięte animowane ziarno. Wszystkie materiały standardowe są w locie zamieniane na shader PS1 (`scripts/psx.gd`): wierzchołki przyciągane do siatki pikseli (drgania przy ruchu), tekstury bez korekcji perspektywy (affine), duże pudełka dzielone co 0,75 m. Post-process: kolor 15-bitowy (32 poziomy) z nieruchomym ditheringiem Bayera 4×4 z PS1 i lekką winietą. Style: F1 Łagodny PS1 (domyślny, 2× mniej pikseli, snap 1,5, affine 0,35), F2 Klasyczny PS1 (426×240 przy 720p, affine 0,8), F3 Surowy, F4 bez efektów.
+- **Dźwięk syntetyzowany** (`scripts/sound.gd`): 18 dźwięków po 3 warianty, 22 kHz, generowane przy starcie. Każde zdarzenie hałasu ma dźwięk; do tego kroki (zależne od kucania, biegu i obciążenia), lądowanie, uderzenia brył o otoczenie (zmiana prędkości ponad 1,3 m/s; drewno lub metal), podniesienie, rzut, przekładanie w ekwipunku, włącznik. Dźwięki zakończenia: dobity gwóźdź „tiiing”, dokręcony wkręt „klik”.
+- **Kolory znaczników:** czerwony demontaż (podważanie, wyciąganie gwoździ, dokręcony wkręt do wykręcenia), żółty dołożenie części, niebieski montaż (wbijanie, wkręcanie). Właściciel punktu może nadpisać kolor przez `work_category`.
+- **Postęp na przedmiocie zamiast pasków:** gwoździe wystają coraz mniej z każdym uderzeniem (wygięty sterczy krzywo), wkręty chowają się z każdym obrotem, a nacięcie łba obraca się. Paski i liczby pod numpadem 0, domyślnie wyłączone.
+- **Młotek:** model z Blendera (trzonek, obuch, pazur), w dłoni trzonek pionowo (`"grip": "up"`). Zamach przód-tył: młotek czeka przechylony do tyłu, kliknięcie przerzuca go do przodu w 0,09 s i dopiero wtedy liczy się uderzenie (z dźwiękiem), potem wraca. Zasięg pracy zależy od rodzaju: wbijanie 0,95 m, wkręcanie 1 m, dźwignia 1,3 m, przykładanie 1,7 m.
+- **Duże przedmioty oburącz:** pole `bulky` w items.json (deska: 0,6 sztuki na punkt siły). Nie wchodzą do siatek, zajmują obie ręce, kolejne podniesione sztuki dokładają się do stosu do limitu `siła × per_strength` (siła 5: 3 deski). Przyłożenie zabiera jedną sztukę, upuszczenie zrzuca stos jako osobne deski. Siła na razie stała (5), cechy postaci w buildzie 9.
+- **Tryb chwytania (T):** przełącznik zamiast pojedynczego chwytu; lewy przycisk przytrzymany trzyma, puszczony puszcza, prawy rzuca. Rzut przez środek masy z lekkim obrotem (wcześniej siła w punkcie chwytu rozkręcała przedmioty).
+- **Postać:** nowe segmenty z Blendera (sylwetka V, kurtka z kołnierzem, pas, dżinsy, buty robocze z podeszwą, dłonie z palcami). Stopy stawiane pionowo pod biodrami (wcześniej wysunięte przed tułów, przez co postać wyglądała na przygarbioną).
+- **Modele przedmiotów** (`assets_src/blender/przedmioty.py` → `game/models/przedmioty.glb`): młotek, łom z hakiem, śrubokręt, nóż, wiązka gwoździ, pudełko wkrętów, deska ze sfazowanymi krawędziami, nakładka, zamek, klucz. Bryły kolizji bez zmian (`model.size`).

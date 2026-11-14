@@ -80,28 +80,47 @@ def join(name, objs):
 
 
 def build():
-    # kończyny: jednostkowa długość wzdłuż Z
-    loft("udo", [(0.0, 0.085, 0.09, 0.0), (0.55, 0.075, 0.08, 0.005), (1.0, 0.058, 0.06, 0.0)], 8)
-    loft("lydka", [(0.0, 0.058, 0.06, 0.0), (0.3, 0.062, 0.068, -0.01), (1.0, 0.044, 0.046, 0.0)], 8)
-    loft("ramie", [(0.0, 0.055, 0.055, 0.0), (0.4, 0.05, 0.052, 0.0), (1.0, 0.042, 0.042, 0.0)], 7)
-    loft("przedramie", [(0.0, 0.042, 0.042, 0.0), (0.35, 0.045, 0.043, 0.0), (1.0, 0.033, 0.03, 0.0)], 7)
-    # tułów: od miednicy (z=0) do podstawy szyi (z=1); szerszy w barkach
+    # Sylwetka dorosłego mężczyzny w kurtce roboczej, dżinsach i butach za kostkę.
+    # Kończyny: jednostkowa długość wzdłuż Z; przekroje w metrach, przód to +Y.
+    # udo: mocne u góry, zwęża się do kolana; nogawka prosta jak w dżinsach
+    loft("udo", [(0.0, 0.092, 0.098, 0.0), (0.25, 0.088, 0.094, 0.006), (0.6, 0.074, 0.08, 0.006),
+                 (1.0, 0.058, 0.062, 0.0)], 10)
+    # łydka: mięsień z tyłu (przesunięcie -Y), nogawka opada na cholewkę
+    loft("lydka", [(0.0, 0.058, 0.062, 0.0), (0.28, 0.064, 0.07, -0.012), (0.7, 0.054, 0.058, -0.004),
+                   (1.0, 0.056, 0.058, 0.0)], 10)
+    # ramię w rękawie kurtki: naramiennik, potem prosto do łokcia
+    loft("ramie", [(0.0, 0.062, 0.066, 0.0), (0.18, 0.064, 0.064, 0.0), (0.6, 0.054, 0.056, 0.0),
+                   (1.0, 0.047, 0.048, 0.0)], 9)
+    # przedramię: grubsze pod łokciem, mankiet rękawa przy nadgarstku
+    loft("przedramie", [(0.0, 0.047, 0.048, 0.0), (0.3, 0.05, 0.049, 0.0), (0.85, 0.041, 0.04, 0.0),
+                        (0.86, 0.046, 0.045, 0.0), (1.0, 0.046, 0.045, 0.0)], 9)
+    # tułów: od miednicy (z=0) do podstawy szyi (z=1); szeroka klatka, płaskie
+    # plecy, barki wyżej i szerzej niż talia (sylwetka w kształcie V), kołnierz kurtki
     loft("tors", [
-        (0.0, 0.155, 0.095, 0.0),
-        (0.45, 0.165, 0.105, -0.005),
-        (0.82, 0.195, 0.11, 0.0),
-        (1.0, 0.12, 0.085, 0.01),
-    ], 8)
-    # bryły o stałym rozmiarze
-    box("miednica", 0.33, 0.2, 0.16, cz=0.0, taper_top=1.0)
-    # but: palce w stronę +Y Blendera (przód w grze), kostka na z=0
-    boot = box("stopa", 0.11, 0.27, 0.08, cy=0.07, cz=-0.035)
-    cuff = box("stopa_cholewa", 0.105, 0.11, 0.07, cy=-0.005, cz=0.03)
-    join("stopa", [boot, cuff])
-    # dłoń: od nadgarstka (z=0) w dół wzdłuż Z, kciuk z boku
-    palm = box("dlon", 0.085, 0.032, 0.1, cz=0.05, taper_top=1.0)
-    thumb = box("dlon_kciuk", 0.026, 0.026, 0.055, cx=0.045, cy=0.012, cz=0.035)
-    join("dlon", [palm, thumb])
+        (0.0, 0.165, 0.105, 0.0),
+        (0.2, 0.162, 0.104, 0.004),
+        (0.48, 0.178, 0.112, 0.012),
+        (0.7, 0.205, 0.12, 0.016),
+        (0.84, 0.215, 0.112, 0.008),
+        (0.93, 0.15, 0.09, 0.006),
+        (0.95, 0.075, 0.07, 0.008),
+        (1.0, 0.07, 0.065, 0.006),
+    ], 10)
+    # miednica z paskiem
+    pelvis = box("miednica", 0.34, 0.215, 0.17, cz=0.0, taper_top=1.0)
+    belt = box("miednica_pas", 0.345, 0.222, 0.035, cz=0.06)
+    join("miednica", [pelvis, belt])
+    # but roboczy: gruba podeszwa, zaokrąglony nosek, cholewka; kostka na z=0
+    sole = box("stopa_podeszwa", 0.118, 0.29, 0.03, cy=0.07, cz=-0.06)
+    boot = box("stopa", 0.112, 0.26, 0.06, cy=0.065, cz=-0.03, taper_top=0.9)
+    toe = box("stopa_nosek", 0.1, 0.06, 0.045, cy=0.2, cz=-0.035, taper_top=0.8)
+    cuff = box("stopa_cholewa", 0.108, 0.115, 0.085, cy=-0.005, cz=0.035)
+    join("stopa", [boot, sole, toe, cuff])
+    # dłoń: szeroka śródręcze, palce złączone i lekko zgięte, kciuk z boku
+    palm = box("dlon", 0.09, 0.036, 0.085, cz=0.042, taper_top=1.0)
+    fingers = box("dlon_palce", 0.086, 0.03, 0.06, cy=0.006, cz=0.11, taper_top=0.92)
+    thumb = box("dlon_kciuk", 0.028, 0.028, 0.058, cx=0.05, cy=0.014, cz=0.04)
+    join("dlon", [palm, fingers, thumb])
     # głowa: rzuca tylko cień (gracz jej nie widzi)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=8, ring_count=6, radius=0.11)
     head = bpy.context.active_object

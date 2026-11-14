@@ -55,8 +55,10 @@ var held_body: RigidBody3D = null  # ustawia system chwytu; tej bryły nie pcham
 var held_local_point := Vector3.ZERO  # punkt chwytu w układzie trzymanej bryły
 var load_factor := 1.0             # mnożnik prędkości od odczuwanej masy ekwipunku
 var load_stamina := 1.0            # mnożnik zużycia wytrzymałości od masy
+var strength := 5                  # siła 1–10 (na razie stała; cechy postaci w buildzie 9)
 var hand_items := {"l": null, "r": null}    # przedmioty w rękach (z ekwipunku)
 var work_targets := {"l": null, "r": null}  # punkty pracy, do których idą dłonie (Vector3)
+var work_rots := {"l": null, "r": null}     # zadane ułożenie dłoni przy pracy (Quaternion)
 var work_roll := 0.0               # obrót dłoni przy wkręcaniu
 var work_side := ""                # ręka, która kręci
 var body: Node3D

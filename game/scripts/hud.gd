@@ -173,12 +173,13 @@ func set_cursor(state: String) -> void:
 		return
 	_cursor = state
 	_dot.visible = state == "dot" or state == "use"
-	_icon.visible = state == "hand" or state == "fist" or state == "item"
+	_icon.visible = state == "hand" or state == "fist" or state == "item" or state == "hand_idle"
 	if _icon.visible:
-		_icon.texture = _textures["hand" if state == "item" else state]
+		_icon.texture = _textures["hand" if state == "item" or state == "hand_idle" else state]
+		_icon.modulate.a = 0.35 if state == "hand_idle" else 1.0
 	_key.visible = state == "hand" or state == "use" or state == "item"
 	if state == "hand":
-		_key.text = "T"
+		_key.text = tr("KEY_GRAB")
 	elif state == "item":
 		_key.text = "T · F"
 	elif state == "use":
