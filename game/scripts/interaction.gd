@@ -35,6 +35,7 @@ var _focus_point := Vector3.ZERO
 var _local_point := Vector3.ZERO
 var _hold_dist := 1.2
 var _old_angular_damp := 0.0
+var _grab_pitch := 0.0
 
 
 func setup(main_node: Node) -> void:
@@ -88,6 +89,7 @@ func _grab(body: RigidBody3D, point: Vector3) -> void:
 	player.held_local_point = _local_point
 	_hold_dist = clampf(player.camera.global_position.distance_to(point), HOLD_MIN, HOLD_DEFAULT)
 	_old_angular_damp = body.angular_damp
+	_grab_pitch = player.pitch
 	body.angular_damp = HELD_ANGULAR_DAMP
 	body.sleeping = false
 
@@ -116,6 +118,8 @@ func _update_focus() -> void:
 		focus_kind = "use"
 	elif collider.has_meta("item"):
 		focus_kind = "item"
+	elif collider.has_meta("door_sys"):
+		focus_kind = "grab"  # drzwi da się chwycić także na zatrzasku (za klamkę)
 	elif collider is RigidBody3D and not collider.freeze:
 		focus_kind = "grab"
 	else:
@@ -124,9 +128,17 @@ func _update_focus() -> void:
 	_focus_point = hit["position"]
 
 
+func focus_point() -> Vector3:
+	return _focus_point
+
+
 func _drive_held() -> void:
 	if not is_instance_valid(held):
 		release()
+		return
+	if held.has_meta("door_sys") and held.get_meta("door_sys").latched:
+		# drzwi na zatrzasku: pochylenie wzroku w dół naciska klamkę
+		held.get_meta("door_sys").handle_pull(_grab_pitch - player.pitch)
 		return
 	if player.stands_on(held):
 		release()  # nie da się podnieść czegoś, na czym się stoi
@@ -149,7 +161,9 @@ func _drive_held() -> void:
 
 
 func _update_cursor() -> void:
-	if held != null:
+	if main.work != null and (main.work.is_active() or main.work.candidate != null) and held == null:
+		hud.set_cursor("dot")  # punkt pracy ma pierwszeństwo przed chwytem
+	elif held != null:
 		hud.set_cursor("fist")
 	elif focus_kind == "grab":
 		hud.set_cursor("hand")

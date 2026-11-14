@@ -3,7 +3,7 @@ extends RefCounted
 ## Format ma numer wersji od pierwszego builda; każdy nowy system dopisuje
 ## tu swoją sekcję i podbija VERSION, gdy zmienia znaczenie istniejących pól.
 
-const VERSION := 2  # 2: ekwipunek i przedmioty w świecie (build 3)
+const VERSION := 3  # 2: ekwipunek (build 3); 3: okno z deskami i drzwi z zamkiem (build 4)
 const DEFAULT_PATH := "user://zapis_1.json"
 
 enum Result { OK, NO_FILE, BAD_FILE }
@@ -13,7 +13,7 @@ static func save(main: Node, path: String = DEFAULT_PATH) -> bool:
 	var player = main.player
 	var data := {
 		"version": VERSION,
-		"build": 3,
+		"build": 4,
 		"style": main.style_index,
 		"locale": TranslationServer.get_locale(),
 		"player": {
@@ -32,6 +32,7 @@ static func save(main: Node, path: String = DEFAULT_PATH) -> bool:
 		data["switches"][id] = main.switches[id]["on"]
 	data["inventory"] = main.inventory.to_dict()
 	data["world_items"] = main.world_items.to_save()
+	data["world_state"] = {"window": main.window_boards.to_dict(), "door": main.door_sys.to_dict()}
 	for body in main.bodies:
 		var q: Quaternion = body.global_transform.basis.get_rotation_quaternion()
 		data["bodies"][body.get_meta("save_id")] = {
@@ -76,6 +77,9 @@ static func load_into(main: Node, path: String = DEFAULT_PATH) -> int:
 	main.inventory.cancel_all()
 	main.world_items.from_save(data.get("world_items", []))
 	main.inventory.from_dict(data.get("inventory", {}))
+	var ws: Dictionary = data.get("world_state", {})
+	main.window_boards.from_dict(ws.get("window", {}))
+	main.door_sys.from_dict(ws.get("door", {}))
 
 	var sw = data.get("switches", {})
 	if typeof(sw) == TYPE_DICTIONARY:

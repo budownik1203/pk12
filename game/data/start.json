@@ -1,34 +1,190 @@
 {
 	"_opis": "Stan początkowy ekwipunku i przedmiotów w pokoju testowym. Przedmioty bez pozycji w siatce układają się same.",
 	"slots": {
-		"spodnie": {"def": "spodnie"},
-		"kurtka": {"def": "kurtka"}
+		"spodnie": {
+			"def": "spodnie"
+		},
+		"kurtka": {
+			"def": "kurtka"
+		}
 	},
 	"containers": {
 		"szafka": [
-			{"def": "srubokret"},
-			{"def": "mlotek"},
-			{"def": "pistolet"},
-			{"def": "naboje_9mm", "count": 23},
-			{"def": "naboje_9mm", "count": 40},
-			{"def": "gwozdzie", "count": 40},
-			{"def": "butelka_wody"},
-			{"def": "apteczka", "contents": [[{"def": "bandaz", "count": 2}]]},
-			{"def": "bandaz"}
+			{
+				"def": "srubokret"
+			},
+			{
+				"def": "mlotek"
+			},
+			{
+				"def": "pistolet"
+			},
+			{
+				"def": "naboje_9mm",
+				"count": 23
+			},
+			{
+				"def": "naboje_9mm",
+				"count": 40
+			},
+			{
+				"def": "gwozdzie",
+				"count": 40
+			},
+			{
+				"def": "butelka_wody"
+			},
+			{
+				"def": "apteczka",
+				"contents": [
+					[
+						{
+							"def": "bandaz",
+							"count": 2
+						}
+					]
+				]
+			},
+			{
+				"def": "bandaz"
+			},
+			{
+				"def": "wkrety",
+				"count": 14
+			},
+			{
+				"def": "nakladka"
+			},
+			{
+				"def": "zamek_drzwiowy",
+				"props": {
+					"key_id": 7
+				}
+			},
+			{
+				"def": "moneta",
+				"count": 3
+			},
+			{
+				"def": "noz"
+			}
 		]
 	},
 	"world": [
-		{"def": "plecak", "position": [1.9, 0.12, 2.2]},
-		{"def": "kamizelka", "position": [-1.6, 0.06, -2.7]},
-		{"def": "pas", "position": [-4.28, 0.7, 1.6]},
-		{"def": "lom", "position": [2.6, 0.03, 0.6]},
-		{"def": "puszka_fasoli", "position": [-3.1, 0.85, -2.2]},
-		{"def": "puszka_fasoli", "position": [-2.88, 0.85, -2.15]},
-		{"def": "puszka_fasoli", "position": [-2.66, 0.85, -2.2]},
-		{"def": "puszka_fasoli", "position": [-2.44, 0.85, -2.15]},
-		{"def": "puszka_fasoli", "position": [-2.22, 0.85, -2.2]},
-		{"def": "puszka_fasoli", "position": [-4.28, 1.28, 1.25]},
-		{"def": "puszka_fasoli", "position": [-4.28, 1.28, 1.55]},
-		{"def": "butelka_wody", "position": [-4.28, 1.38, 1.9]}
+		{
+			"def": "plecak",
+			"position": [
+				1.9,
+				0.12,
+				2.2
+			]
+		},
+		{
+			"def": "kamizelka",
+			"position": [
+				-1.6,
+				0.06,
+				-2.7
+			]
+		},
+		{
+			"def": "pas",
+			"position": [
+				-4.28,
+				0.7,
+				1.6
+			]
+		},
+		{
+			"def": "lom",
+			"position": [
+				2.6,
+				0.03,
+				0.6
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-3.1,
+				0.85,
+				-2.2
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-2.88,
+				0.85,
+				-2.15
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-2.66,
+				0.85,
+				-2.2
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-2.44,
+				0.85,
+				-2.15
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-2.22,
+				0.85,
+				-2.2
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-4.28,
+				1.28,
+				1.25
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-4.28,
+				1.28,
+				1.55
+			]
+		},
+		{
+			"def": "butelka_wody",
+			"position": [
+				-4.28,
+				1.38,
+				1.9
+			]
+		},
+		{
+			"def": "klucz",
+			"props": {
+				"key_id": 7
+			},
+			"position": [
+				-2.0,
+				0.82,
+				-1.95
+			]
+		},
+		{
+			"def": "deska",
+			"position": [
+				-0.6,
+				0.03,
+				3.0
+			]
+		}
 	]
 }

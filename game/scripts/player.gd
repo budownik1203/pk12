@@ -56,6 +56,8 @@ var held_local_point := Vector3.ZERO  # punkt chwytu w układzie trzymanej brył
 var load_factor := 1.0             # mnożnik prędkości od odczuwanej masy ekwipunku
 var load_stamina := 1.0            # mnożnik zużycia wytrzymałości od masy
 var hand_item = null               # przedmiot w prawej ręce (z ekwipunku)
+var work_target = null             # punkt pracy, do którego dłoń prowadzi narzędzie (Vector3)
+var work_roll := 0.0               # obrót dłoni przy wkręcaniu
 var body: Node3D
 
 var _shape: CapsuleShape3D

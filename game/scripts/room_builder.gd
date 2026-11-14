@@ -10,6 +10,10 @@ const ROOM_W := 9.0    # oś X
 const ROOM_D := 7.0    # oś Z
 const ROOM_H := 3.0
 const WALL := 0.2
+const WINDOW_X0 := -3.0
+const WINDOW_X1 := -1.8
+const WINDOW_SILL := 0.9
+const WINDOW_TOP := 2.1
 
 
 static func build(world: Node3D) -> Dictionary:
@@ -78,7 +82,17 @@ static func _shell(world: Node3D) -> void:
 	_static_box(world, "Podloga", Vector3(1.5, -0.1, 0), Vector3(ROOM_W + 3.0 + WALL * 2, 0.2, ROOM_D + WALL * 2), floor_m)
 	_static_box(world, "Sufit", Vector3(1.5, ROOM_H + 0.1, 0), Vector3(ROOM_W + 3.0 + WALL * 2, 0.2, ROOM_D + WALL * 2), ceil_m)
 	_static_box(world, "ScianaN", Vector3(1.5, ROOM_H / 2, -hd - WALL / 2), Vector3(ROOM_W + 3.0 + WALL * 2, ROOM_H, WALL), wall_m)
-	_static_box(world, "ScianaS", Vector3(1.5, ROOM_H / 2, hd + WALL / 2), Vector3(ROOM_W + 3.0 + WALL * 2, ROOM_H, WALL), wall_m)
+	# ściana południowa z otworem okiennym (WINDOW_X0..WINDOW_X1, parapet i nadproże)
+	var wz := hd + WALL / 2
+	var left_x0 := -hw - WALL
+	var right_x1 := hw + 3.0 + WALL
+	_static_box(world, "ScianaS_L", Vector3((left_x0 + WINDOW_X0) / 2.0, ROOM_H / 2, wz), Vector3(WINDOW_X0 - left_x0, ROOM_H, WALL), wall_m)
+	_static_box(world, "ScianaS_P", Vector3((WINDOW_X1 + right_x1) / 2.0, ROOM_H / 2, wz), Vector3(right_x1 - WINDOW_X1, ROOM_H, WALL), wall_m)
+	var ww := WINDOW_X1 - WINDOW_X0
+	var wx := (WINDOW_X0 + WINDOW_X1) / 2.0
+	_static_box(world, "Parapet", Vector3(wx, WINDOW_SILL / 2.0, wz), Vector3(ww, WINDOW_SILL, WALL), wall_m)
+	_static_box(world, "Nadproze_okno", Vector3(wx, (WINDOW_TOP + ROOM_H) / 2.0, wz), Vector3(ww, ROOM_H - WINDOW_TOP, WALL), wall_m)
+	_exterior(world)
 	_static_box(world, "ScianaW", Vector3(-hw - WALL / 2, ROOM_H / 2, 0), Vector3(WALL, ROOM_H, ROOM_D), wall_m)
 	_static_box(world, "ScianaE", Vector3(hw + 3.0 + WALL / 2, ROOM_H / 2, 0), Vector3(WALL, ROOM_H, ROOM_D), wall_m)
 	# ścianka działowa z otworem drzwiowym (1 m szerokości, 2.1 m wysokości)
@@ -90,6 +104,37 @@ static func _shell(world: Node3D) -> void:
 	_static_box(world, "DzialowaN", Vector3(hw, ROOM_H / 2, -hd + north_len / 2.0), Vector3(WALL, ROOM_H, north_len), wall_m)
 	_static_box(world, "DzialowaS", Vector3(hw, ROOM_H / 2, hd - south_len / 2.0), Vector3(WALL, ROOM_H, south_len), wall_m)
 	_static_box(world, "Nadproze", Vector3(hw, door_h + (ROOM_H - door_h) / 2.0, door_z), Vector3(WALL, ROOM_H - door_h, door_w), wall_m)
+
+
+## Środek otworu okiennego po stronie wnętrza (tam przybija się deski).
+static func window_center() -> Vector3:
+	return Vector3((WINDOW_X0 + WINDOW_X1) / 2.0, (WINDOW_SILL + WINDOW_TOP) / 2.0, ROOM_D / 2.0)
+
+
+## Ościeżnica drzwi do komórki od strony zamka (tam przykręca się nakładkę).
+static func door_jamb() -> Vector3:
+	return Vector3(ROOM_W / 2.0 + 0.05, 1.1, 1.7 - 0.003)
+
+
+static func _exterior(world: Node3D) -> void:
+	# za oknem: kawałek gruntu i niewidzialne granice, żeby nic nie wypadło ze świata
+	var ground := StandardMaterial3D.new()
+	ground.albedo_color = Color(0.12, 0.13, 0.11)
+	ground.roughness = 1.0
+	var z0 := ROOM_D / 2.0 + WALL
+	_static_box(world, "Grunt", Vector3(-2.4, -0.15, z0 + 1.5), Vector3(4.0, 0.3, 3.0), ground)
+	for b in [[Vector3(-2.4, 1.5, z0 + 3.05), Vector3(4.0, 3.0, 0.1)],
+			[Vector3(-4.45, 1.5, z0 + 1.5), Vector3(0.1, 3.0, 3.0)],
+			[Vector3(-0.35, 1.5, z0 + 1.5), Vector3(0.1, 3.0, 3.0)]]:
+		var wall := StaticBody3D.new()
+		wall.name = "GranicaZewn"
+		wall.position = b[0]
+		var shape := BoxShape3D.new()
+		shape.size = b[1]
+		var col := CollisionShape3D.new()
+		col.shape = shape
+		wall.add_child(col)
+		world.add_child(wall, true)
 
 
 static func _furniture(world: Node3D) -> void:

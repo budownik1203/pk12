@@ -74,8 +74,8 @@
 			"tags": [
 				"dlugie"
 			],
-			"desc_pl": "Kawał dobrej stali. Podważa, wyważa, uderza.",
-			"desc_en": "A solid piece of steel. Prys, breaks open, hits.",
+			"desc_pl": "Kawał dobrej stali. Podważa deski i drzwi (długie ramię), uderza.",
+			"desc_en": "A solid piece of steel. Pries boards and doors (long lever arm), hits.",
 			"model": {
 				"type": "box",
 				"size": [
@@ -88,7 +88,12 @@
 					0.12,
 					0.1
 				]
-			}
+			},
+			"abilities": {
+				"podwazanie": 3,
+				"obuch": 2
+			},
+			"length": 0.75
 		},
 		"srubokret": {
 			"pl": "Śrubokręt",
@@ -114,7 +119,14 @@
 				]
 			},
 			"short_pl": "Śrubokr.",
-			"short_en": "Screwdr."
+			"short_en": "Screwdr.",
+			"abilities": {
+				"wkrecanie": 3
+			},
+			"length": 0.21,
+			"wear": 0.004,
+			"desc_pl": "Wkręca i wykręca wkręty. Końcówka się wyrabia; zużyta zrywa łby wkrętów.",
+			"desc_en": "Drives and removes screws. The tip wears; a worn one strips screw heads."
 		},
 		"mlotek": {
 			"pl": "Młotek",
@@ -130,16 +142,24 @@
 			"model": {
 				"type": "box",
 				"size": [
-					0.12,
+					0.32,
 					0.03,
-					0.32
+					0.12
 				],
 				"color": [
 					0.3,
 					0.22,
 					0.14
 				]
-			}
+			},
+			"abilities": {
+				"wbijanie": 3,
+				"obuch": 2,
+				"podwazanie": 1
+			},
+			"length": 0.32,
+			"desc_pl": "Wbija gwoździe. Pazurem wyciąga wygięte gwoździe i słabo podważa.",
+			"desc_en": "Drives nails. The claw pulls bent nails and pries weakly."
 		},
 		"pistolet": {
 			"pl": "Pistolet (atrapa)",
@@ -521,6 +541,212 @@
 					0.17,
 					0.2,
 					0.27
+				]
+			}
+		},
+		"moneta": {
+			"pl": "Moneta",
+			"en": "Coin",
+			"short_pl": "Moneta",
+			"short_en": "Coin",
+			"mass": 0.007,
+			"material": "metal",
+			"category": "material",
+			"shape": [
+				"#"
+			],
+			"stack": 20,
+			"abilities": {
+				"wkrecanie": 1
+			},
+			"length": 0.02,
+			"desc_pl": "W ostateczności wkręca płaskie łby, trzy razy wolniej niż śrubokręt.",
+			"desc_en": "In a pinch it turns flat screw heads, three times slower than a screwdriver.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.012,
+				"height": 0.003,
+				"color": [
+					0.7,
+					0.62,
+					0.4
+				]
+			}
+		},
+		"noz": {
+			"pl": "Nóż kuchenny",
+			"en": "Kitchen knife",
+			"short_pl": "Nóż",
+			"short_en": "Knife",
+			"mass": 0.15,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"#",
+				"#"
+			],
+			"abilities": {
+				"wkrecanie": 1,
+				"podwazanie": 1
+			},
+			"length": 0.22,
+			"wear": 0.03,
+			"desc_pl": "Wkręca i podważa słabo, a ostrze szybko na tym traci.",
+			"desc_en": "Turns screws and pries poorly, and the blade suffers for it.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.24,
+					0.02,
+					0.03
+				],
+				"color": [
+					0.55,
+					0.55,
+					0.58
+				]
+			}
+		},
+		"deska": {
+			"pl": "Deska",
+			"en": "Plank",
+			"mass": 2.0,
+			"material": "drewno",
+			"category": "material",
+			"shape": [
+				"#",
+				"#",
+				"#",
+				"#",
+				"#"
+			],
+			"tags": [
+				"dlugie"
+			],
+			"mount": "deska",
+			"desc_pl": "Przyłóż do okna lewym przyciskiem i przybij młotkiem.",
+			"desc_en": "Hold it to a window with the left button and nail it with a hammer.",
+			"model": {
+				"type": "box",
+				"size": [
+					1.5,
+					0.025,
+					0.14
+				],
+				"color": [
+					0.4,
+					0.3,
+					0.19
+				]
+			}
+		},
+		"wkrety": {
+			"pl": "Wkręty",
+			"en": "Screws",
+			"short_pl": "Wkręty",
+			"short_en": "Screws",
+			"mass": 0.004,
+			"material": "metal",
+			"category": "material",
+			"shape": [
+				"#"
+			],
+			"stack": 50,
+			"model": {
+				"type": "box",
+				"size": [
+					0.07,
+					0.03,
+					0.045
+				],
+				"color": [
+					0.5,
+					0.5,
+					0.52
+				]
+			}
+		},
+		"nakladka": {
+			"pl": "Nakładka zamka",
+			"en": "Strike plate",
+			"short_pl": "Nakładka",
+			"short_en": "Plate",
+			"mass": 0.12,
+			"material": "metal",
+			"category": "material",
+			"shape": [
+				"#"
+			],
+			"mount": "nakladka",
+			"screws": 2,
+			"desc_pl": "Przykręca się do ościeżnicy drzwi (2 wkręty). Bez niej zamek nie trzyma.",
+			"desc_en": "Screws onto the door frame (2 screws). The lock won't hold without it.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.12,
+					0.006,
+					0.03
+				],
+				"color": [
+					0.6,
+					0.58,
+					0.5
+				]
+			}
+		},
+		"zamek_drzwiowy": {
+			"pl": "Zamek do drzwi",
+			"en": "Door lock",
+			"mass": 0.9,
+			"material": "metal",
+			"category": "material",
+			"shape": [
+				"##",
+				"##"
+			],
+			"mount": "zamek",
+			"screws": 4,
+			"desc_pl": "Przykręca się do skrzydła drzwi (4 wkręty). Zamyka się kluczem albo od środka.",
+			"desc_en": "Screws onto the door leaf (4 screws). Locks with its key or from inside.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.16,
+					0.03,
+					0.1
+				],
+				"color": [
+					0.45,
+					0.42,
+					0.36
+				]
+			}
+		},
+		"klucz": {
+			"pl": "Klucz",
+			"en": "Key",
+			"short_pl": "Klucz",
+			"short_en": "Key",
+			"mass": 0.02,
+			"material": "metal",
+			"category": "material",
+			"shape": [
+				"#"
+			],
+			"desc_pl": "Pasuje do jednego zamka.",
+			"desc_en": "Fits one lock.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.06,
+					0.004,
+					0.022
+				],
+				"color": [
+					0.7,
+					0.6,
+					0.3
 				]
 			}
 		}

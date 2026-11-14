@@ -16,6 +16,7 @@ var rot := 0
 var pos := Vector2i.ZERO
 var liquid := {}              # {"type": "woda", "amount": litry}
 var wet := 0.0                # 0..1, przemoczenie (system pogody w buildzie 8)
+var props := {}               # stan właściwy dla egzemplarza: "condition" (zużycie 0..1), "key_id"
 var grids: Array = []         # siatki pojemnika
 var _parent: WeakRef = null
 ## Siatka, w której leży przedmiot (odwołanie słabe, bez cyklu z siatką).
@@ -39,6 +40,8 @@ func _init(id: String, n: int = 1, with_start_liquid: bool = true) -> void:
 		var grid: Grid = Grid.new(int(g["w"]), int(g["h"]), access)
 		grid.owner_item = self
 		grids.append(grid)
+	if d.has("wear"):
+		props["condition"] = 1.0
 	if with_start_liquid and d.has("liquid_start"):
 		liquid = (d["liquid_start"] as Dictionary).duplicate()
 
@@ -79,6 +82,10 @@ func full_shape() -> Array:
 
 func cells_for(r: int) -> Array:
 	return ItemDB.cells(shape(), r)
+
+
+func condition() -> float:
+	return float(props.get("condition", 1.0))
 
 
 func material() -> String:
@@ -153,6 +160,8 @@ func to_dict() -> Dictionary:
 		d["liquid"] = liquid.duplicate()
 	if wet > 0.0:
 		d["wet"] = wet
+	if not props.is_empty():
+		d["props"] = props.duplicate()
 	if is_container():
 		var gl: Array = []
 		for g in grids:
@@ -177,6 +186,13 @@ static func from_dict(d: Dictionary, script: Script):
 	if d.has("liquid"):
 		it.liquid = (d["liquid"] as Dictionary).duplicate()
 	it.wet = float(d.get("wet", 0.0))
+	if d.has("props"):
+		for k in d["props"]:
+			var v = d["props"][k]
+			# JSON zapisuje liczby całkowite jako zmiennoprzecinkowe (np. numer klucza)
+			if typeof(v) == TYPE_FLOAT and k != "condition" and v == floorf(v):
+				v = int(v)
+			it.props[k] = v
 	var lists: Array = d.get("grids", d.get("contents", []))
 	for gi in mini(lists.size(), it.grids.size()):
 		var g = it.grids[gi]

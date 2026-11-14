@@ -270,9 +270,16 @@ func _physics_process(delta: float) -> void:
 			stiff["l"] = HAND_STIFF_GRIP
 	var hand_item = player.hand_item
 	if hand_item != null and not has_held:
-		targets["r"] = camera.global_transform * ITEM_HAND
-		stiff["r"] = HAND_STIFF_VIEW
-		_turn_hand("r", cam_q, delta)
+		if player.work_target != null:
+			# praca narzędziem: dłoń na punkcie pracy, przy wkręcaniu obraca się
+			targets["r"] = player.work_target
+			stiff["r"] = HAND_STIFF_GRIP
+			var roll_q := Quaternion(cam_basis.z, -player.work_roll)
+			_turn_hand("r", (roll_q * cam_q).normalized(), delta * 3.0)
+		else:
+			targets["r"] = camera.global_transform * ITEM_HAND
+			stiff["r"] = HAND_STIFF_VIEW
+			_turn_hand("r", cam_q, delta)
 	_update_hand_visual(hand_item)
 	if lamp_on and not two_hands:
 		targets["l"] = camera.global_transform * LAMP_HAND

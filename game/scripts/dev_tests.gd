@@ -53,6 +53,51 @@ static func _finish(main: Node, limit: float = 8.0) -> void:
 	await tree.process_frame
 
 
+## Wkłada nowy przedmiot prosto do ręki (testy narzędzi).
+static func _hand(main: Node, def_id: String, props: Dictionary = {}):
+	var inv = main.inventory
+	inv.cancel_all()
+	inv.slots.erase("w_reku")
+	var it = ItemScript.new(def_id)
+	for k in props:
+		it.props[k] = props[k]
+	inv.slots["w_reku"] = it
+	it.slot = "w_reku"
+	inv.changed.emit()
+	return it
+
+
+## Obraca widok gracza tak, by patrzył prosto na punkt.
+static func _aim(main: Node, target: Vector3) -> void:
+	var cam: Vector3 = main.player.camera.global_position
+	var d := target - cam
+	var yaw := atan2(-d.x, -d.z)
+	var pitch := atan2(d.y, Vector2(d.x, d.z).length())
+	main.player.set_view(yaw, pitch)
+
+
+static func _point(main: Node, owner, filter: Dictionary):
+	for p in main.work.points:
+		if p.owner != owner:
+			continue
+		var ok := true
+		for k in filter:
+			if p.data.get(k) != filter[k]:
+				ok = false
+		if ok:
+			return p
+	return null
+
+
+## Podważanie: ruch myszy w dół porcjami po 40 pikseli, aż warunek się spełni.
+static func _lever_until(main: Node, cond: Callable, limit_px: float = 4000.0) -> float:
+	var px := 0.0
+	while not cond.call() and px < limit_px:
+		main.work.mouse(Vector2(0, 40))
+		px += 40.0
+	return px
+
+
 static func _place(main: Node, pos: Vector3, yaw_deg: float, pitch_deg: float = 0.0) -> void:
 	main.player.teleport(pos)
 	main.player.set_view(deg_to_rad(yaw_deg), deg_to_rad(pitch_deg))
@@ -208,8 +253,18 @@ static func run_tests(main: Node) -> void:
 	await _wait(tree, 5)
 	if inter.focus != door:
 		errors.append("gracz nie celuje w drzwi")
+	if not main.door_sys.latched:
+		errors.append("drzwi na starcie nie są na zatrzasku")
 	inter.toggle_grab()
 	Input.action_press("move_back")
+	await _wait(tree, 30)
+	if door.global_transform.basis.get_rotation_quaternion().angle_to(door_start.basis.get_rotation_quaternion()) > 0.01:
+		errors.append("drzwi na zatrzasku dały się otworzyć bez klamki")
+	player.set_view(deg_to_rad(-90.0), deg_to_rad(-17.0))  # pociągnięcie klamki w dół
+	await _wait(tree, 3)
+	if main.door_sys.latched:
+		errors.append("pociągnięcie wzroku w dół przy chwycie nie nacisnęło klamki")
+	player.set_view(deg_to_rad(-90.0), deg_to_rad(-5.0))
 	await _wait(tree, 70)
 	Input.action_release("move_back")
 	inter.release()
@@ -305,8 +360,8 @@ static func run_tests(main: Node) -> void:
 	if not inv.slots.has("spodnie") or not inv.slots.has("kurtka"):
 		errors.append("na starcie brak spodni albo kurtki")
 	var cab_grid = inv.containers["szafka"]["grids"][0]
-	if cab_grid.items.size() != 9:
-		errors.append("szafka ma %d przedmiotów zamiast 9" % cab_grid.items.size())
+	if cab_grid.items.size() != 14:
+		errors.append("szafka ma %d przedmiotów zamiast 14" % cab_grid.items.size())
 	# 15c. podniesienie puszki ze stołu (F): trwa, potem bryła znika, puszka w kieszeni
 	var can_body := _world_item(main, "puszka_fasoli")
 	_place(main, can_body.global_position + Vector3(0.0, -can_body.global_position.y + 0.02, 0.9), 0.0, -40.0)
@@ -445,6 +500,165 @@ static func run_tests(main: Node) -> void:
 	await tree.process_frame
 	main.close_inventory()
 
+	# 16. Narzędzia i montaż.
+	var ws = main.work
+	var win = main.window_boards
+	var ds = main.door_sys
+	# 16a. zrywanie górnej deski łomem: celowanie, prawy przycisk, ruch w dół
+	_hand(main, "lom")
+	var wc: Vector3 = win.global_position
+	_place(main, Vector3(wc.x, 0.02, wc.z - 1.0), 180.0)
+	var pry0 = _point(main, win, {"slot": 2, "end": 0, "what": "pry"})
+	_aim(main, pry0.world_pos())
+	await _wait(tree, 3)
+	if ws.candidate != pry0:
+		errors.append("celownik nie znajduje końca deski do podważenia")
+	ws.begin()
+	var px0 := _lever_until(main, func(): return win.boards[2]["ends"][0]["free"])
+	ws.end()
+	var pry1 = _point(main, win, {"slot": 2, "end": 1, "what": "pry"})
+	_aim(main, pry1.world_pos())
+	await _wait(tree, 3)
+	var items_before: int = main.world_items.bodies.size()
+	ws.begin()
+	_lever_until(main, func(): return win.boards[2]["state"] == "none")
+	ws.end()
+	print("deska: koniec z 2 gwoździami podważony po %.0f pikselach ruchu myszy" % px0)
+	if px0 < 300.0 or px0 > 2000.0:
+		errors.append("opór przy zrywaniu deski poza zakresem (%.0f px)" % px0)
+	if win.boards[2]["state"] != "none" or main.world_items.bodies.size() <= items_before:
+		errors.append("zerwana deska nie spadła jako przedmiot")
+	# 16b. moneta nie podważa
+	_hand(main, "moneta")
+	var pry_mid = _point(main, win, {"slot": 1, "end": 0, "what": "pry"})
+	_aim(main, pry_mid.world_pos())
+	await _wait(tree, 3)
+	if ws.candidate == pry_mid:
+		errors.append("moneta pozwala podważać deski")
+	# 16c. barykadowanie: przyłożenie deski i wbicie po gwoździu na każdym końcu
+	_hand(main, "deska")
+	var slot_p = _point(main, win, {"slot": 2, "what": "attach"})
+	_aim(main, slot_p.world_pos())
+	await _wait(tree, 3)
+	if not ws.attach() or win.boards[2]["state"] != "placed":
+		errors.append("deski nie da się przyłożyć do okna")
+	_hand(main, "mlotek")
+	inv.give(ItemScript.new("gwozdzie", 10))
+	var nails_before: int = inv.count_of("gwozdzie")
+	for e in 2:
+		var np = _point(main, win, {"slot": 2, "end": e, "nail": 0, "what": "nail"})
+		_aim(main, np.world_pos())
+		await _wait(tree, 3)
+		if ws.candidate != np:
+			var c = ws.candidate
+			errors.append("celownik nie znajduje gwoździa na końcu %d (włączony: %s, kandydat: %s, odl. %.2f)" % [e, np.enabled,
+					str(c.data) if c != null else "brak", main.player.camera.global_position.distance_to(np.world_pos())])
+		ws.begin()
+		for k in 3:
+			ws.mouse(Vector2(0, -120))
+			ws.mouse(Vector2(0, 80))
+		ws.end()
+	if win.boards[2]["state"] != "nailed" or inv.count_of("gwozdzie") != nails_before - 2:
+		errors.append("przybijanie: stan %s, gwoździ zużyto %d" % [win.boards[2]["state"], nails_before - inv.count_of("gwozdzie")])
+	# 16d. za mocny zamach wygina gwóźdź; pazur młotka go wyciąga
+	var bent_p = _point(main, win, {"slot": 2, "end": 0, "nail": 1, "what": "nail"})
+	ws.active = bent_p
+	ws.mouse(Vector2(0, -320))
+	ws.mouse(Vector2(0, 80))
+	ws.end()
+	if win.boards[2]["ends"][0]["nails"][1] >= 0.0:
+		errors.append("zamach 320 px nie wygiął gwoździa")
+	var pull = _point(main, win, {"slot": 2, "end": 0, "nail": 1, "what": "pull"})
+	ws.active = pull
+	_lever_until(main, func(): return win.boards[2]["ends"][0]["nails"][1] >= 0.0)
+	ws.end()
+	if win.boards[2]["ends"][0]["nails"][1] != 0.0:
+		errors.append("wygiętego gwoździa nie da się wyciągnąć młotkiem")
+	if main.noise.count_label("NOISE_HAMMER") < 6:
+		errors.append("uderzenia młotkiem nie robią hałasu")
+	# 16e. nakładka i zamek na wkręty
+	ds._set_latched(true)
+	ds.locked = false
+	_hand(main, "nakladka")
+	ws.candidate = ds.parts["nakladka"]["attach"]
+	ws.attach()
+	var driver2 = _hand(main, "srubokret")
+	inv.give(ItemScript.new("wkrety", 10))
+	var screws_before: int = inv.count_of("wkrety")
+	for p in ds.parts["nakladka"]["points"]:
+		ws.active = p
+		for k in 17:
+			ws.rotate_by(0.25)
+	_hand(main, "zamek_drzwiowy", {"key_id": 7})
+	ws.candidate = ds.parts["zamek"]["attach"]
+	ws.attach()
+	main.inventory.slots.erase("w_reku")
+	main.inventory.slots["w_reku"] = driver2
+	driver2.slot = "w_reku"
+	for p in ds.parts["zamek"]["points"]:
+		ws.active = p
+		for k in 17:
+			ws.rotate_by(0.25)
+	ws.end()
+	if not ds.lock_works() or inv.count_of("wkrety") != screws_before - 6:
+		errors.append("zamek po przykręceniu nie działa (wkrętów zużyto %d)" % (screws_before - inv.count_of("wkrety")))
+	if driver2.condition() >= 1.0:
+		errors.append("śrubokręt się nie zużywa")
+	# 16f. zamykanie: z zewnątrz bez klucza nie, z kluczem tak; zamknięte nie puszcza klamki
+	_place(main, Vector3(3.6, 0.02, 1.2), -90.0)
+	await _wait(tree, 3)
+	if ds.toggle_lock():
+		errors.append("drzwi dały się zamknąć z zewnątrz bez klucza")
+	inv.give(ItemScript.new("klucz"))
+	for it in inv.all_carried():
+		if it.def_id == "klucz":
+			it.props["key_id"] = 7
+	if not ds.toggle_lock() or not ds.locked:
+		errors.append("klucz nie zamyka zamka")
+	if ds.try_unlatch() or not ds.latched:
+		errors.append("zamknięte na klucz drzwi otworzyły się klamką")
+	# 16g. wykręcony wkręt wraca, a otwór trzyma słabiej
+	var sp = ds.parts["nakladka"]["points"][0]
+	var screws_mid: int = inv.count_of("wkrety")
+	ws.active = sp
+	for k in 18:
+		ws.rotate_by(-0.25)
+	if ds.parts["nakladka"]["screws"][0]["in"] or inv.count_of("wkrety") != screws_mid + 1 or ds.parts["nakladka"]["holes"][0] != 1:
+		errors.append("wykręcanie wkrętu nie działa")
+	for k in 17:
+		ws.rotate_by(0.25)
+	var loose_t: float = ds.parts["nakladka"]["screws"][0]["t"]
+	if loose_t > 0.76 or loose_t < 0.7:
+		errors.append("wkręt w rozbitym otworze trzyma %.2f zamiast około 0,74" % loose_t)
+	# 16h. moneta kręci trzy razy wolniej
+	_hand(main, "moneta")
+	var before_coin: float = ds.parts["nakladka"]["screws"][0]["t"]
+	ws.active = sp
+	ws.rotate_by(-1.0)
+	var coin_step: float = before_coin - ds.parts["nakladka"]["screws"][0]["t"]
+	if absf(coin_step - 0.25 / 3.0) > 0.01:
+		errors.append("moneta wykręciła %.3f zamiast %.3f obrotu wkrętu" % [coin_step, 0.25 / 3.0])
+	ws.rotate_by(1.0)
+	ws.end()
+	# 16i. wyważenie zamkniętych drzwi łomem: zamek i nakładka spadają
+	_hand(main, "lom")
+	var locked_effort: float = ds.pry_effort()
+	var items_before_pry: int = main.world_items.bodies.size()
+	ws.active = ds._pry_point
+	var px_door := _lever_until(main, func(): return not ds.latched)
+	ws.end()
+	print("drzwi zamknięte na klucz: opór %.1f, wyważone po %.0f pikselach" % [locked_effort, px_door])
+	if ds.latched or ds.locked or ds.parts["zamek"]["placed"]:
+		errors.append("łom nie wyważył zamkniętych drzwi")
+	if main.world_items.bodies.size() != items_before_pry + 2:
+		errors.append("wyłamany zamek i nakładka nie spadły na ziemię")
+	if locked_effort <= ds.PRY_LATCHED * 2.0:
+		errors.append("zamek nie zwiększa oporu przy wyważaniu (%.1f)" % locked_effort)
+	if main.noise.count_label("NOISE_DOOR_BREAK") != 1:
+		errors.append("wyważenie drzwi nie zrobiło hałasu")
+	await _wait(tree, 120)
+	main.inventory.slots.erase("w_reku")
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -461,6 +675,7 @@ static func run_tests(main: Node) -> void:
 	main.set_style(2, false)
 	player.lamp.visible = true
 	var inv_saved: Dictionary = main.inventory.to_dict()
+	var ws_saved := JSON.stringify({"w": main.window_boards.to_dict(), "d": main.door_sys.to_dict()})
 	var world_saved: int = main.world_items.bodies.size()
 	if not SaveGame.save(main, TEST_PATH):
 		errors.append("zapis się nie powiódł")
@@ -491,6 +706,9 @@ static func run_tests(main: Node) -> void:
 		errors.append("styl nie wrócił (jest %d)" % main.style_index)
 	if not player.lamp.visible:
 		errors.append("latarka nie wróciła do stanu z zapisu")
+	var ws_after := JSON.stringify({"w": main.window_boards.to_dict(), "d": main.door_sys.to_dict()})
+	if ws_after != ws_saved:
+		errors.append("okno albo drzwi po odczycie różnią się od zapisanych")
 	var inv_after: Dictionary = main.inventory.to_dict()
 	if JSON.stringify(inv_after) != JSON.stringify(inv_saved):
 		errors.append("ekwipunek po odczycie różni się od zapisanego")
@@ -605,6 +823,52 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	player.set_view(deg_to_rad(-30.0), deg_to_rad(-8.0))
 	await _wait(tree, 4)
 	await _shot(main, dir + "/lom_w_rece.png")
+	# kadr 7: podważanie deski łomem w połowie (podpowiedź, postęp, znaczniki)
+	var ws = main.work
+	var win = main.window_boards
+	inv.slots.erase("w_reku")
+	_hand(main, "lom")
+	var wc: Vector3 = win.global_position
+	_place(main, Vector3(wc.x + 0.35, 0.02, wc.z - 1.05), 180.0)
+	var pp = _point(main, win, {"slot": 1, "end": 0, "what": "pry"})
+	_aim(main, pp.world_pos() + Vector3(0.05, -0.05, 0))
+	await _wait(tree, 3)
+	ws.begin()
+	for k in 7:
+		ws.mouse(Vector2(0, 40))
+	await _wait(tree, 20)
+	await _shot(main, dir + "/okno_podwazanie.png")
+	ws.end()
+	# kadr 8: młotek i gwoździe nad deską (podpowiedź uderzenia)
+	_hand(main, "mlotek")
+	var np = _point(main, win, {"slot": 0, "end": 1, "nail": 0, "what": "nail"})
+	win.boards[0]["ends"][1]["nails"][0] = 1.0
+	win._refresh(0)
+	_aim(main, np.world_pos())
+	await _wait(tree, 20)
+	await _shot(main, dir + "/okno_mlotek.png")
+	# kadr 9: zamek na drzwiach od strony komórki, wkręcanie śrubokrętem
+	var ds = main.door_sys
+	main.set_switch("lampa_komorka", true)
+	ds._set_latched(true)
+	_hand(main, "nakladka")
+	ws.candidate = ds.parts["nakladka"]["attach"]
+	ws.attach()
+	_hand(main, "zamek_drzwiowy", {"key_id": 7})
+	ws.candidate = ds.parts["zamek"]["attach"]
+	ws.attach()
+	_hand(main, "srubokret")
+	inv.give(ItemScript.new("wkrety", 10))
+	_place(main, Vector3(5.25, 0.02, 1.35), -90.0)
+	var sp = ds.parts["zamek"]["points"][0]
+	_aim(main, sp.world_pos())
+	await _wait(tree, 3)
+	ws.begin()
+	for k in 9:
+		ws.rotate_by(0.25)
+	await _wait(tree, 20)
+	await _shot(main, dir + "/drzwi_zamek.png")
+	ws.end()
 	tree.quit(0)
 
 

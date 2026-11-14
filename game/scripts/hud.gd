@@ -44,6 +44,9 @@ var _stamina_fill: ColorRect
 var _textures := {}
 var _cursor := ""
 var _message_time := 0.0
+var _work_label: Label
+var _work_back: ColorRect
+var _work_fill: ColorRect
 
 
 func _init() -> void:
@@ -109,6 +112,25 @@ func _init() -> void:
 	_stamina_back.add_child(_stamina_fill)
 	_stamina_back.visible = false
 
+	# podpowiedź i postęp pracy narzędziem pod celownikiem
+	_work_label = _label(19)
+	_work_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_work_label.size = Vector2(700, 30)
+	remove_child(_work_label)
+	center.add_child(_work_label)
+	_work_label.position = Vector2(-350, 30)
+	_work_back = ColorRect.new()
+	_work_back.color = Color(0, 0, 0, 0.6)
+	_work_back.size = Vector2(160, 8)
+	_work_back.position = Vector2(-80, 64)
+	center.add_child(_work_back)
+	_work_fill = ColorRect.new()
+	_work_fill.color = Color(0.85, 0.72, 0.4, 0.95)
+	_work_fill.size = Vector2(0, 4)
+	_work_fill.position = Vector2(2, 2)
+	_work_back.add_child(_work_fill)
+	_work_back.visible = false
+
 	set_cursor("dot")
 
 
@@ -161,6 +183,18 @@ func set_cursor(state: String) -> void:
 		_key.text = "T · F"
 	elif state == "use":
 		_key.text = "F"
+
+
+## Podpowiedź pracy (pusty tekst ukrywa) i postęp 0..1 (ujemny: bez paska).
+func set_work(text: String, ratio: float) -> void:
+	_work_label.text = text
+	_work_label.visible = text != ""
+	_work_back.visible = ratio >= 0.0
+	_work_fill.size.x = 156.0 * clampf(ratio, 0.0, 1.0)
+
+
+func work_text() -> String:
+	return _work_label.text
 
 
 func cursor_state() -> String:

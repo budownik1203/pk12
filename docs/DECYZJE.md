@@ -63,3 +63,17 @@
 - **Grzechotanie:** na razie tylko licznik luźnych metalowych przedmiotów na ekranie deweloperskim; dźwięk i wpływ na zombie dojdą z systemem hałasu.
 - **Przemoczenie:** pole w danych przedmiotu, bez działania do czasu pogody (build 8).
 - **Naprawiony wyciek pamięci:** odwołania z siatki do właściciela i z przedmiotu do siatki są słabe, bez cyklu.
+
+## 2026-11-14, build 4
+
+- **Zdolności narzędzi w danych:** pole `abilities` w `items.json` (łom: podważanie 3; młotek: wbijanie 3, podważanie 1; śrubokręt: wkręcanie 3; moneta i nóż: wkręcanie 1, nóż także podważanie 1), `length` jako ramię dźwigni, `wear` jako zużycie końcówki na obrót. Obiekty pytają o zdolność i poziom, nie o konkretny przedmiot.
+- **Punkty pracy** (`scripts/work/`): miejsca w świecie z rodzajem pracy (dźwignia, kręcenie, uderzenie, przyłożenie). Wybierany jest punkt najbliżej linii wzroku w zasięgu 1,7 m, niezasłonięty. Właściciel punktu (okno, drzwi) decyduje o skutku.
+- **Mysz prowadzi narzędzie:** prawy przycisk przełącza mysz z kamery na narzędzie. Dźwignia: 0,005 postępu na piksel ruchu w dół przy poziomie 3 i ramieniu 0,6 m. Kręcenie: kąt wirtualnego kursora wokół środka (zgodnie z ruchem wskazówek zegara wkręca) albo kółko (1/12 obrotu na ząbek). Uderzenie: zamach co najmniej 40 px; od 230 px 30% szansy na wygięcie gwoździa, od 280 px zawsze.
+- **Okno:** 3 deski po 2 gwoździe na każdym końcu. Opór końca: 1 + 0,8 na każdy wbity gwóźdź (z łomem około 440 px dla 2 gwoździ). Odzysk gwoździ 50%. Deska trzyma, gdy na obu końcach jest przynajmniej jeden wbity gwóźdź.
+- **Drzwi:** zamknięte drzwi trzymają się na zatrzasku (bryła zamrożona) i same zaskakują po domknięciu. Klamkę naciska F albo chwyt i pochylenie wzroku o 10° w dół. Zamek działa przy 2 wkrętach zamka i 1 wkręcie nakładki dokręconych co najmniej do połowy. Zamyka się kluczem o pasującym `key_id` albo od środka komórki.
+- **Wkręty:** 4 obroty na wkręt. Wykręcenie osłabia otwór (granica dokręcenia 1 / (1 + 0,35 × liczba wykręceń)). Zużyta końcówka (stan poniżej 30%) zrywa łeb z szansą 8% na obrót.
+- **Wyważanie:** zatrzask 1,2; drzwi zamknięte na klucz: 2 + 0,6 × suma dokręcenia wkrętów (pełny zamek około 5,4, z łomem około 880 px). Wyłamany zamek i nakładka spadają na ziemię jako uszkodzone przedmioty (stan 30%).
+- **Hałas** (`noise.gd`): zdarzenia z miejscem i głośnością (wkręcanie 15, klamka 25, podważanie 55–60, młotek 70, wyważenie 85). Na razie widać je na ekranie deweloperskim; zombie usłyszą je od buildu 7.
+- **Okno w ścianie południowej** z kawałkiem gruntu i niewidzialnymi granicami za nim.
+- **Zapis:** wersja 3 (okno i drzwi). Starsze zapisy są odrzucane.
+- **Odłożone:** blokowanie czynności przez brak umiejętności (build 9), klinowanie drzwi, osobne modele narzędzi (na razie bryły zastępcze), dźwięk.

@@ -1,5 +1,5 @@
 extends Node
-## PSK-12, build 3: ekwipunek w pokoju testowym.
+## PSK-12, build 4: narzędzia i montaż w pokoju testowym.
 ## Świat renderuje się w niskiej rozdzielczości w SubViewporcie i jest
 ## powiększany bez wygładzania; interfejs rysuje się osobno, w pełnej
 ## rozdzielczości ekranu.
@@ -15,6 +15,10 @@ const DevTests := preload("res://scripts/dev_tests.gd")
 const InventoryScript := preload("res://scripts/inventory/inventory.gd")
 const WorldItemsScript := preload("res://scripts/world_items.gd")
 const InventoryUIScript := preload("res://scripts/ui/inventory_ui.gd")
+const WorkScript := preload("res://scripts/work/work_system.gd")
+const NoiseScript := preload("res://scripts/noise.gd")
+const WindowScript := preload("res://scripts/world/window_boards.gd")
+const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
 
 ## Warianty stylu. Wybrany 14.11.2026: łagodny (indeks 0); pozostałe zostają
@@ -37,6 +41,10 @@ var hud: HudScript
 var inventory: InventoryScript
 var world_items: WorldItemsScript
 var inv_ui: InventoryUIScript
+var work: WorkScript
+var noise: NoiseScript
+var window_boards: WindowScript
+var door_sys: DoorScript
 var bodies: Array = []
 var switches := {}
 var style_index := DEFAULT_STYLE
@@ -78,12 +86,34 @@ func _ready() -> void:
 	world_items.setup(world)
 	world_items.on_removed = func(b): if interaction.held == b: interaction.release()
 
+	noise = NoiseScript.new()
+	noise.name = "Halas"
+	add_child(noise)
+
+	work = WorkScript.new()
+	work.name = "PracaNarzedziem"
+	add_child(work)
+	work.setup(self)
+
+	window_boards = WindowScript.new()
+	window_boards.name = "OknoZDeskami"
+	world.add_child(window_boards)
+	window_boards.position = RoomBuilder.window_center()
+	window_boards.setup(self, work)
+
+	door_sys = DoorScript.new()
+	door_sys.name = "Drzwi"
+	add_child(door_sys)
+	for b in bodies:
+		if b.name == "drzwi_komorka":
+			door_sys.setup(self, work, b, RoomBuilder.door_jamb())
+
 	inventory = InventoryScript.new()
 	inventory.name = "Ekwipunek"
 	add_child(inventory)
 	inventory.setup(self)
 	for id in room["containers"]:
-		inventory.register_container(id, [[6, 4]], room["containers"][id])
+		inventory.register_container(id, [[6, 6]], room["containers"][id])
 	inventory.load_start()
 
 	inv_ui = InventoryUIScript.new()
@@ -141,6 +171,8 @@ func use_object(target: Object) -> void:
 	if target.has_meta("switch_id"):
 		var id: String = target.get_meta("switch_id")
 		set_switch(id, not switches[id]["on"])
+	elif target.has_meta("door_sys"):
+		target.get_meta("door_sys").on_use(interaction.focus_point())
 	elif target.has_meta("container_id"):
 		open_inventory(target.get_meta("container_id"))
 	elif target.has_meta("item"):
@@ -189,7 +221,7 @@ func load_game() -> void:
 func awake_body_count() -> int:
 	var n := 0
 	for b in bodies + world_items.bodies:
-		if is_instance_valid(b) and not b.sleeping:
+		if is_instance_valid(b) and not b.sleeping and not b.freeze:
 			n += 1
 	return n
 
@@ -210,18 +242,36 @@ func _input(event: InputEvent) -> void:
 	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion:
 		if captured:
-			player.look(event.relative)
+			if work.is_active():
+				work.mouse(event.relative)  # trzymany prawy przycisk: mysz prowadzi narzędzie
+			else:
+				player.look(event.relative)
 	elif event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
+			work.end()
+			return
 		if not event.pressed:
 			return
 		if not captured:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			if interaction.held == null:
+				work.begin()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			interaction.throw_held()
+			if interaction.held != null:
+				interaction.throw_held()
+			else:
+				work.attach()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			interaction.adjust_distance(0.08)
+			if work.is_active():
+				work.wheel(-1.0)
+			else:
+				interaction.adjust_distance(0.08)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			interaction.adjust_distance(-0.08)
+			if work.is_active():
+				work.wheel(1.0)
+			else:
+				interaction.adjust_distance(-0.08)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action("grab"):
 			interaction.toggle_grab()
@@ -252,6 +302,9 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_O:
+			work.highlights = not work.highlights
+			hud.show_message(tr("MSG_HIGHLIGHT_ON" if work.highlights else "MSG_HIGHLIGHT_OFF"))
 		KEY_F10:
 			dev_visible = not dev_visible
 			hud.dev.visible = dev_visible
@@ -281,6 +334,9 @@ func _process(_delta: float) -> void:
 	var act: Dictionary = inventory.current_action()
 	if not act.is_empty():
 		lines.append(tr("DEV_ACTION") % [act["item"].display_name(), act["duration"] - act["time"]])
+	var last_noise: Dictionary = noise.last()
+	if not last_noise.is_empty():
+		lines.append(tr("DEV_NOISE") % [tr(last_noise["label"]), last_noise["loud"]])
 	if interaction.held != null and is_instance_valid(interaction.held):
 		lines.append(tr("DEV_HELD") % [interaction.held.name, interaction.held.mass])
 	var ver: Dictionary = Engine.get_version_info()

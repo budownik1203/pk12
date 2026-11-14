@@ -571,6 +571,84 @@ func _drop_transform() -> Transform3D:
 	return Transform3D(Basis(Vector3.UP, main.player.rotation.y), p)
 
 
+# --- zużywanie i oddawanie przedmiotów (praca narzędziem) ------------------
+
+## Liczba sztuk przedmiotu przy sobie (w siatkach i w ręce).
+func count_of(def_id: String) -> int:
+	var n := 0
+	for it in all_carried():
+		if it.def_id == def_id:
+			n += it.count
+	return n
+
+
+## Zabiera n sztuk przedmiotu z ekwipunku (gwoździe, wkręty). Natychmiast.
+func consume(def_id: String, n: int = 1) -> bool:
+	if count_of(def_id) < n:
+		return false
+	var left := n
+	for it in all_carried():
+		if left <= 0:
+			break
+		if it.def_id != def_id or it.pending:
+			continue
+		var take := mini(left, it.count)
+		it.count -= take
+		left -= take
+		if it.count <= 0:
+			if it.parent_grid != null:
+				it.parent_grid.remove(it)
+			elif it.slot != "":
+				slots.erase(it.slot)
+			_forget_hotkey(it)
+	changed.emit()
+	return left <= 0
+
+
+## Zabiera przedmiot z ręki (przyłożony do gniazda staje się częścią świata).
+func take_hand():
+	var it = slots.get(HAND)
+	if it == null:
+		return null
+	slots.erase(HAND)
+	it.slot = ""
+	_forget_hotkey(it)
+	changed.emit()
+	return it
+
+
+## Oddaje przedmiot postaci: dokłada do stosów, potem pierwsze wolne miejsce,
+## potem ręka, a gdy nigdzie się nie mieści, upada na ziemię.
+func give(item) -> String:
+	if item.max_stack() > 1:
+		for it in all_carried():
+			if it.def_id == item.def_id and it != item and not it.pending and it.count < it.max_stack():
+				var n := mini(item.count, it.max_stack() - it.count)
+				it.count += n
+				item.count -= n
+				if item.count <= 0:
+					changed.emit()
+					return "stack"
+	for g in worn_grids():
+		if place_now(item, g):
+			return "grid"
+	if not slots.has(HAND) and not slot_reserved.has(HAND):
+		slots[HAND] = item
+		item.slot = HAND
+		changed.emit()
+		return "hand"
+	main.world_items.spawn(item, _drop_transform())
+	changed.emit()
+	return "world"
+
+
+func has_key(key_id) -> bool:
+	for it in all_carried():
+		if it.def_id == "klucz" and it.props.get("key_id", -1) == key_id:
+			return true
+	return false
+
+
 ## Natychmiastowe położenie przedmiotu (dane startowe, testy). Pomija czas.
 func place_now(item, grid) -> bool:
 	var spot: Dictionary = grid.find_space(item)
