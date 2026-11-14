@@ -20,6 +20,17 @@ static func _body(main: Node, id: String) -> RigidBody3D:
 	return null
 
 
+## Najniższy punkt bryły (róg jej siatki) w świecie.
+static func _lowest_point(body: RigidBody3D) -> float:
+	var low := INF
+	for c in body.get_children():
+		if c is MeshInstance3D:
+			var box: AABB = c.mesh.get_aabb()
+			for i in 8:
+				low = minf(low, (c.global_transform * box.get_endpoint(i)).y)
+	return low
+
+
 static func _place(main: Node, pos: Vector3, yaw_deg: float, pitch_deg: float = 0.0) -> void:
 	main.player.teleport(pos)
 	main.player.set_view(deg_to_rad(yaw_deg), deg_to_rad(pitch_deg))
@@ -152,8 +163,9 @@ static func run_tests(main: Node) -> void:
 	inter.toggle_grab()
 	player.set_view(0.0, deg_to_rad(30.0))
 	await _wait(tree, 60)
-	if heavy.global_position.y > heavy_start.y + 0.08:
-		errors.append("skrzynia 70 kg dała się unieść (y = %.2f)" % heavy.global_position.y)
+	var heavy_low := _lowest_point(heavy)
+	if heavy_low > 0.05:
+		errors.append("skrzynia 70 kg oderwała się od podłogi (najniższy róg na %.2f m)" % heavy_low)
 	player.set_view(0.0, deg_to_rad(-20.0))
 	Input.action_press("move_back")
 	await _wait(tree, 120)
@@ -197,6 +209,63 @@ static func run_tests(main: Node) -> void:
 	inter.use()
 	if main.switches["lampa_sala"]["light"].visible == lamp_before:
 		errors.append("włącznik nie przełączył lampy")
+
+	# 11c. Ciało: stopy na podłodze, kucanie zgina nogi, dłoń sięga do chwytu,
+	#      latarka w dłoni zostaje w tyle przy szybkim obrocie i dogania kamerę.
+	var body = player.body
+	_place(main, Vector3(-1.5, 0.02, 0.5), 90.0)
+	await _wait(tree, 30)
+	for s in ["l", "r"]:
+		var fy: float = body.joints["stopa_" + s].y - player.global_position.y
+		if fy < 0.0 or fy > 0.15:
+			errors.append("stopa %s nie stoi na podłodze (%.2f m)" % [s, fy])
+	var pelvis_stand: float = body.joints["miednica"].y
+	Input.action_press("crouch")
+	await _wait(tree, 40)
+	var pelvis_crouch: float = body.joints["miednica"].y
+	var knee_fwd: float = (body.joints["kolano_l"] - body.joints["miednica"]).dot(-player.global_transform.basis.z)
+	Input.action_release("crouch")
+	await _wait(tree, 40)
+	if pelvis_crouch > pelvis_stand - 0.25:
+		errors.append("kucanie nie obniża miednicy (%.2f -> %.2f)" % [pelvis_stand, pelvis_crouch])
+	if knee_fwd < 0.15:
+		errors.append("w kucaniu kolana nie idą do przodu (%.2f m)" % knee_fwd)
+	# dłoń na trzymanej skrzynce
+	var crate2 := _body(main, "skrzynka_srednia_a")
+	_place(main, crate2.global_position + Vector3(0, -crate2.global_position.y + 0.02, 1.0), 0.0, -50.0)
+	await _wait(tree, 5)
+	if inter.focus == crate2:
+		inter.toggle_grab()
+		await _wait(tree, 40)
+		var grip: Vector3 = crate2.to_global(player.held_local_point)
+		var mid: Vector3 = (body.joints["dlon_r"] + body.joints["dlon_l"]) * 0.5
+		var reach: float = mid.distance_to(grip)
+		var spread: float = body.joints["dlon_r"].distance_to(body.joints["dlon_l"])
+		print("dłonie: środek %.3f m od punktu chwytu, rozstaw %.2f m (skrzynka 18 kg)" % [reach, spread])
+		if reach > 0.12:
+			errors.append("dłonie nie trzymają punktu chwytu (%.2f m)" % reach)
+		if spread < 0.2:
+			errors.append("ciężka skrzynka nie jest trzymana obiema rękami (rozstaw %.2f m)" % spread)
+		inter.release()
+	else:
+		errors.append("nie da się wycelować w skrzynkę 18 kg")
+	await _wait(tree, 60)
+	# latarka: opóźnienie dłoni przy szybkim obrocie
+	_place(main, Vector3(-1.5, 0.02, 0.5), 90.0)
+	player.lamp.visible = true
+	await _wait(tree, 60)
+	player.set_view(deg_to_rad(150.0), 0.0)  # gwałtowny obrót o 60 stopni
+	await _wait(tree, 3)
+	var cam_f: Vector3 = -player.camera.global_transform.basis.z
+	var lag: float = rad_to_deg((-player.lamp.global_transform.basis.z).angle_to(cam_f))
+	await _wait(tree, 60)
+	var settled: float = rad_to_deg((-player.lamp.global_transform.basis.z).angle_to(-player.camera.global_transform.basis.z))
+	print("latarka: %.0f stopni opóźnienia po obrocie, po sekundzie %.1f" % [lag, settled])
+	if lag < 10.0:
+		errors.append("latarka nie zostaje w tyle przy obrocie (%.1f stopnia)" % lag)
+	if settled > 4.0:
+		errors.append("latarka nie dogania kamery (%.1f stopnia)" % settled)
+	player.lamp.visible = false
 
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
@@ -282,21 +351,42 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	for a in args:
 		if a.begins_with("--zrzuty="):
 			dir = a.trim_prefix("--zrzuty=")
+	var player = main.player
 	await _wait(tree, 120)
-	# kadr 1: dłoń nad skrzynką
-	var small := _body(main, "skrzynka_mala_a")
-	_place(main, small.global_position + Vector3(0.5, -0.18, 1.3), 18.0, -48.0)
-	await _shot(main, dir + "/chwyt_dlon.png")
-	# kadr 2: skrzynka niesiona w powietrzu
+	# kadr 1: spojrzenie w dół na własne ciało w marszu
+	_place(main, Vector3(-1.0, 0.02, 2.6), 90.0, -58.0)
+	Input.action_press("move_forward")
+	await _wait(tree, 40)
+	await _shot(main, dir + "/cialo_w_dol.png")
+	Input.action_release("move_forward")
+	await _wait(tree, 40)
+	# kadr 2: kucanie, spojrzenie w dół
+	Input.action_press("crouch")
+	await _wait(tree, 40)
+	await _shot(main, dir + "/cialo_kucanie.png")
+	Input.action_release("crouch")
+	await _wait(tree, 40)
+	# kadr 3: skrzynka 18 kg w obu rękach
+	var crate := _body(main, "skrzynka_srednia_a")
+	_place(main, crate.global_position + Vector3(0, -crate.global_position.y + 0.02, 1.0), 0.0, -50.0)
+	await _wait(tree, 5)
 	main.interaction.toggle_grab()
-	main.player.set_view(deg_to_rad(18.0), deg_to_rad(-5.0))
-	await _wait(tree, 60)
-	await _shot(main, dir + "/chwyt_niesienie.png")
-	main.interaction.release()
-	# kadr 3: drzwi do komórki i włącznik
-	_place(main, Vector3(2.6, 0.02, 0.9), -90.0, -6.0)
+	for i in 30:
+		player.set_view(0.0, deg_to_rad(lerpf(-50.0, -22.0, (i + 1) / 30.0)))
+		await tree.physics_frame
 	await _wait(tree, 30)
-	await _shot(main, dir + "/drzwi_wlacznik.png")
+	await _shot(main, dir + "/niesienie_oburacz.png")
+	main.interaction.release()
+	await _wait(tree, 60)
+	# kadr 4: latarka w lewej dłoni w ciemnej komórce, chwilę po obrocie
+	_place(main, Vector3(5.6, 0.02, 1.6), 0.0, -12.0)
+	player.lamp.visible = true
+	await _wait(tree, 40)
+	player.set_view(deg_to_rad(35.0), deg_to_rad(-12.0))
+	await _wait(tree, 4)
+	await _shot(main, dir + "/latarka_obrot.png")
+	await _wait(tree, 50)
+	await _shot(main, dir + "/latarka.png")
 	tree.quit(0)
 
 

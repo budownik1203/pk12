@@ -39,3 +39,13 @@
 - **Wspinanie:** przeszkody od 0,35 do 1,35 m, gdy nad krawędzią jest miejsce przynajmniej na kucającą postać.
 - **Teleport postaci wyłącza jej zderzenia na dwie klatki.** Bez tego silnik fizyki traktował przeniesienie (np. przy wczytaniu zapisu) jak ruch z ogromną prędkością i wystrzeliwał stykające się bryły poza świat.
 - **Drzwi:** bryła 22 kg na zawiasie, zakres ±100°, na razie bez klamki i zamka (wchodzą w buildzie 4).
+
+## 2026-11-14, build 2b
+
+- **Model pracy:** od tego buildu prace prowadzi Claude Opus 5.5 (wcześniej Fable 5.2); ciągłość zapewniają te dokumenty i repozytorium.
+- **Blender działa po stronie Claude** jako moduł Pythona (`bpy` 5.3). Modele powstają ze skryptów w `assets_src/blender/` i są eksportowane do glTF (`game/models/`). Pierwszy model: segmenty ciała postaci.
+- **Ciało z segmentów zamiast skórowanego modelu z gotowymi animacjami.** Osobne bryły na stawach pasują do stylu PS1/PS2 i nie wymagają animacji z zewnątrz. Nogi i ręce ustawia odwrotna kinematyka dwóch kości (`body.gd`), krok jest proceduralny i zależy od prędkości. Do skórowanego modelu z klipami można wrócić później, jeśli segmenty nie wystarczą.
+- **Proporcje:** biodro na 0,95 m, udo i podudzie po 0,44 m, ramię 0,31 m, przedramię 0,29 m, dłoń 0,07 m do środka. Ciało jest 0,17 m za kamerą, stopy 0,07 m przed środkiem postaci, żeby patrząc w dół widzieć tors i buty. Głowa rzuca tylko cień.
+- **Dłonie z własną fizyką:** cel dłoni wynika z kamery, dłoń goni go na sprężynie. Latarka w lewej dłoni zostaje w tyle przy obrocie (około 20° przy gwałtownym obrocie o 60°) i dogania kamerę w ułamku sekundy. Luźne ręce bujają się przeciwnie do nóg.
+- **Trzymanie w zasięgu rąk:** chwycony przedmiot przyciągany jest na 0,6 m od oczu, kółkiem 0,4–0,75 m (wcześniej do 2 m, poza zasięgiem rąk). Przedmioty od 8 kg trzyma się obiema rękami, rozstawionymi o 0,16 m na boki od punktu chwytu; wtedy latarka przypina się do piersi.
+- **Ograniczenie:** przy wleczeniu przedmiotu, którego nie da się unieść, ręka nie sięga do podłogi, bo tułów się jeszcze nie pochyla. Pochylanie tułowia: do zrobienia przy okazji walki wręcz albo podnoszenia z ziemi.

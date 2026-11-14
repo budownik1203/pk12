@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 2a · movement and grab",
+	"DEV_BUILD": "PSK-12 · build 2b · body and hands",
 	"DEV_STAMINA": "Stamina: %d",
 	"DEV_HELD": "Holding: %s (%.1f kg)"
 }

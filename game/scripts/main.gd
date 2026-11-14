@@ -162,9 +162,9 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			interaction.throw_held()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			interaction.adjust_distance(0.15)
+			interaction.adjust_distance(0.08)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			interaction.adjust_distance(-0.15)
+			interaction.adjust_distance(-0.08)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action("grab"):
 			interaction.toggle_grab()

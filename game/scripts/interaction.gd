@@ -11,8 +11,9 @@ const PlayerScript := preload("res://scripts/player.gd")
 const HudScript := preload("res://scripts/hud.gd")
 
 const REACH := 2.0          # zasięg ręki w metrach
-const HOLD_MIN := 0.6
-const HOLD_MAX := 2.0
+const HOLD_MIN := 0.4       # trzymany przedmiot jest w zasięgu rąk
+const HOLD_MAX := 0.75
+const HOLD_DEFAULT := 0.6   # chwycony przedmiot przyciągamy do tej odległości
 const PULL_MAX := 420.0     # niutony w poziomie: tyle postać uciągnie
 const LIFT_MAX := 260.0     # niutony w pionie: unosi około 26 kg
 const BREAK_DIST := 2.6     # punkt chwytu dalej od oczu niż tyle: chwyt się zrywa
@@ -81,7 +82,8 @@ func _grab(body: RigidBody3D, point: Vector3) -> void:
 	held = body
 	player.held_body = body
 	_local_point = body.to_local(point)
-	_hold_dist = clampf(player.camera.global_position.distance_to(point), HOLD_MIN, HOLD_MAX)
+	player.held_local_point = _local_point
+	_hold_dist = clampf(player.camera.global_position.distance_to(point), HOLD_MIN, HOLD_DEFAULT)
 	_old_angular_damp = body.angular_damp
 	body.angular_damp = HELD_ANGULAR_DAMP
 	body.sleeping = false

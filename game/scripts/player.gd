@@ -1,7 +1,9 @@
 extends CharacterBody3D
-## Gracz, build 2a: ciężki ruch z bezwładnością, sprint, kucanie, wychylanie,
-## skok, wspinanie na przeszkody, wytrzymałość nóg, latarka, pchanie brył.
-## Widoczne ciało i dłonie z własną fizyką wchodzą w buildzie 2b.
+## Gracz: ciężki ruch z bezwładnością, sprint, kucanie, wychylanie, skok,
+## wspinanie na przeszkody, wytrzymałość, pchanie brył. Widoczne ciało
+## i dłonie z własną fizyką prowadzi body.gd (build 2b).
+
+const BodyScript := preload("res://scripts/body.gd")
 
 const RADIUS := 0.3
 const STAND_HEIGHT := 1.8
@@ -50,6 +52,8 @@ var lean := 0.0
 var stamina := STAMINA_MAX
 var exhausted := false
 var held_body: RigidBody3D = null  # ustawia system chwytu; tej bryły nie pchamy ciałem
+var held_local_point := Vector3.ZERO  # punkt chwytu w układzie trzymanej bryły
+var body: Node3D
 
 var _shape: CapsuleShape3D
 var _col: CollisionShape3D
@@ -90,7 +94,13 @@ func _init() -> void:
 	lamp.light_color = Color(1.0, 0.95, 0.82)
 	lamp.shadow_enabled = true
 	lamp.visible = false
+	lamp.top_level = true  # położenie ustawia ciało: latarka jest w lewej dłoni
 	camera.add_child(lamp)
+
+	body = BodyScript.new()
+	body.name = "Cialo"
+	add_child(body)
+	body.setup(self, camera)
 
 
 func look(relative: Vector2) -> void:
