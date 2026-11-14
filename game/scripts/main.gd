@@ -1,5 +1,5 @@
 extends Node
-## PSK-12, build 2a: ruch i chwyt w pokoju testowym.
+## PSK-12, build 3: ekwipunek w pokoju testowym.
 ## Świat renderuje się w niskiej rozdzielczości w SubViewporcie i jest
 ## powiększany bez wygładzania; interfejs rysuje się osobno, w pełnej
 ## rozdzielczości ekranu.
@@ -12,6 +12,9 @@ const Lang := preload("res://scripts/lang.gd")
 const Controls := preload("res://scripts/controls.gd")
 const HudScript := preload("res://scripts/hud.gd")
 const DevTests := preload("res://scripts/dev_tests.gd")
+const InventoryScript := preload("res://scripts/inventory/inventory.gd")
+const WorldItemsScript := preload("res://scripts/world_items.gd")
+const InventoryUIScript := preload("res://scripts/ui/inventory_ui.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
 
 ## Warianty stylu. Wybrany 14.11.2026: łagodny (indeks 0); pozostałe zostają
@@ -31,6 +34,9 @@ var world: Node3D
 var player: PlayerScript
 var interaction: InteractionScript
 var hud: HudScript
+var inventory: InventoryScript
+var world_items: WorldItemsScript
+var inv_ui: InventoryUIScript
 var bodies: Array = []
 var switches := {}
 var style_index := DEFAULT_STYLE
@@ -65,6 +71,25 @@ func _ready() -> void:
 	interaction.name = "Interakcja"
 	add_child(interaction)
 	interaction.setup(self)
+
+	world_items = WorldItemsScript.new()
+	world_items.name = "PrzedmiotyWSwiecie"
+	add_child(world_items)
+	world_items.setup(world)
+	world_items.on_removed = func(b): if interaction.held == b: interaction.release()
+
+	inventory = InventoryScript.new()
+	inventory.name = "Ekwipunek"
+	add_child(inventory)
+	inventory.setup(self)
+	for id in room["containers"]:
+		inventory.register_container(id, [[6, 4]], room["containers"][id])
+	inventory.load_start()
+
+	inv_ui = InventoryUIScript.new()
+	inv_ui.name = "OknoEkwipunku"
+	hud.add_child(inv_ui)
+	inv_ui.setup(inventory)
 
 	var args := OS.get_cmdline_user_args()
 	var shots := false
@@ -116,6 +141,26 @@ func use_object(target: Object) -> void:
 	if target.has_meta("switch_id"):
 		var id: String = target.get_meta("switch_id")
 		set_switch(id, not switches[id]["on"])
+	elif target.has_meta("container_id"):
+		open_inventory(target.get_meta("container_id"))
+	elif target.has_meta("item"):
+		if not inventory.pick_up(target):
+			hud.show_message(tr(inventory.last_error))
+
+
+func open_inventory(container_id: String = "") -> void:
+	interaction.release()
+	inv_ui.open(container_id)
+	hud.hints.visible = false
+	hud.dev.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_inventory() -> void:
+	inv_ui.close()
+	hud.hints.visible = true
+	hud.dev.visible = dev_visible
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 func set_switch(id: String, on: bool) -> void:
@@ -143,13 +188,25 @@ func load_game() -> void:
 
 func awake_body_count() -> int:
 	var n := 0
-	for b in bodies:
-		if not b.sleeping:
+	for b in bodies + world_items.bodies:
+		if is_instance_valid(b) and not b.sleeping:
 			n += 1
 	return n
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.is_action("inventory"):
+		if inv_ui.is_open():
+			close_inventory()
+		else:
+			open_inventory()
+		get_viewport().set_input_as_handled()
+		return
+	if inv_ui.is_open():
+		if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
+			close_inventory()
+			get_viewport().set_input_as_handled()
+		return  # resztę obsługuje okno ekwipunku; ruch postaci działa dalej
 	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion:
 		if captured:
@@ -172,6 +229,13 @@ func _input(event: InputEvent) -> void:
 			interaction.use()
 		elif event.is_action("flashlight"):
 			player.toggle_flashlight()
+		elif event.is_action("drop_hand"):
+			var it = inventory.hand_item()
+			if it == null or not inventory.move_to_world(it):
+				hud.show_message(tr(inventory.last_error if it != null else "INV_ERR_HAND_EMPTY"))
+		elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9:
+			if not inventory.use_hotkey(event.physical_keycode - KEY_0):
+				hud.show_message(tr(inventory.last_error))
 		else:
 			_dev_key(event.physical_keycode)
 
@@ -199,6 +263,9 @@ func _dev_key(key: int) -> void:
 
 
 func _process(_delta: float) -> void:
+	player.load_factor = inventory.speed_factor()
+	player.load_stamina = inventory.stamina_factor()
+	player.hand_item = inventory.hand_item()
 	hud.set_stamina(player.stamina, player.STAMINA_MAX, player.exhausted)
 	if not dev_visible:
 		return
@@ -209,6 +276,11 @@ func _process(_delta: float) -> void:
 	lines.append(tr("DEV_BODIES") % [awake_body_count(), bodies.size()])
 	lines.append(tr("DEV_STYLE") % tr(STYLES[style_index]["key"]))
 	lines.append(tr("DEV_STAMINA") % int(player.stamina))
+	lines.append(tr("DEV_MASS") % [inventory.carried_mass(), inventory.felt_mass(), int(round(inventory.speed_factor() * 100.0))])
+	lines.append(tr("DEV_RATTLE") % inventory.rattle_count())
+	var act: Dictionary = inventory.current_action()
+	if not act.is_empty():
+		lines.append(tr("DEV_ACTION") % [act["item"].display_name(), act["duration"] - act["time"]])
 	if interaction.held != null and is_instance_valid(interaction.held):
 		lines.append(tr("DEV_HELD") % [interaction.held.name, interaction.held.mass])
 	var ver: Dictionary = Engine.get_version_info()

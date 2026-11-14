@@ -10,6 +10,7 @@ extends Node3D
 
 const SEGMENTS := preload("res://models/cialo_segmenty.glb")
 const Tex := preload("res://scripts/textures.gd")
+const WorldItems := preload("res://scripts/world_items.gd")
 
 # wymiary w metrach
 const HIP_HEIGHT := 0.95          # staw biodrowy w pozycji stojącej
@@ -36,6 +37,7 @@ const HAND_STIFF_VIEW := 110.0    # latarka przed sobą: wyraźne opóźnienie
 const HAND_STIFF_GRIP := 900.0    # dłoń na trzymanym przedmiocie
 const HAND_TURN_RATE := 9.0       # jak szybko dłoń dogania obrót kamery
 const LAMP_HAND := Vector3(-0.17, -0.2, -0.38)  # latarka w lewej dłoni (układ kamery)
+const ITEM_HAND := Vector3(0.19, -0.24, -0.4)   # przedmiot w prawej dłoni (układ kamery)
 const TWO_HAND_MASS := 8.0        # od tej masy przedmiot trzyma się obiema rękami
 const TWO_HAND_SPREAD := 0.16     # rozstaw dłoni na boki od punktu chwytu
 
@@ -51,6 +53,8 @@ var hand_pos := {"l": Vector3.ZERO, "r": Vector3.ZERO}
 var _hand_vel := {"l": Vector3.ZERO, "r": Vector3.ZERO}
 var hand_rot := {"l": Quaternion.IDENTITY, "r": Quaternion.IDENTITY}
 var _initialized := false
+var _hand_visual: MeshInstance3D = null
+var _hand_visual_uid := -1
 
 # punkty z ostatniej klatki (do testów i diagnostyki)
 var joints := {}
@@ -108,6 +112,20 @@ func _part(id: String, mesh: Mesh, mat: Material) -> MeshInstance3D:
 
 
 # --- pomocnicze -------------------------------------------------------------
+
+func _update_hand_visual(item) -> void:
+	var uid: int = item.uid if item != null else -1
+	if uid == _hand_visual_uid:
+		return
+	if _hand_visual != null:
+		_hand_visual.queue_free()
+		_hand_visual = null
+	_hand_visual_uid = uid
+	if item != null:
+		_hand_visual = WorldItems.make_visual(item)
+		_hand_visual.top_level = true
+		add_child(_hand_visual)
+
 
 ## Odwrotna kinematyka dwóch kości. Zwraca [staw środkowy, koniec].
 static func solve_two_bone(root: Vector3, target: Vector3, pole: Vector3, l1: float, l2: float) -> Array:
@@ -250,6 +268,12 @@ func _physics_process(delta: float) -> void:
 			targets["r"] = grip + right * TWO_HAND_SPREAD
 			targets["l"] = grip - right * TWO_HAND_SPREAD
 			stiff["l"] = HAND_STIFF_GRIP
+	var hand_item = player.hand_item
+	if hand_item != null and not has_held:
+		targets["r"] = camera.global_transform * ITEM_HAND
+		stiff["r"] = HAND_STIFF_VIEW
+		_turn_hand("r", cam_q, delta)
+	_update_hand_visual(hand_item)
 	if lamp_on and not two_hands:
 		targets["l"] = camera.global_transform * LAMP_HAND
 		stiff["l"] = HAND_STIFF_VIEW
@@ -276,6 +300,15 @@ func _physics_process(delta: float) -> void:
 		var along := (wrist - elbow).normalized()
 		_limb("dlon_" + s, wrist, wrist + along, right)
 		joints["dlon_" + s] = wrist + along * PALM
+
+	if _hand_visual != null:
+		var hb := Basis(hand_rot["r"])
+		var len_fwd := 0.12
+		var model: Dictionary = hand_item.get_def().get("model", {})
+		if model.get("type", "box") == "box":
+			len_fwd = float(model.get("size", [0.2])[0]) * 0.3
+		# modele leżą wzdłuż osi X; w dłoni kierujemy je do przodu (-Z)
+		_hand_visual.global_transform = Transform3D(hb * Basis(Vector3.UP, PI / 2.0), joints["dlon_r"] + hb * Vector3(0, 0, -len_fwd))
 
 	# --- latarka: w lewej dłoni, a gdy lewa jest zajęta, przypięta do piersi
 	var lamp_xf: Transform3D

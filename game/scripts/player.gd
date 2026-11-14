@@ -53,6 +53,9 @@ var stamina := STAMINA_MAX
 var exhausted := false
 var held_body: RigidBody3D = null  # ustawia system chwytu; tej bryły nie pchamy ciałem
 var held_local_point := Vector3.ZERO  # punkt chwytu w układzie trzymanej bryły
+var load_factor := 1.0             # mnożnik prędkości od odczuwanej masy ekwipunku
+var load_stamina := 1.0            # mnożnik zużycia wytrzymałości od masy
+var hand_item = null               # przedmiot w prawej ręce (z ekwipunku)
 var body: Node3D
 
 var _shape: CapsuleShape3D
@@ -168,7 +171,7 @@ func _physics_process(delta: float) -> void:
 		speed = CROUCH_SPEED
 	elif sprinting:
 		speed = SPRINT_SPEED
-	speed *= carry_factor(held_mass)
+	speed *= carry_factor(held_mass) * load_factor
 	_update_stamina(delta, sprinting and dir != Vector3.ZERO)
 
 	var target := dir * speed
@@ -234,7 +237,7 @@ func _update_lean(delta: float) -> void:
 
 func _update_stamina(delta: float, draining: bool) -> void:
 	if draining:
-		_spend(SPRINT_DRAIN * delta)
+		_spend(SPRINT_DRAIN * load_stamina * delta)
 	elif _stamina_pause > 0.0:
 		_stamina_pause -= delta
 	else:

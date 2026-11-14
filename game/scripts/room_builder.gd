@@ -1,7 +1,8 @@
 extends RefCounted
 ## Buduje pokój testowy z brył zastępczych: sala główna, ciemna komórka
 ## za ścianką, stół, regał i zestaw brył fizycznych o różnej masie.
-## Zwraca słownik: "bodies" (bryły fizyczne) i "switches" (włączniki światła).
+## Zwraca słownik: "bodies" (bryły fizyczne), "switches" (włączniki światła)
+## i "containers" (pojemniki świata: id -> węzeł).
 
 const Tex := preload("res://scripts/textures.gd")
 
@@ -20,7 +21,35 @@ static func build(world: Node3D) -> Dictionary:
 	_lights(world, switches)
 	_physics_props(world, bodies)
 	_door(world, bodies)
-	return {"bodies": bodies, "switches": switches}
+	var containers := {"szafka": _cabinet(world)}
+	return {"bodies": bodies, "switches": switches, "containers": containers}
+
+
+static func _cabinet(world: Node3D) -> StaticBody3D:
+	# szafka przy północnej ścianie: pojemnik z siatką 6 × 4, otwierany pod F
+	var wood := Tex.material("wood", false, 1.0)
+	var size := Vector3(0.9, 1.0, 0.45)
+	var cab := _static_box(world, "Szafka", Vector3(0.6, size.y / 2.0, -ROOM_D / 2.0 + size.z / 2.0 + 0.01), size, wood)
+	cab.set_meta("container_id", "szafka")
+	# fronty drzwiczek i uchwyty, żeby było widać, że to szafka
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.2, 0.15, 0.1)
+	for sx in [-1, 1]:
+		var handle := MeshInstance3D.new()
+		var hm := BoxMesh.new()
+		hm.size = Vector3(0.02, 0.12, 0.02)
+		hm.material = dark
+		handle.mesh = hm
+		handle.position = Vector3(0.05 * sx, 0.1, size.z / 2.0 + 0.01)
+		cab.add_child(handle)
+	var seam := MeshInstance3D.new()
+	var sm := BoxMesh.new()
+	sm.size = Vector3(0.008, size.y - 0.08, 0.005)
+	sm.material = dark
+	seam.mesh = sm
+	seam.position = Vector3(0, 0, size.z / 2.0 + 0.003)
+	cab.add_child(seam)
+	return cab
 
 
 static func _environment(world: Node3D) -> void:
@@ -169,14 +198,6 @@ static func _physics_props(world: Node3D, bodies: Array) -> void:
 	bodies.append(_rigid_box(world, "skrzynia_komorka", Vector3(6.2, 0.45, -1.8), Vector3(1.0, 0.9, 0.7), 70.0, crate))
 	# beczka
 	bodies.append(_rigid_cylinder(world, "beczka", Vector3(3.2, 0.45, 2.3), 0.29, 0.9, 25.0, metal, false))
-	# puszki na stole: małe, lekkie bryły
-	for i in 5:
-		var pos := Vector3(-3.1 + 0.22 * i, 0.85, -2.2 + 0.05 * (i % 2))
-		bodies.append(_rigid_cylinder(world, "puszka_%d" % i, pos, 0.037, 0.11, 0.42, can, true))
-	# puszki na regale
-	for i in 3:
-		var pos := Vector3(-ROOM_W / 2.0 + 0.22, 1.28, 1.25 + 0.3 * i)
-		bodies.append(_rigid_cylinder(world, "puszka_regal_%d" % i, pos, 0.037, 0.11, 0.42, can, true))
 
 
 # --- pomocnicze -------------------------------------------------------------

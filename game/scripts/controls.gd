@@ -14,9 +14,10 @@ const KEYS := {
 	"lean_right": KEY_E,
 	"grab": KEY_T,
 	"interact": KEY_F,
-	"flashlight": KEY_X,
-	# zarezerwowane na kolejne buildy:
 	"inventory": KEY_TAB,
+	"flashlight": KEY_X,
+	"drop_hand": KEY_G,
+	# zarezerwowane na kolejne buildy:
 	"health": KEY_H,
 	"rotate_item": KEY_R,
 }

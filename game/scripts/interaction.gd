@@ -46,12 +46,15 @@ func setup(main_node: Node) -> void:
 func toggle_grab() -> void:
 	if held != null:
 		release()
-	elif focus_kind == "grab":
+	elif focus_kind == "grab" or focus_kind == "item":
+		if main.inventory != null and main.inventory.hand_item() != null:
+			hud.show_message(tr("MSG_HAND_BUSY"))
+			return
 		_grab(focus as RigidBody3D, _focus_point)
 
 
 func use() -> void:
-	if held == null and focus_kind == "use":
+	if held == null and (focus_kind == "use" or focus_kind == "item"):
 		main.use_object(focus)
 
 
@@ -109,8 +112,10 @@ func _update_focus() -> void:
 	if hit.is_empty():
 		return
 	var collider: Object = hit["collider"]
-	if collider.has_meta("switch_id"):
+	if collider.has_meta("switch_id") or collider.has_meta("container_id"):
 		focus_kind = "use"
+	elif collider.has_meta("item"):
+		focus_kind = "item"
 	elif collider is RigidBody3D and not collider.freeze:
 		focus_kind = "grab"
 	else:
@@ -148,6 +153,8 @@ func _update_cursor() -> void:
 		hud.set_cursor("fist")
 	elif focus_kind == "grab":
 		hud.set_cursor("hand")
+	elif focus_kind == "item":
+		hud.set_cursor("item")
 	elif focus_kind == "use":
 		hud.set_cursor("use")
 	else:

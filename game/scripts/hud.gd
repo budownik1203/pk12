@@ -144,18 +144,21 @@ func _pixel_icon(rows: Array) -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-## state: "dot", "hand" (można chwycić), "fist" (trzymasz), "use" (można użyć)
+## state: "dot", "hand" (można chwycić), "fist" (trzymasz), "use" (można użyć),
+## "item" (przedmiot: T chwyt, F podniesienie do ekwipunku)
 func set_cursor(state: String) -> void:
 	if state == _cursor:
 		return
 	_cursor = state
 	_dot.visible = state == "dot" or state == "use"
-	_icon.visible = state == "hand" or state == "fist"
+	_icon.visible = state == "hand" or state == "fist" or state == "item"
 	if _icon.visible:
-		_icon.texture = _textures[state]
-	_key.visible = state == "hand" or state == "use"
+		_icon.texture = _textures["hand" if state == "item" else state]
+	_key.visible = state == "hand" or state == "use" or state == "item"
 	if state == "hand":
 		_key.text = "T"
+	elif state == "item":
+		_key.text = "T · F"
 	elif state == "use":
 		_key.text = "F"
 

@@ -5,6 +5,9 @@ extends RefCounted
 ## Kod wyjścia 0 oznacza powodzenie.
 
 const SaveGame := preload("res://scripts/save_game.gd")
+const ItemScript := preload("res://scripts/inventory/item.gd")
+const Grid := preload("res://scripts/inventory/grid.gd")
+const ItemDB := preload("res://scripts/inventory/item_db.gd")
 const TEST_PATH := "user://test_zapisu.json"
 
 
@@ -29,6 +32,25 @@ static func _lowest_point(body: RigidBody3D) -> float:
 			for i in 8:
 				low = minf(low, (c.global_transform * box.get_endpoint(i)).y)
 	return low
+
+
+static func _world_item(main: Node, def_id: String) -> RigidBody3D:
+	var best: RigidBody3D = null
+	for b in main.world_items.bodies:
+		if b.get_meta("item").def_id == def_id and not b.has_meta("pending"):
+			if best == null or b.global_position.x > best.global_position.x:
+				best = b
+	return best
+
+
+## Czeka, aż kolejka czynności ekwipunku się opróżni (najwyżej limit sekund).
+static func _finish(main: Node, limit: float = 8.0) -> void:
+	var tree := main.get_tree()
+	var t := 0.0
+	while not main.inventory.actions.is_empty() and t < limit:
+		await tree.process_frame
+		t += main.get_process_delta_time()
+	await tree.process_frame
 
 
 static func _place(main: Node, pos: Vector3, yaw_deg: float, pitch_deg: float = 0.0) -> void:
@@ -267,6 +289,162 @@ static func run_tests(main: Node) -> void:
 		errors.append("latarka nie dogania kamery (%.1f stopnia)" % settled)
 	player.lamp.visible = false
 
+	# 15. Ekwipunek.
+	var inv = main.inventory
+	# 15a. kształty i siatka
+	var pist = ItemScript.new("pistolet")
+	if ItemDB.bounds(pist.cells_for(0)) != Vector2i(3, 2) or ItemDB.bounds(pist.cells_for(1)) != Vector2i(2, 3):
+		errors.append("obrót kształtu L nie zmienia wymiarów")
+	var tg = Grid.new(3, 3)
+	tg.place(ItemScript.new("mlotek"), Vector2i.ZERO, 0)
+	if not tg.find_space(pist).is_empty():
+		errors.append("pistolet zmieścił się w siatce zajętej przez młotek")
+	if not tg.find_space(ItemScript.new("bandaz")).has("pos"):
+		errors.append("bandaż nie zmieścił się w wolną komórkę obok młotka")
+	# 15b. stan początkowy
+	if not inv.slots.has("spodnie") or not inv.slots.has("kurtka"):
+		errors.append("na starcie brak spodni albo kurtki")
+	var cab_grid = inv.containers["szafka"]["grids"][0]
+	if cab_grid.items.size() != 9:
+		errors.append("szafka ma %d przedmiotów zamiast 9" % cab_grid.items.size())
+	# 15c. podniesienie puszki ze stołu (F): trwa, potem bryła znika, puszka w kieszeni
+	var can_body := _world_item(main, "puszka_fasoli")
+	_place(main, can_body.global_position + Vector3(0.0, -can_body.global_position.y + 0.02, 0.9), 0.0, -40.0)
+	await _wait(tree, 5)
+	var worlds_before: int = main.world_items.bodies.size()
+	if not inv.pick_up(can_body):
+		errors.append("nie da się podnieść puszki: " + inv.last_error)
+	if main.world_items.bodies.size() != worlds_before:
+		errors.append("puszka zniknęła ze świata bez czasu na podniesienie")
+	await _finish(main)
+	var cans := 0
+	for it in inv.all_carried():
+		if it.def_id == "puszka_fasoli":
+			cans += 1
+	if cans != 1 or main.world_items.bodies.size() != worlds_before - 1:
+		errors.append("puszka nie trafiła do ekwipunku (w ekwipunku: %d)" % cans)
+	# 15d. łom nie mieści się w kieszeniach: trafia do ręki
+	var crowbar := _world_item(main, "lom")
+	_place(main, crowbar.global_position + Vector3(0, 0, 1.0), 0.0, -45.0)
+	await _wait(tree, 5)
+	inv.pick_up(crowbar)
+	await _finish(main)
+	if inv.hand_item() == null or inv.hand_item().def_id != "lom":
+		errors.append("łom nie trafił do ręki")
+	# 15e. plecak: podniesiony od razu się zakłada
+	var bag_body := _world_item(main, "plecak")
+	_place(main, bag_body.global_position + Vector3(0, -bag_body.global_position.y + 0.02, 1.0), 0.0, -40.0)
+	await _wait(tree, 5)
+	inv.pick_up(bag_body)
+	var bag_time: float = inv.current_action().get("duration", 0.0)
+	await _finish(main)
+	var bag = inv.slots.get("plecak")
+	if bag == null:
+		errors.append("plecak nie został założony")
+	elif bag_time < 2.0:
+		errors.append("zakładanie plecaka trwało tylko %.1f s" % bag_time)
+	else:
+		# 15f. masa: plecak zmniejsza odczuwaną masę zawartości
+		inv.place_now(ItemScript.new("butelka_wody"), bag.grids[0])
+		var diff: float = inv.carried_mass() - inv.felt_mass()
+		var expect: float = bag.contents_mass() * 0.35
+		if absf(diff - expect) > 0.01:
+			errors.append("redukcja wagi plecaka: %.2f kg zamiast %.2f kg" % [diff, expect])
+		# 15g. pojemnik nie wejdzie do siebie
+		if inv.move_to_grid(bag, bag.grids[0], Vector2i.ZERO, 0) or inv.last_error != "INV_ERR_SELF":
+			errors.append("plecak dał się włożyć do siebie (%s)" % inv.last_error)
+	# 15h. pusty plecak zajmuje mniej miejsca
+	var spare = ItemScript.new("plecak")
+	var empty_cells: int = spare.cells_for(0).size()
+	spare.grids[0].place(ItemScript.new("bandaz"), Vector2i.ZERO, 0)
+	if empty_cells != 6 or spare.cells_for(0).size() != 12:
+		errors.append("plecak: pusty %d komórek, pełny %d" % [empty_cells, spare.cells_for(0).size()])
+	# 15i. łączenie i dzielenie stosów w szafce
+	_place(main, Vector3(0.3, 0.02, -2.0), 0.0, -30.0)
+	await _wait(tree, 5)
+	var stacks: Array = []
+	for it in cab_grid.items:
+		if it.def_id == "naboje_9mm":
+			stacks.append(it)
+	if stacks.size() == 2:
+		var small_s = stacks[0] if stacks[0].count < stacks[1].count else stacks[1]
+		var big_s = stacks[1] if small_s == stacks[0] else stacks[0]
+		inv.merge_into(big_s, small_s)
+		await _finish(main)
+		if small_s.count != 50 or big_s.count != 13:
+			errors.append("łączenie stosów: %d i %d zamiast 50 i 13" % [small_s.count, big_s.count])
+		var spot: Dictionary = cab_grid.find_space(ItemScript.new("naboje_9mm"))
+		inv.split_to_grid(big_s, 6, cab_grid, spot["pos"], 0)
+		await _finish(main)
+		if big_s.count != 7:
+			errors.append("dzielenie stosu: zostało %d zamiast 7" % big_s.count)
+	else:
+		errors.append("w szafce nie ma dwóch stosów naboi")
+	# 15j. pas i skrót: śrubokręt z szafki do pasa, klawisz 1 do ręki i z powrotem
+	var belt_body := _world_item(main, "pas")
+	_place(main, belt_body.global_position + Vector3(1.0, -belt_body.global_position.y + 0.02, 0), 90.0, -20.0)
+	await _wait(tree, 5)
+	inv.pick_up(belt_body)
+	await _finish(main)
+	var belt = inv.slots.get("pas")
+	var driver = null
+	for it in cab_grid.items:
+		if it.def_id == "srubokret":
+			driver = it
+	if belt == null or driver == null:
+		errors.append("brak pasa albo śrubokręta do testu skrótu")
+	else:
+		_place(main, Vector3(0.3, 0.02, -2.0), 0.0, -30.0)
+		await _wait(tree, 5)
+		if not inv.move_to_grid(driver, belt.grids[1], Vector2i.ZERO, 1):
+			errors.append("śrubokręt nie wchodzi do pasa: " + inv.last_error)
+		await _finish(main)
+		inv.set_hotkey(1, driver)
+		inv.use_hotkey(1)  # łom wraca z ręki do plecaka, śrubokręt idzie do ręki
+		await _finish(main)
+		var lom_in_bag := false
+		if bag != null:
+			for it in bag.grids[0].items:
+				if it.def_id == "lom":
+					lom_in_bag = true
+		if inv.hand_item() != driver or not lom_in_bag:
+			errors.append("klawisz 1: w ręce %s, łom w plecaku: %s" % [inv.hand_item().def_id if inv.hand_item() != null else "nic", lom_in_bag])
+		inv.use_hotkey(1)
+		await _finish(main)
+		if driver.parent_grid != belt.grids[1] or inv.hand_item() != null:
+			errors.append("klawisz 1 nie odłożył śrubokręta do pasa")
+	# 15k. wyrzucenie na ziemię: przedmiot staje się bryłą przed graczem
+	var count_before: int = main.world_items.bodies.size()
+	var bandage = null
+	for it in inv.containers["szafka"]["grids"][0].items:
+		if it.def_id == "bandaz":
+			bandage = it
+	inv.move_to_world(bandage)
+	await _finish(main)
+	if main.world_items.bodies.size() != count_before + 1:
+		errors.append("wyrzucony bandaż nie pojawił się w świecie")
+	# 15l. obciążenie spowalnia
+	if inv.speed_factor_for(10.0) != 1.0 or absf(inv.speed_factor_for(45.0) - 0.45) > 0.001 or inv.speed_factor_for(30.0) >= 1.0:
+		errors.append("krzywa obciążenia nie działa")
+	# 15m. okno ekwipunku: przeciągnięcie puszki z kieszeni do szafki
+	var ui = main.inv_ui
+	main.open_inventory("szafka")
+	await tree.process_frame
+	var can_item = null
+	for it in inv.all_carried():
+		if it.def_id == "puszka_fasoli":
+			can_item = it
+	var free_spot: Dictionary = cab_grid.find_space(can_item)
+	var target: Vector2 = ui.cell_center(cab_grid, free_spot["pos"])
+	ui.begin_drag(can_item)
+	if not ui.drop_at(target):
+		errors.append("przeciągnięcie w oknie nie zadziałało: " + inv.last_error)
+	await _finish(main)
+	if can_item.parent_grid != cab_grid:
+		errors.append("puszka przeciągnięta w oknie nie trafiła do szafki")
+	await tree.process_frame
+	main.close_inventory()
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -282,6 +460,8 @@ static func run_tests(main: Node) -> void:
 	var lamp_saved: bool = main.switches["lampa_sala"]["on"]
 	main.set_style(2, false)
 	player.lamp.visible = true
+	var inv_saved: Dictionary = main.inventory.to_dict()
+	var world_saved: int = main.world_items.bodies.size()
 	if not SaveGame.save(main, TEST_PATH):
 		errors.append("zapis się nie powiódł")
 	for b in main.bodies:
@@ -291,6 +471,8 @@ static func run_tests(main: Node) -> void:
 	player.teleport(player.global_position + Vector3(-2, 0, 1))
 	player.lamp.visible = false
 	main.set_switch("lampa_sala", not lamp_saved)
+	main.inventory.slots.erase("plecak")  # psujemy też ekwipunek
+	main.world_items.clear()
 	main.set_style(0, false)
 	TranslationServer.set_locale("en")
 	var result: int = SaveGame.load_into(main, TEST_PATH)
@@ -309,6 +491,11 @@ static func run_tests(main: Node) -> void:
 		errors.append("styl nie wrócił (jest %d)" % main.style_index)
 	if not player.lamp.visible:
 		errors.append("latarka nie wróciła do stanu z zapisu")
+	var inv_after: Dictionary = main.inventory.to_dict()
+	if JSON.stringify(inv_after) != JSON.stringify(inv_saved):
+		errors.append("ekwipunek po odczycie różni się od zapisanego")
+	if main.world_items.bodies.size() != world_saved:
+		errors.append("przedmiotów w świecie po odczycie: %d zamiast %d" % [main.world_items.bodies.size(), world_saved])
 	if main.switches["lampa_sala"]["on"] != lamp_saved or main.switches["lampa_sala"]["light"].visible != lamp_saved:
 		errors.append("lampa nie wróciła do stanu z zapisu")
 	if not TranslationServer.get_locale().begins_with("pl"):
@@ -378,15 +565,46 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	await _shot(main, dir + "/niesienie_oburacz.png")
 	main.interaction.release()
 	await _wait(tree, 60)
-	# kadr 4: latarka w lewej dłoni w ciemnej komórce, chwilę po obrocie
-	_place(main, Vector3(5.6, 0.02, 1.6), 0.0, -12.0)
-	player.lamp.visible = true
+	# kadr 4: okno ekwipunku z otwartą szafką, plecakiem, kamizelką i pasem
+	var inv = main.inventory
+	for def_id in ["plecak", "kamizelka", "pas"]:
+		var it = ItemScript.new(def_id)
+		inv.slots[def_id] = it
+		it.slot = def_id
+	inv.place_now(ItemScript.new("butelka_wody"), inv.slots["plecak"].grids[0])
+	inv.place_now(ItemScript.new("lom"), inv.slots["plecak"].grids[0])
+	inv.place_now(ItemScript.new("bandaz", 3), inv.slots["kamizelka"].grids[0])
+	var ammo = ItemScript.new("naboje_9mm", 30)
+	inv.place_now(ammo, inv.slots["kamizelka"].grids[2])
+	inv.set_hotkey(2, ammo)
+	inv.place_now(ItemScript.new("puszka_fasoli"), inv.slots["kurtka"].grids[0])
+	_place(main, Vector3(0.4, 0.02, -2.0), 0.0, -20.0)
+	await _wait(tree, 10)
+	main.open_inventory("szafka")
+	var ui = main.inv_ui
+	var cab = inv.containers["szafka"]["grids"][0]
+	ui.open_items.append(cab.items.filter(func(i): return i.def_id == "apteczka")[0])
+	ui._layout()
+	ui.mouse = ui.cell_center(cab, cab.items[0].pos)
+	ui.hover_item = cab.items[0]
+	await _shot(main, dir + "/ekwipunek.png")
+	# kadr 5: przeciąganie pistoletu nad plecakiem z podglądem miejsca
+	var pistol = cab.items.filter(func(i): return i.def_id == "pistolet")[0]
+	ui.hover_item = null
+	ui.begin_drag(pistol)
+	ui.drag_rot = 1
+	ui.mouse = ui.cell_center(inv.slots["plecak"].grids[0], Vector2i(3, 1))
+	await _shot(main, dir + "/ekwipunek_przeciaganie.png")
+	ui.drag_item = null
+	main.close_inventory()
+	# kadr 6: łom w ręce, chwilę po obrocie (dłoń zostaje w tyle)
+	inv.slots["w_reku"] = ItemScript.new("lom")
+	inv.slots["w_reku"].slot = "w_reku"
+	_place(main, Vector3(-1.0, 0.02, 1.5), 0.0, -8.0)
 	await _wait(tree, 40)
-	player.set_view(deg_to_rad(35.0), deg_to_rad(-12.0))
+	player.set_view(deg_to_rad(-30.0), deg_to_rad(-8.0))
 	await _wait(tree, 4)
-	await _shot(main, dir + "/latarka_obrot.png")
-	await _wait(tree, 50)
-	await _shot(main, dir + "/latarka.png")
+	await _shot(main, dir + "/lom_w_rece.png")
 	tree.quit(0)
 
 

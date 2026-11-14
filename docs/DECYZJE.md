@@ -49,3 +49,17 @@
 - **Dłonie z własną fizyką:** cel dłoni wynika z kamery, dłoń goni go na sprężynie. Latarka w lewej dłoni zostaje w tyle przy obrocie (około 20° przy gwałtownym obrocie o 60°) i dogania kamerę w ułamku sekundy. Luźne ręce bujają się przeciwnie do nóg.
 - **Trzymanie w zasięgu rąk:** chwycony przedmiot przyciągany jest na 0,6 m od oczu, kółkiem 0,4–0,75 m (wcześniej do 2 m, poza zasięgiem rąk). Przedmioty od 8 kg trzyma się obiema rękami, rozstawionymi o 0,16 m na boki od punktu chwytu; wtedy latarka przypina się do piersi.
 - **Ograniczenie:** przy wleczeniu przedmiotu, którego nie da się unieść, ręka nie sięga do podłogi, bo tułów się jeszcze nie pochyla. Pochylanie tułowia: do zrobienia przy okazji walki wręcz albo podnoszenia z ziemi.
+
+## 2026-11-14, build 3
+
+- **Przedmioty i sloty w danych:** `game/data/items.json` (masa, kształt, materiał, kategoria, siatki pojemnika, redukcja wagi, czas sięgania, stos, ciecz, model zastępczy), stan początkowy w `game/data/start.json`. Kod nie zna żadnego przedmiotu z nazwy.
+- **Siatki:** kształty dowolne (tetrisowe), obrót o 90° klawiszem R. Pojemniki zagnieżdżone (apteczka w plecaku), pojemnik nie wejdzie do siebie. Pusty plecak zajmuje 3 × 2 zamiast 3 × 4; włożenie czegoś do pustego plecaka leżącego w innej siatce wymaga miejsca na rozłożenie.
+- **Sloty:** głowa, twarz, kurtka, kamizelka, plecak, pas, spodnie, rękawice, buty, na plecach (długie przedmioty), w ręce. Na starcie: spodnie (2 kieszenie 1 × 2) i kurtka (2 kieszenie 2 × 2). Kamizelka i pas to sloty szybkiego dostępu (skróty 1–9).
+- **Waga:** masa niesiona i odczuwana; założony pojemnik zmniejsza wagę zawartości o swój procent (plecak 35%, kamizelka 10%). Limit miękki: do 18 kg odczuwanych bez kar, potem spadek prędkości do 45% przy 45 kg i szybsze zużycie wytrzymałości.
+- **Czas:** każde przełożenie trwa (sięgnięcie do źródła + do celu + 0,04 s/kg); zakładanie odzieży i pojemników 2 s. Czynności idą po kolei w kolejce, cel jest rezerwowany od razu, gra się nie zatrzymuje. Podnoszenie przerywa się po odejściu dalej niż 3 m.
+- **Świat:** przedmiot wyjęty z ekwipunku staje się bryłą fizyczną z tym samym stanem; F podnosi do pierwszego wolnego miejsca, a gdy brak miejsca, do ręki. Podniesiony plecak, kamizelka czy pas od razu się zakłada, jeśli slot jest wolny. Szafka to pojemnik świata (siatka 6 × 4) otwierany pod F.
+- **Przedmiot w ręce:** widoczny w prawej dłoni z tym samym opóźnieniem co latarka; chwyt pod T wymaga wolnej ręki.
+- **Zapis:** wersja formatu 2 (ekwipunek i przedmioty w świecie). Zapisy z buildów 1–2 są odrzucane jako zapis z innej wersji.
+- **Grzechotanie:** na razie tylko licznik luźnych metalowych przedmiotów na ekranie deweloperskim; dźwięk i wpływ na zombie dojdą z systemem hałasu.
+- **Przemoczenie:** pole w danych przedmiotu, bez działania do czasu pogody (build 8).
+- **Naprawiony wyciek pamięci:** odwołania z siatki do właściciela i z przedmiotu do siatki są słabe, bez cyklu.
