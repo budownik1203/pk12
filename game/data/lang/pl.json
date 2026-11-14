@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD ruch · Shift sprint · Ctrl kucanie · Q / E wychylanie · Spacja skok i wspinanie\nT chwyt · F użycie i podnoszenie · Tab ekwipunek · 1–9 skróty · G upuść z ręki · X latarka\nPrawy przycisk: praca narzędziem (ruch myszy) · lewy: przyłóż część · O podświetlenie · F5 zapis · F9 odczyt · F6 język · F10 dane",
+	"HINTS": "WASD ruch · Shift sprint · Ctrl kucanie · Q / E wychylanie · Spacja skok i wspinanie\nT chwyt · F użycie i podnoszenie · Tab ekwipunek · 1–9 skróty · G / Shift+G upuść z prawej / lewej ręki · X latarka\nLewy przycisk: lewa ręka · prawy: prawa ręka (przytrzymaj: praca narzędziem) · O podświetlenie · F5 zapis · F9 odczyt · F6 język · F10 dane",
 	"STYLE_SOFT": "Łagodny",
 	"STYLE_CLEAR": "Wyraźny",
 	"STYLE_RAW": "Surowy",
@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Bryły aktywne: %d z %d",
 	"DEV_STYLE": "Styl: %s",
 	"DEV_ENGINE": "Godot %s · fizyka: %s",
-	"DEV_BUILD": "PSK-12 · build 4 · narzędzia i montaż",
+	"DEV_BUILD": "PSK-12 · build 4.1 · dwie ręce",
 	"DEV_STAMINA": "Wytrzymałość: %d",
 	"DEV_HELD": "Trzymasz: %s (%.1f kg)",
 	"INV_TITLE_BODY": "NA CIELE",
@@ -50,11 +50,11 @@
 	"DEV_MASS": "Ekwipunek: %.1f kg, odczuwane %.1f kg, ruch %d%%",
 	"DEV_RATTLE": "Grzechocze przy biegu: %d",
 	"DEV_ACTION": "Czynność: %s (%.1f s)",
-	"WORK_KEY_TOOL": "przytrzymaj prawy przycisk",
-	"WORK_KEY_ATTACH": "lewy przycisk",
+	"WORK_KEY_TOOL": "przytrzymaj %s",
+	"WORK_KEY_ATTACH": "%s",
 	"WORK_PLACE_BOARD": "Przyłóż deskę",
 	"WORK_PRY_BOARD": "Podważ deskę (ruch myszą w dół)",
-	"WORK_NAIL": "Wbij gwóźdź (zamach w górę, uderzenie w dół)",
+	"WORK_NAIL": "Wbij gwóźdź",
 	"WORK_PULL_NAIL": "Wyciągnij wygięty gwóźdź (ruch w dół)",
 	"WORK_PLACE_NAKLADKA": "Przyłóż nakładkę do ościeżnicy",
 	"WORK_PLACE_ZAMEK": "Przyłóż zamek do drzwi",
@@ -90,5 +90,9 @@
 	"NOISE_DOOR_CLICK": "zatrzask",
 	"NOISE_SCREW": "wkręcanie",
 	"NOISE_DOOR_BREAK": "wyważone drzwi",
-	"DEV_NOISE": "Ostatni hałas: %s (%.0f)"
+	"DEV_NOISE": "Ostatni hałas: %s (%.0f)",
+	"BTN_L": "lewy przycisk",
+	"BTN_R": "prawy przycisk",
+	"WORK_KEY_NAIL": "przytrzymaj %s (gwoździe), klikaj %s (młotek)",
+	"WORK_KEY_HIT": "klikaj %s"
 }

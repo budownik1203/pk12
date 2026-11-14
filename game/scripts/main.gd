@@ -242,13 +242,16 @@ func _input(event: InputEvent) -> void:
 	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion:
 		if captured:
-			if work.is_active():
-				work.mouse(event.relative)  # trzymany prawy przycisk: mysz prowadzi narzędzie
+			if work.is_locked():
+				work.mouse(event.relative)  # trzymany przycisk pracy: mysz prowadzi narzędzie
 			else:
 				player.look(event.relative)
 	elif event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
-			work.end()
+		if not event.pressed:
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				work.release("r")
+			elif event.button_index == MOUSE_BUTTON_LEFT:
+				work.release("l")
 			return
 		if not event.pressed:
 			return
@@ -256,12 +259,12 @@ func _input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if interaction.held == null:
-				work.begin()
+				work.press("r")  # prawa ręka
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			if interaction.held != null:
 				interaction.throw_held()
 			else:
-				work.attach()
+				work.press("l")  # lewa ręka
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			if work.is_active():
 				work.wheel(-1.0)
@@ -280,7 +283,7 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action("flashlight"):
 			player.toggle_flashlight()
 		elif event.is_action("drop_hand"):
-			var it = inventory.hand_item()
+			var it = inventory.hand("l" if event.shift_pressed else "r")
 			if it == null or not inventory.move_to_world(it):
 				hud.show_message(tr(inventory.last_error if it != null else "INV_ERR_HAND_EMPTY"))
 		elif event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9:
@@ -318,7 +321,7 @@ func _dev_key(key: int) -> void:
 func _process(_delta: float) -> void:
 	player.load_factor = inventory.speed_factor()
 	player.load_stamina = inventory.stamina_factor()
-	player.hand_item = inventory.hand_item()
+	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r")}
 	hud.set_stamina(player.stamina, player.STAMINA_MAX, player.exhausted)
 	if not dev_visible:
 		return

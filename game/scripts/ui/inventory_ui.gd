@@ -130,9 +130,18 @@ func _layout() -> void:
 	var bottom_limit := size.y - 120.0
 
 	var y := float(TOP + 36)
+	# obie ręce w jednym wierszu: lewa po lewej, prawa po prawej
+	var rows: int = inv.SLOT_ORDER.size() - 1
+	var slot_h := clampf((size.y - 44.0 - y) / rows - 4.0, 40.0, SLOT_H)
 	for s in inv.SLOT_ORDER:
-		slot_rects[s] = Rect2(SLOT_X, y, SLOT_W, SLOT_H)
-		y += SLOT_H + 6
+		if s == inv.LEFT_HAND:
+			slot_rects[s] = Rect2(SLOT_X, y, SLOT_W / 2.0 - 3.0, slot_h)
+			continue
+		if s == inv.HAND:
+			slot_rects[s] = Rect2(SLOT_X + SLOT_W / 2.0 + 3.0, y, SLOT_W / 2.0 - 3.0, slot_h)
+		else:
+			slot_rects[s] = Rect2(SLOT_X, y, SLOT_W, slot_h)
+		y += slot_h + 4
 	panels.append(Rect2(SLOT_X - 12, TOP, SLOT_W + 24, y - TOP + 6))
 
 	var col_x := float(WORN_X)
@@ -379,11 +388,11 @@ func _draw_slot(s: String, r: Rect2) -> void:
 	_text(r.position + Vector2(8, 17), ItemDB.slot_name(s), 13, C_DIM)
 	if it != null:
 		var col: Color = C_TEXT if not it.pending else C_DIM
-		_text(r.position + Vector2(8, 39), it.display_name(), 16, col, SLOT_W - 16)
+		_text(r.position + Vector2(8, r.size.y - 9), it.display_name(), 16, col, r.size.x - 16)
 	elif reserved:
-		_text(r.position + Vector2(8, 39), "…", 16, C_DIM)
+		_text(r.position + Vector2(8, r.size.y - 9), "…", 16, C_DIM)
 	else:
-		_text(r.position + Vector2(8, 39), "—", 16, Color(0.4, 0.4, 0.38))
+		_text(r.position + Vector2(8, r.size.y - 9), "—", 16, Color(0.4, 0.4, 0.38))
 
 
 func _draw_grid(g, r: Rect2) -> void:

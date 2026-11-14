@@ -54,15 +54,16 @@ static func _finish(main: Node, limit: float = 8.0) -> void:
 
 
 ## Wkłada nowy przedmiot prosto do ręki (testy narzędzi).
-static func _hand(main: Node, def_id: String, props: Dictionary = {}):
+static func _hand(main: Node, def_id: String, props: Dictionary = {}, side: String = "r", count: int = 1):
 	var inv = main.inventory
 	inv.cancel_all()
-	inv.slots.erase("w_reku")
-	var it = ItemScript.new(def_id)
+	var slot: String = inv.hand_slot(side)
+	inv.slots.erase(slot)
+	var it = ItemScript.new(def_id, count)
 	for k in props:
 		it.props[k] = props[k]
-	inv.slots["w_reku"] = it
-	it.slot = "w_reku"
+	inv.slots[slot] = it
+	it.slot = slot
 	inv.changed.emit()
 	return it
 
@@ -543,7 +544,7 @@ static func run_tests(main: Node) -> void:
 	if not ws.attach() or win.boards[2]["state"] != "placed":
 		errors.append("deski nie da się przyłożyć do okna")
 	_hand(main, "mlotek")
-	inv.give(ItemScript.new("gwozdzie", 10))
+	_hand(main, "gwozdzie", {}, "l", 10)  # gwoździe w lewej ręce, młotek w prawej
 	var nails_before: int = inv.count_of("gwozdzie")
 	for e in 2:
 		var np = _point(main, win, {"slot": 2, "end": e, "nail": 0, "what": "nail"})
@@ -553,33 +554,49 @@ static func run_tests(main: Node) -> void:
 			var c = ws.candidate
 			errors.append("celownik nie znajduje gwoździa na końcu %d (włączony: %s, kandydat: %s, odl. %.2f)" % [e, np.enabled,
 					str(c.data) if c != null else "brak", main.player.camera.global_position.distance_to(np.world_pos())])
-		ws.begin()
-		for k in 3:
-			ws.mouse(Vector2(0, -120))
-			ws.mouse(Vector2(0, 80))
-		ws.end()
-	if win.boards[2]["state"] != "nailed" or inv.count_of("gwozdzie") != nails_before - 2:
+		if not ws.press("l") or ws.nail_point != np:
+			errors.append("przytrzymanie lewego przycisku nie przykłada gwoździa")
+		var clicks := 0
+		while win.boards[2]["ends"][e]["nails"][0] < 3.0 and clicks < 10:
+			ws.press("r")
+			ws.release("r")
+			clicks += 1
+			await _wait(tree, 30)  # przerwa między uderzeniami
+		ws.release("l")
+		if clicks != 3:
+			errors.append("gwóźdź wbity po %d kliknięciach zamiast 3" % clicks)
+	# uderzenia szybsze niż przerwa nie liczą się
+	var np2 = _point(main, win, {"slot": 2, "end": 1, "nail": 1, "what": "nail"})
+	ws.candidate = np2
+	ws.press("l")
+	for k in 5:
+		ws.press("r")
+		ws.release("r")
+	if win.boards[2]["ends"][1]["nails"][1] != 1.0:
+		errors.append("pięć szybkich kliknięć dało %.1f uderzenia zamiast 1" % win.boards[2]["ends"][1]["nails"][1])
+	ws.release("l")
+	await _wait(tree, 30)
+	if win.boards[2]["state"] != "nailed" or inv.count_of("gwozdzie") != nails_before - 3:
 		errors.append("przybijanie: stan %s, gwoździ zużyto %d" % [win.boards[2]["state"], nails_before - inv.count_of("gwozdzie")])
-	# 16d. za mocny zamach wygina gwóźdź; pazur młotka go wyciąga
-	var bent_p = _point(main, win, {"slot": 2, "end": 0, "nail": 1, "what": "nail"})
-	ws.active = bent_p
-	ws.mouse(Vector2(0, -320))
-	ws.mouse(Vector2(0, 80))
-	ws.end()
-	if win.boards[2]["ends"][0]["nails"][1] >= 0.0:
-		errors.append("zamach 320 px nie wygiął gwoździa")
+	if inv.hand("l") == null or inv.hand("l").count != 7:
+		errors.append("gwoździe nie ubywają z lewej ręki")
+	# 16d. wygięty gwóźdź (ze starszych zapisów) wyciąga pazur młotka
+	main.inventory.slots.erase("w_lewej")
+	win.boards[2]["ends"][0]["nails"][1] = -1.0
+	win._refresh(2)
 	var pull = _point(main, win, {"slot": 2, "end": 0, "nail": 1, "what": "pull"})
 	ws.active = pull
 	_lever_until(main, func(): return win.boards[2]["ends"][0]["nails"][1] >= 0.0)
 	ws.end()
 	if win.boards[2]["ends"][0]["nails"][1] != 0.0:
 		errors.append("wygiętego gwoździa nie da się wyciągnąć młotkiem")
-	if main.noise.count_label("NOISE_HAMMER") < 6:
+	if main.noise.count_label("NOISE_HAMMER") < 7:
 		errors.append("uderzenia młotkiem nie robią hałasu")
 	# 16e. nakładka i zamek na wkręty
 	ds._set_latched(true)
 	ds.locked = false
 	_hand(main, "nakladka")
+	ws.end()
 	ws.candidate = ds.parts["nakladka"]["attach"]
 	ws.attach()
 	var driver2 = _hand(main, "srubokret")
@@ -590,6 +607,7 @@ static func run_tests(main: Node) -> void:
 		for k in 17:
 			ws.rotate_by(0.25)
 	_hand(main, "zamek_drzwiowy", {"key_id": 7})
+	ws.end()
 	ws.candidate = ds.parts["zamek"]["attach"]
 	ws.attach()
 	main.inventory.slots.erase("w_reku")
@@ -656,6 +674,20 @@ static func run_tests(main: Node) -> void:
 		errors.append("zamek nie zwiększa oporu przy wyważaniu (%.1f)" % locked_effort)
 	if main.noise.count_label("NOISE_DOOR_BREAK") != 1:
 		errors.append("wyważenie drzwi nie zrobiło hałasu")
+	# 16j. po skończonej pracy trzymany przycisk dalej blokuje kamerę
+	_hand(main, "lom")
+	var pry_b = _point(main, win, {"slot": 0, "end": 0, "what": "pry"})
+	ws.end()
+	ws.candidate = pry_b
+	if not ws.press("r"):
+		errors.append("16j: podważanie się nie zaczęło (deska: %s, punkt aktywny: %s)" % [win.boards[0]["state"], pry_b.enabled])
+	_lever_until(main, func(): return win.boards[0]["ends"][0]["free"])
+	await _wait(tree, 2)
+	if ws.is_active() or not ws.is_locked():
+		errors.append("po uwolnieniu końca deski mysz nie została przy narzędziu")
+	ws.release("r")
+	if ws.is_locked():
+		errors.append("puszczenie przycisku nie oddało myszy kamerze")
 	await _wait(tree, 120)
 	main.inventory.slots.erase("w_reku")
 
@@ -841,20 +873,27 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	ws.end()
 	# kadr 8: młotek i gwoździe nad deską (podpowiedź uderzenia)
 	_hand(main, "mlotek")
+	_hand(main, "gwozdzie", {}, "l", 20)
 	var np = _point(main, win, {"slot": 0, "end": 1, "nail": 0, "what": "nail"})
 	win.boards[0]["ends"][1]["nails"][0] = 1.0
 	win._refresh(0)
 	_aim(main, np.world_pos())
+	await _wait(tree, 3)
+	ws.press("l")
 	await _wait(tree, 20)
 	await _shot(main, dir + "/okno_mlotek.png")
+	ws.release("l")
+	inv.slots.erase("w_lewej")
 	# kadr 9: zamek na drzwiach od strony komórki, wkręcanie śrubokrętem
 	var ds = main.door_sys
 	main.set_switch("lampa_komorka", true)
 	ds._set_latched(true)
 	_hand(main, "nakladka")
+	ws.end()
 	ws.candidate = ds.parts["nakladka"]["attach"]
 	ws.attach()
 	_hand(main, "zamek_drzwiowy", {"key_id": 7})
+	ws.end()
 	ws.candidate = ds.parts["zamek"]["attach"]
 	ws.attach()
 	_hand(main, "srubokret")

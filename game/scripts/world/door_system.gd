@@ -265,7 +265,7 @@ func work_apply(point, ev: Dictionary) -> void:
 			var p: Dictionary = parts[d["part"]]
 			if p["placed"] or ev.get("item") == null:
 				return
-			p["item"] = main.inventory.take_hand()
+			p["item"] = main.inventory.take_hand(str(ev.get("side", "r")))
 			p["placed"] = true
 			for sc in p["screws"]:
 				sc["in"] = false

@@ -53,8 +53,14 @@
 		},
 		{
 			"id": "w_reku",
-			"pl": "W ręce",
-			"en": "In hand",
+			"pl": "Prawa ręka",
+			"en": "Right hand",
+			"any": true
+		},
+		{
+			"id": "w_lewej",
+			"pl": "Lewa ręka",
+			"en": "Left hand",
 			"any": true
 		}
 	],

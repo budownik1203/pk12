@@ -4,9 +4,10 @@ extends Node3D
 ##   zrywanie: łom (albo słabiej pazur młotka) na końcu deski, ruch myszy w dół;
 ##     opór rośnie z liczbą wbitych gwoździ; po uwolnieniu obu końców deska
 ##     spada jako przedmiot, a część gwoździ da się odzyskać,
-##   barykadowanie: deska w ręce, lewy przycisk na pustym miejscu przykłada ją,
-##     potem młotek: zamach i uderzenie, 3 uderzenia na gwóźdź; za mocny zamach
-##     wygina gwóźdź, który trzeba wyciągnąć, zanim wbije się nowy.
+##   barykadowanie: deska w ręce, przycisk tej ręki na pustym miejscu przykłada
+##     ją; potem gwoździe w jednej ręce (przytrzymany przycisk przykłada gwóźdź)
+##     i młotek w drugiej (klikanie wbija), 3 uderzenia na gwóźdź. Wygięte
+##     gwoździe (ze starszych zapisów) wyciąga się łomem albo pazurem młotka.
 ## Deska trzyma, gdy na każdym końcu jest przynajmniej jeden wbity gwóźdź.
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
@@ -180,7 +181,7 @@ func work_apply(point, ev: Dictionary) -> void:
 		"attach":
 			if b["state"] != "none" or ev.get("item") == null:
 				return
-			main.inventory.take_hand()
+			main.inventory.take_hand(str(ev.get("side", "r")))
 			b["state"] = "placed"
 			for e in b["ends"]:
 				e["nails"] = [0.0, 0.0]
@@ -202,17 +203,13 @@ func work_apply(point, ev: Dictionary) -> void:
 			var end: Dictionary = b["ends"][d["end"]]
 			var v: float = end["nails"][d["nail"]]
 			if v <= 0.0:
-				if not main.inventory.consume("gwozdzie", 1):
+				if not main.inventory.consume_hand(str(ev.get("nail_side", "l")), "gwozdzie", 1):
 					main.hud.show_message(tr("MSG_NO_NAILS"))
 					return
 			main.noise.emit_noise(point.world_pos(), 70.0, "NOISE_HAMMER")
-			if bool(ev.get("bend", false)):
-				end["nails"][d["nail"]] = -1.0
-				main.hud.show_message(tr("MSG_NAIL_BENT"))
-			else:
-				end["nails"][d["nail"]] = minf(v + float(ev.get("amount", 1.0)), STRIKES_PER_NAIL)
-				if b["state"] == "placed" and is_secure(i):
-					b["state"] = "nailed"
+			end["nails"][d["nail"]] = minf(maxf(v, 0.0) + float(ev.get("amount", 1.0)), STRIKES_PER_NAIL)
+			if b["state"] == "placed" and is_secure(i):
+				b["state"] = "nailed"
 		"pull":
 			var end: Dictionary = b["ends"][d["end"]]
 			end["pull"][d["nail"]] += float(ev.get("amount", 0.0))

@@ -16,7 +16,8 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | WASD, Shift, Ctrl, Q/E, Spacja | ruch, sprint, kucanie, wychylanie, skok i wspinanie |
 | T | chwyt fizyczny; na drzwiach z zatrzaskiem: chwyć i pociągnij wzrok w dół, by nacisnąć klamkę |
 | F | użycie: klamka i pchnięcie drzwi, zamek (z kluczem albo od środka), szafka, podniesienie przedmiotu |
-| prawy przycisk (trzymany) | praca narzędziem: mysz prowadzi narzędzie zamiast kamery |
+| lewy / prawy przycisk | lewa / prawa ręka: każdy przycisk działa tym, co trzyma jego ręka; trzymany przy łomie i śrubokręcie przełącza mysz z kamery na narzędzie aż do puszczenia |
+| G / Shift+G | upuść z prawej / lewej ręki |
 | lewy przycisk | przyłożenie części trzymanej w ręce (deska, nakładka, zamek) |
 | kółko przy pracy | wkręcanie i wykręcanie |
 | O | podświetlenie miejsc pracy |
@@ -26,7 +27,7 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 Praca narzędziem:
 
 - **Łom** (podważanie 3, ramię 0,75 m): koniec deski albo szczelina drzwi przy zamku, ruch myszy w dół. Opór rośnie z liczbą gwoździ i z zamkiem.
-- **Młotek** (wbijanie 3): zamach myszą w górę i uderzenie w dół, 3 uderzenia na gwóźdź. Za mocny zamach wygina gwóźdź; wyciąga się go pazurem młotka albo łomem.
+- **Młotek** (wbijanie 3): gwoździe w jednej ręce, młotek w drugiej. Przytrzymaj przycisk ręki z gwoździami (gwóźdź przyłożony), klikaj przyciskiem ręki z młotkiem; między uderzeniami 0,45 s przerwy, 3 uderzenia na gwóźdź. Gwoździe ubywają z garści.
 - **Śrubokręt** (wkręcanie 3): koła myszą zgodnie z ruchem wskazówek zegara wkręcają, przeciwnie wykręcają; 4 obroty na wkręt. Końcówka się zużywa; zużyta zrywa łby. Wykręcony otwór trzyma słabiej.
 - **Moneta i nóż** (wkręcanie 1): trzy razy wolniej; nóż szybko się tępi.
 

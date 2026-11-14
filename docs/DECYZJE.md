@@ -16,7 +16,7 @@
 - **Styl:** trzy warianty do wyboru przez testera (F1 do F3). Decyzja otwarta.
 - **Sceny budowane w kodzie:** pokój testowy powstaje w `room_builder.gd`, nie w edytorze. Pliki są małe i czytelne w historii zmian.
 - **Bez autoloadów i `class_name`:** skrypty łączą się przez `preload`, dzięki czemu projekt działa od razu po sklonowaniu i w testach bez okna.
-- **Sterowanie:** akcje rejestrowane w `controls.gd`. Układ: WASD, Shift sprint, Ctrl kucanie, Q/E wychylanie, F interakcja, Tab ekwipunek, H zdrowie, R obrót przedmiotu, lewy przycisk myszy użycie, prawy przycisk praca narzędziem.
+- **Sterowanie:** akcje rejestrowane w `controls.gd`. Układ: WASD, Shift sprint, Ctrl kucanie, Q/E wychylanie, F interakcja, Tab ekwipunek, H zdrowie, R obrót przedmiotu, lewy i prawy przycisk myszy to lewa i prawa ręka (build 4.1).
 - **Zapis:** JSON z numerem wersji (`save_game.gd`). Uszkodzony plik lub inna wersja są odrzucane bez zmiany stanu gry.
 - **Języki:** `data/lang/pl.json` i `en.json`; w kodzie tylko klucze i `tr()`.
 - **Tekstury zastępcze:** generowane w kodzie, 64 piksele, bez filtrowania.
@@ -68,7 +68,8 @@
 
 - **Zdolności narzędzi w danych:** pole `abilities` w `items.json` (łom: podważanie 3; młotek: wbijanie 3, podważanie 1; śrubokręt: wkręcanie 3; moneta i nóż: wkręcanie 1, nóż także podważanie 1), `length` jako ramię dźwigni, `wear` jako zużycie końcówki na obrót. Obiekty pytają o zdolność i poziom, nie o konkretny przedmiot.
 - **Punkty pracy** (`scripts/work/`): miejsca w świecie z rodzajem pracy (dźwignia, kręcenie, uderzenie, przyłożenie). Wybierany jest punkt najbliżej linii wzroku w zasięgu 1,7 m, niezasłonięty. Właściciel punktu (okno, drzwi) decyduje o skutku.
-- **Mysz prowadzi narzędzie:** prawy przycisk przełącza mysz z kamery na narzędzie. Dźwignia: 0,005 postępu na piksel ruchu w dół przy poziomie 3 i ramieniu 0,6 m. Kręcenie: kąt wirtualnego kursora wokół środka (zgodnie z ruchem wskazówek zegara wkręca) albo kółko (1/12 obrotu na ząbek). Uderzenie: zamach co najmniej 40 px; od 230 px 30% szansy na wygięcie gwoździa, od 280 px zawsze.
+- **Dwie ręce (build 4.1):** sloty `w_lewej` i `w_reku`, przyciski myszy odpowiadają rękom. Wbijanie: przytrzymany przycisk ręki z gwoździami przykłada gwóźdź, kliknięcia ręki z młotkiem uderzają co najmniej co 0,45 s, bez oceny jakości i bez wyginania. Mysz zostaje przy narzędziu, dopóki przycisk jest trzymany, także po skończonej pracy (kamera nie ucieka).
+- **Mysz prowadzi narzędzie:** trzymany przycisk ręki z narzędziem przełącza mysz z kamery na narzędzie. Dźwignia: 0,005 postępu na piksel ruchu w dół przy poziomie 3 i ramieniu 0,6 m. Kręcenie: kąt wirtualnego kursora wokół środka (zgodnie z ruchem wskazówek zegara wkręca) albo kółko (1/12 obrotu na ząbek). (Zamach myszą z buildu 4 zastąpiony klikaniem w 4.1.)
 - **Okno:** 3 deski po 2 gwoździe na każdym końcu. Opór końca: 1 + 0,8 na każdy wbity gwóźdź (z łomem około 440 px dla 2 gwoździ). Odzysk gwoździ 50%. Deska trzyma, gdy na obu końcach jest przynajmniej jeden wbity gwóźdź.
 - **Drzwi:** zamknięte drzwi trzymają się na zatrzasku (bryła zamrożona) i same zaskakują po domknięciu. Klamkę naciska F albo chwyt i pochylenie wzroku o 10° w dół. Zamek działa przy 2 wkrętach zamka i 1 wkręcie nakładki dokręconych co najmniej do połowy. Zamyka się kluczem o pasującym `key_id` albo od środka komórki.
 - **Wkręty:** 4 obroty na wkręt. Wykręcenie osłabia otwór (granica dokręcenia 1 / (1 + 0,35 × liczba wykręceń)). Zużyta końcówka (stan poniżej 30%) zrywa łeb z szansą 8% na obrót.

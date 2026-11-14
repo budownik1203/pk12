@@ -1,11 +1,13 @@
 extends Node
-## Praca narzędziem prowadzona myszą, bez paneli i bez osobnego kursora.
-## Celujesz w punkt pracy, trzymasz prawy przycisk i od tej chwili mysz
-## prowadzi narzędzie zamiast kamery:
-##   dźwignia: ruch myszy w dół; postęp rośnie z poziomem zdolności i ramieniem,
-##   kręcenie: koła myszą zgodnie z ruchem wskazówek (przeciwnie wykręca) albo kółko,
-##   uderzenie: zamach w górę i ruch w dół; za mocno = wygięty gwóźdź.
-## Część w ręce (deska, nakładka, zamek) przykłada się lewym przyciskiem.
+## Praca narzędziem na dwie ręce. Lewy przycisk myszy to lewa ręka, prawy to
+## prawa; każdy przycisk działa tym, co trzyma jego ręka:
+##   dźwignia (łom): przytrzymaj przycisk ręki z łomem i ruszaj myszą w dół,
+##   kręcenie (śrubokręt): przytrzymaj przycisk i kręć myszą albo kółkiem,
+##   wbijanie: przytrzymaj przycisk ręki z gwoździami (gwóźdź przyłożony),
+##     a przyciskiem ręki z młotkiem klikaj; między uderzeniami jest przerwa,
+##   przyłożenie części: przycisk ręki, która trzyma deskę, nakładkę czy zamek.
+## Dopóki trzymasz przycisk pracy, mysz nie obraca kamery, także gdy praca
+## już się skończyła (deska puściła), więc widok nie ucieka w dół.
 ## Zdolności narzędzi pochodzą z danych: items.json, pole "abilities".
 
 const PointScript := preload("res://scripts/work/work_point.gd")
@@ -14,29 +16,29 @@ const REACH := 1.7                 # zasięg pracy w metrach
 const RAY_TOLERANCE := 0.09        # jak daleko od promienia wzroku może być punkt
 const MARKER_RANGE := 3.0
 const LEVER_RATE := 0.005          # postęp na piksel w dół (narzędzie poziomu 3, ramię 0,6 m)
-const STRIKE_RAISE_MIN := 40.0     # pikseli zamachu, by uderzenie się liczyło
-const STRIKE_WEAK := 60.0
-const STRIKE_HARD := 230.0         # od tego zamachu gwóźdź może się wygiąć
-const STRIKE_TOO_HARD := 280.0     # od tego zamachu gwóźdź wygina się zawsze
 const WHEEL_TURN := 1.0 / 12.0     # obrót na jeden ząbek kółka
+const STRIKE_COOLDOWN := 0.45      # sekundy między uderzeniami młotka
+const NAILS := "gwozdzie"
 
 var main
 var points: Array = []
 var candidate = null
-var active = null
+var active = null                  # punkt dźwigni albo kręcenia
+var active_side := ""
+var nail_point = null              # gwóźdź przytrzymywany jedną ręką
+var nail_side := ""
+var holds := {"l": false, "r": false}
 var highlights := true
-var rng := RandomNumberGenerator.new()
 
-var _virtual := Vector2.ZERO       # wirtualny kursor do kręcenia
-var _raise := 0.0                  # zamach w górę
-var _down := 0.0
-var _phase := 0.0                  # do ruchu dłoni
+var _virtual := Vector2.ZERO
+var _phase := 0.0
+var _cooldown := 0.0
+var _impact := 0.0                 # 1 w chwili uderzenia, potem opada
 var _markers := {}
 
 
 func setup(main_node) -> void:
 	main = main_node
-	rng.seed = 12
 
 
 func add_point(owner, node: Node3D, local: Vector3, kind: String, opts: Dictionary = {}):
@@ -68,50 +70,90 @@ static func arm_factor(item) -> float:
 	return clampf(float(item.get_def().get("length", 0.3)) / 0.6, 0.5, 1.4)
 
 
-func usable(p, hand) -> bool:
-	if not p.enabled:
-		return false
-	if p.kind == "attach":
-		return hand != null and str(hand.get_def().get("mount", "")) == p.accepts
-	return tool_level(hand, p.ability) >= p.min_level
+static func other(side: String) -> String:
+	return "l" if side == "r" else "r"
+
+
+static func _is_nails(item) -> bool:
+	return item != null and item.def_id == NAILS
+
+
+static func _mounts(item, p) -> bool:
+	return item != null and str(item.get_def().get("mount", "")) == p.accepts
+
+
+func hand(side: String):
+	if main == null or main.inventory == null:
+		return null
+	return main.inventory.hand(side)
+
+
+## Która ręka pracuje w tym punkcie ("l", "r" albo ""). Przy wbijaniu: ręka z młotkiem.
+func side_for(p) -> String:
+	var l = hand("l")
+	var r = hand("r")
+	match p.kind:
+		"attach":
+			return "r" if _mounts(r, p) else ("l" if _mounts(l, p) else "")
+		"strike":
+			if _is_nails(l) and tool_level(r, p.ability) >= p.min_level:
+				return "r"
+			if _is_nails(r) and tool_level(l, p.ability) >= p.min_level:
+				return "l"
+			return ""
+	if tool_level(r, p.ability) >= p.min_level:
+		return "r"
+	if tool_level(l, p.ability) >= p.min_level:
+		return "l"
+	return ""
+
+
+func usable(p) -> bool:
+	return p.enabled and side_for(p) != ""
 
 
 func is_active() -> bool:
 	return active != null
 
 
-func _hand():
-	return main.inventory.hand_item() if main != null and main.inventory != null else null
+## Czy mysz jest teraz przy narzędziu (trzymany przycisk pracy).
+func is_locked() -> bool:
+	return holds["l"] or holds["r"]
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if main == null or main.player == null:
 		return
-	var hand = _hand()
+	_cooldown = maxf(0.0, _cooldown - delta)
+	_impact = maxf(0.0, _impact - delta * 6.0)
+	var cam_pos: Vector3 = main.player.camera.global_position
 	if active != null:
-		var far: bool = main.player.camera.global_position.distance_to(active.world_pos()) > REACH + 0.3
-		if not usable(active, hand) or far:
-			end()
-	if active == null:
-		candidate = find_candidate(hand)
-	_update_markers(hand)
+		var lost: bool = not active.enabled or tool_level(hand(active_side), active.ability) < active.min_level
+		if lost or cam_pos.distance_to(active.world_pos()) > REACH + 0.3:
+			active = null  # przycisk dalej trzymany: kamera stoi do puszczenia
+	if nail_point != null:
+		if not nail_point.enabled or not _is_nails(hand(nail_side)) or cam_pos.distance_to(nail_point.world_pos()) > REACH + 0.3:
+			nail_point = null
+	if active == null and nail_point == null:
+		candidate = find_candidate()
+	_update_markers()
 	_update_hud()
 	_update_pose()
 
 
 ## Punkt pracy najbliżej linii wzroku (ten, w który celujesz), niezasłonięty.
-func find_candidate(hand):
+func find_candidate():
 	var cam: Camera3D = main.player.camera
 	var o := cam.global_position
 	var dir := -cam.global_transform.basis.z
 	var q := PhysicsRayQueryParameters3D.create(o, o + dir * REACH)
 	q.exclude = [main.player.get_rid()]
 	var hit: Dictionary = main.player.get_world_3d().direct_space_state.intersect_ray(q)
-	var block := REACH if hit.is_empty() else o.distance_to(hit["position"])
+	var block: float = REACH if hit.is_empty() else o.distance_to(hit["position"])
 	var best = null
 	var best_off := INF
 	for p in points:
-		if not usable(p, hand):
+		if not usable(p):
 			continue
 		var wp: Vector3 = p.world_pos()
 		var t := (wp - o).dot(dir)
@@ -126,41 +168,84 @@ func find_candidate(hand):
 	return best
 
 
-func begin() -> bool:
-	if candidate == null or candidate.kind == "attach":
+## Naciśnięcie przycisku ręki ("l" lewy, "r" prawy). Zwraca, czy była to praca.
+func press(side: String) -> bool:
+	var it = hand(side)
+	# druga ręka trzyma gwóźdź: ta ręka uderza młotkiem
+	if nail_point != null and side != nail_side:
+		if tool_level(it, nail_point.ability) >= nail_point.min_level:
+			holds[side] = true
+			_strike(nail_point, side)
+			return true
 		return false
-	active = candidate
-	_virtual = Vector2(60, 0)
-	_raise = 0.0
-	_down = 0.0
-	return true
+	var p = candidate
+	if p == null or active != null:
+		return false
+	match p.kind:
+		"attach":
+			if _mounts(it, p):
+				p.owner.work_apply(p, {"type": "attach", "item": it, "side": side})
+				return true
+		"strike":
+			if _is_nails(it) and side_for(p) != "":
+				nail_point = p
+				nail_side = side
+				holds[side] = true
+				return true
+		_:
+			if tool_level(it, p.ability) >= p.min_level:
+				active = p
+				active_side = side
+				holds[side] = true
+				_virtual = Vector2(60, 0)
+				return true
+	return false
+
+
+func release(side: String) -> void:
+	holds[side] = false
+	if active_side == side:
+		active = null
+		active_side = ""
+	if nail_side == side:
+		nail_point = null
+		nail_side = ""
+
+
+## Praca prawą ręką (zgodność ze starszym kodem i testami).
+func begin() -> bool:
+	return press("r")
 
 
 func end() -> void:
+	release("l")
+	release("r")
 	active = null
-	_raise = 0.0
+	active_side = ""
+	nail_point = null
+	nail_side = ""
 
 
-## Przyłożenie części trzymanej w ręce do gniazda (lewy przycisk).
+## Przyłożenie części ręką, która ją trzyma.
 func attach() -> bool:
 	if candidate == null or candidate.kind != "attach":
 		return false
-	candidate.owner.work_apply(candidate, {"type": "attach", "item": _hand()})
-	return true
+	var side := side_for(candidate)
+	return side != "" and press(side)
 
 
-## Ruch myszy podczas pracy: zamiast obracać kamerę prowadzi narzędzie.
+## Ruch myszy przy trzymanym przycisku: prowadzi narzędzie zamiast kamery.
 func mouse(rel: Vector2) -> void:
 	if active == null:
 		return
-	var hand = _hand()
-	var lvl := tool_level(hand, active.ability)
+	var it = hand(active_side if active_side != "" else "r")
+	var lvl := tool_level(it, active.ability)
 	match active.kind:
 		"lever":
 			if rel.y > 0.0:
-				var amount := rel.y * LEVER_RATE * (lvl / 3.0) * arm_factor(hand)
+				var amount := rel.y * LEVER_RATE * (lvl / 3.0) * arm_factor(it)
 				_phase = fmod(_phase + rel.y * 0.006, 1.0)
-				_apply({"type": "lever", "amount": amount, "tool": hand})
+				active.owner.work_apply(active, {"type": "lever", "amount": amount, "tool": it})
 		"rotate":
 			var prev := _virtual
 			_virtual += rel
@@ -168,16 +253,6 @@ func mouse(rel: Vector2) -> void:
 				_virtual = _virtual.normalized() * 200.0
 			if prev.length() > 15.0 and _virtual.length() > 15.0:
 				rotate_by(wrapf(_virtual.angle() - prev.angle(), -PI, PI) / TAU)
-		"strike":
-			if rel.y < 0.0:
-				_raise = minf(_raise - rel.y, 400.0)
-				_down = 0.0
-			elif rel.y > 0.0 and _raise >= STRIKE_RAISE_MIN:
-				_down += rel.y
-				if _down >= minf(_raise * 0.6, 60.0):
-					strike(_raise)
-					_raise = 0.0
-					_down = 0.0
 
 
 func wheel(steps: float) -> void:
@@ -189,45 +264,61 @@ func wheel(steps: float) -> void:
 func rotate_by(turns: float) -> void:
 	if active == null:
 		return
-	var hand = _hand()
-	var lvl := tool_level(hand, active.ability)
+	var side := active_side if active_side != "" else "r"
+	var it = hand(side)
+	var lvl := tool_level(it, active.ability)
 	_phase += turns
-	_apply({"type": "rotate", "turns": turns * (lvl / 3.0), "raw": turns, "tool": hand})
+	active.owner.work_apply(active, {"type": "rotate", "turns": turns * (lvl / 3.0), "raw": turns, "tool": it})
 
 
-## Uderzenie młotkiem; power to długość zamachu w pikselach.
-func strike(power: float) -> void:
-	if active == null:
+func cooldown_left() -> float:
+	return _cooldown
+
+
+func _strike(p, side: String) -> void:
+	if _cooldown > 0.0:
 		return
-	var hand = _hand()
-	var lvl := tool_level(hand, active.ability)
-	var bend := power >= STRIKE_TOO_HARD or (power >= STRIKE_HARD and rng.randf() < 0.3)
-	var amount := (1.0 if power >= STRIKE_WEAK else 0.5) * (lvl / 3.0)
-	_apply({"type": "strike", "power": power, "amount": amount, "bend": bend, "tool": hand})
-
-
-func _apply(ev: Dictionary) -> void:
-	active.owner.work_apply(active, ev)
+	_cooldown = STRIKE_COOLDOWN
+	_impact = 1.0
+	var it = hand(side)
+	var amount := tool_level(it, p.ability) / 3.0
+	p.owner.work_apply(p, {"type": "strike", "amount": amount, "tool": it, "nail_side": nail_side})
 
 
 # --- podpowiedzi, znaczniki, poza dłoni -----------------------------------------
 
+func _btn(side: String) -> String:
+	return tr("BTN_L") if side == "l" else tr("BTN_R")
+
+
 func _update_hud() -> void:
 	var hud = main.hud
-	if active != null:
-		var st: Dictionary = active.owner.work_status(active)
-		hud.set_work(str(st.get("text", "")), float(st.get("ratio", -1.0)))
+	var shown = active if active != null else nail_point
+	if shown != null:
+		var st: Dictionary = shown.owner.work_status(shown)
+		var text := str(st.get("text", ""))
+		if shown == nail_point:
+			text += " · " + tr("WORK_KEY_HIT") % _btn(other(nail_side))
+		hud.set_work(text, float(st.get("ratio", -1.0)))
 	elif candidate != null:
-		var key := tr("WORK_KEY_ATTACH") if candidate.kind == "attach" else tr("WORK_KEY_TOOL")
+		var side := side_for(candidate)
+		var key := ""
+		match candidate.kind:
+			"attach":
+				key = tr("WORK_KEY_ATTACH") % _btn(side)
+			"strike":
+				key = tr("WORK_KEY_NAIL") % [_btn(other(side)), _btn(side)]
+			_:
+				key = tr("WORK_KEY_TOOL") % _btn(side)
 		hud.set_work("%s · %s" % [tr(candidate.label_key), key], -1.0)
 	else:
 		hud.set_work("", -1.0)
 
 
-func _update_markers(hand) -> void:
+func _update_markers() -> void:
 	var cam_pos: Vector3 = main.player.camera.global_position
 	for p in points:
-		var show: bool = highlights and usable(p, hand) and cam_pos.distance_to(p.world_pos()) <= MARKER_RANGE
+		var show: bool = highlights and usable(p) and cam_pos.distance_to(p.world_pos()) <= MARKER_RANGE
 		var m: MeshInstance3D = _markers.get(p)
 		if not show:
 			if m != null:
@@ -238,7 +329,7 @@ func _update_markers(hand) -> void:
 			_markers[p] = m
 		m.visible = true
 		m.global_position = p.world_pos()
-		var big: bool = p == candidate or p == active
+		var big: bool = p == candidate or p == active or p == nail_point
 		m.scale = Vector3.ONE * (1.6 if big else 1.0)
 
 
@@ -246,7 +337,6 @@ func _make_marker() -> MeshInstance3D:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = Color(0.95, 0.8, 0.35)
-	mat.no_depth_test = false
 	var box := BoxMesh.new()
 	box.size = Vector3(0.022, 0.022, 0.022)
 	box.material = mat
@@ -258,20 +348,25 @@ func _make_marker() -> MeshInstance3D:
 	return m
 
 
-## Dłoń z narzędziem idzie do punktu pracy i porusza się zgodnie z rodzajem pracy.
+## Dłonie idą do punktu pracy: ręka z narzędziem na punkt; przy wbijaniu jedna
+## przytrzymuje gwóźdź, a druga z młotkiem wisi nad nim i opada przy uderzeniu.
 func _update_pose() -> void:
 	var player = main.player
-	if active == null:
-		player.work_target = null
-		return
-	var lift := 0.0
+	var targets := {"l": null, "r": null}
 	var roll := 0.0
-	match active.kind:
-		"lever":
+	if active != null:
+		var lift := 0.0
+		if active.kind == "lever":
 			lift = -0.05 * sin(_phase * TAU)
-		"rotate":
+		elif active.kind == "rotate":
 			roll = _phase * TAU
-		"strike":
-			lift = _raise * 0.0007
-	player.work_target = active.world_pos() + Vector3.UP * lift
+		targets[active_side] = active.world_pos() + Vector3.UP * lift
+	if nail_point != null:
+		var np: Vector3 = nail_point.world_pos()
+		var toward: Vector3 = (player.camera.global_position - np).normalized()
+		targets[nail_side] = np + toward * 0.03
+		var hammer_lift := 0.02 + 0.16 * (1.0 - _impact)
+		targets[other(nail_side)] = np + Vector3.UP * hammer_lift + toward * 0.05
+	player.work_targets = targets
 	player.work_roll = roll
+	player.work_side = active_side

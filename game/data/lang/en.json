@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab · F use and pick up · Tab inventory · 1–9 hotkeys · G drop from hand · X flashlight\nRight button: work with tool (mouse motion) · left: attach part · O highlights · F5 save · F9 load · F6 language · F10 data",
+	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab · F use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop from right / left hand · X flashlight\nLeft button: left hand · right: right hand (hold: work with tool) · O highlights · F5 save · F9 load · F6 language · F10 data",
 	"STYLE_SOFT": "Soft",
 	"STYLE_CLEAR": "Clear",
 	"STYLE_RAW": "Raw",
@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 4 · tools and assembly",
+	"DEV_BUILD": "PSK-12 · build 4.1 · two hands",
 	"DEV_STAMINA": "Stamina: %d",
 	"DEV_HELD": "Holding: %s (%.1f kg)",
 	"INV_TITLE_BODY": "ON BODY",
@@ -50,11 +50,11 @@
 	"DEV_MASS": "Inventory: %.1f kg, felt %.1f kg, speed %d%%",
 	"DEV_RATTLE": "Rattles when running: %d",
 	"DEV_ACTION": "Action: %s (%.1f s)",
-	"WORK_KEY_TOOL": "hold right button",
-	"WORK_KEY_ATTACH": "left button",
+	"WORK_KEY_TOOL": "hold %s",
+	"WORK_KEY_ATTACH": "%s",
 	"WORK_PLACE_BOARD": "Hold plank to the window",
 	"WORK_PRY_BOARD": "Pry the plank (move mouse down)",
-	"WORK_NAIL": "Drive a nail (swing up, strike down)",
+	"WORK_NAIL": "Drive a nail",
 	"WORK_PULL_NAIL": "Pull the bent nail (move down)",
 	"WORK_PLACE_NAKLADKA": "Hold strike plate to the frame",
 	"WORK_PLACE_ZAMEK": "Hold lock to the door",
@@ -90,5 +90,9 @@
 	"NOISE_DOOR_CLICK": "latch",
 	"NOISE_SCREW": "screwing",
 	"NOISE_DOOR_BREAK": "door forced",
-	"DEV_NOISE": "Last noise: %s (%.0f)"
+	"DEV_NOISE": "Last noise: %s (%.0f)",
+	"BTN_L": "left button",
+	"BTN_R": "right button",
+	"WORK_KEY_NAIL": "hold %s (nails), click %s (hammer)",
+	"WORK_KEY_HIT": "click %s"
 }

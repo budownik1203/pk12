@@ -11,9 +11,10 @@ const Grid := preload("res://scripts/inventory/grid.gd")
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
 const START_PATH := "res://data/start.json"
 
-const SLOT_ORDER := ["glowa", "twarz", "kurtka", "kamizelka", "plecak", "pas", "spodnie", "rekawice", "buty", "plecy", "w_reku"]
+const SLOT_ORDER := ["glowa", "twarz", "kurtka", "kamizelka", "plecak", "pas", "spodnie", "rekawice", "buty", "plecy", "w_lewej", "w_reku"]
 const GRID_SLOTS := ["spodnie", "kurtka", "kamizelka", "pas", "plecak"]   # kolejność szukania miejsca
-const HAND := "w_reku"
+const HAND := "w_reku"        # prawa ręka
+const LEFT_HAND := "w_lewej"  # lewa ręka
 
 const COMFORT_MASS := 18.0     # kg odczuwane: do tej masy bez kar
 const HEAVY_MASS := 45.0       # kg odczuwane: najwolniej
@@ -186,7 +187,7 @@ func felt_mass() -> float:
 	var m := 0.0
 	for s in slots:
 		var it = slots[s]
-		m += it.felt_mass() if s != HAND else it.total_mass()
+		m += it.felt_mass() if s != HAND and s != LEFT_HAND else it.total_mass()
 	return m
 
 
@@ -215,6 +216,15 @@ func rattle_count() -> int:
 
 func hand_item():
 	return slots.get(HAND)
+
+
+## Przedmiot w ręce: "l" lewa, "r" prawa.
+func hand(side: String):
+	return slots.get(LEFT_HAND if side == "l" else HAND)
+
+
+static func hand_slot(side: String) -> String:
+	return LEFT_HAND if side == "l" else HAND
 
 
 func slot_accepts(item, slot: String) -> bool:
@@ -390,8 +400,9 @@ func pick_up(body: RigidBody3D) -> bool:
 		var spot: Dictionary = g.find_space(item)
 		if not spot.is_empty() and can_place_in_grid(item, g, spot["pos"], spot["rot"]):
 			return move_to_grid(item, g, spot["pos"], spot["rot"])
-	if not slots.has(HAND) and not slot_reserved.has(HAND):
-		return move_to_slot(item, HAND)
+	for hs in [HAND, LEFT_HAND]:
+		if not slots.has(hs) and not slot_reserved.has(hs):
+			return move_to_slot(item, hs)
 	return _fail("INV_ERR_NO_ROOM")
 
 
@@ -606,11 +617,12 @@ func consume(def_id: String, n: int = 1) -> bool:
 
 
 ## Zabiera przedmiot z ręki (przyłożony do gniazda staje się częścią świata).
-func take_hand():
-	var it = slots.get(HAND)
+func take_hand(side: String = "r"):
+	var hs := hand_slot(side)
+	var it = slots.get(hs)
 	if it == null:
 		return null
-	slots.erase(HAND)
+	slots.erase(hs)
 	it.slot = ""
 	_forget_hotkey(it)
 	changed.emit()
@@ -632,14 +644,29 @@ func give(item) -> String:
 	for g in worn_grids():
 		if place_now(item, g):
 			return "grid"
-	if not slots.has(HAND) and not slot_reserved.has(HAND):
-		slots[HAND] = item
-		item.slot = HAND
-		changed.emit()
-		return "hand"
+	for hs in [HAND, LEFT_HAND]:
+		if not slots.has(hs) and not slot_reserved.has(hs):
+			slots[hs] = item
+			item.slot = hs
+			changed.emit()
+			return "hand"
 	main.world_items.spawn(item, _drop_transform())
 	changed.emit()
 	return "world"
+
+
+## Zabiera n sztuk z ręki (gwóźdź z garści); gdy w ręce brak, z reszty ekwipunku.
+func consume_hand(side: String, def_id: String, n: int = 1) -> bool:
+	var it = hand(side)
+	if it == null or it.def_id != def_id or it.count < n:
+		return consume(def_id, n)
+	it.count -= n
+	if it.count <= 0:
+		slots.erase(hand_slot(side))
+		it.slot = ""
+		_forget_hotkey(it)
+	changed.emit()
+	return true
 
 
 func has_key(key_id) -> bool:
