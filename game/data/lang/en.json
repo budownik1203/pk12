@@ -1,0 +1,19 @@
+{
+	"HINTS": "WASD move · Shift sprint · Space jump · T flashlight\nF1 / F2 / F3 style · F4 no effects · F5 save · F9 load\nF6 language · F10 developer data · F11 window · Esc mouse",
+	"STYLE_SOFT": "Soft",
+	"STYLE_CLEAR": "Clear",
+	"STYLE_RAW": "Raw",
+	"STYLE_OFF": "No effects",
+	"MSG_STYLE": "Style: %s",
+	"MSG_SAVED": "Saved",
+	"MSG_LOADED": "Loaded",
+	"MSG_NO_SAVE": "No save found",
+	"MSG_BAD_SAVE": "Save is damaged or from another version",
+	"MSG_LANG": "Language: English",
+	"DEV_FPS": "Frames per second: %d",
+	"DEV_RES": "World resolution: %d × %d",
+	"DEV_BODIES": "Active bodies: %d of %d",
+	"DEV_STYLE": "Style: %s",
+	"DEV_ENGINE": "Godot %s · physics: %s",
+	"DEV_BUILD": "PSK-12 · build 1 · test room"
+}
