@@ -1246,6 +1246,7 @@ static func run_tests(main: Node) -> void:
 	var sun_clear: float = ckw.sun.light_energy
 	var t_clear: float = ckw.outside_temp()
 	wt.set_kind("burza", true)
+	wt.next_change = 999.0  # bez zmiany pogody w trakcie przyspieszonego czasu
 	ckw.advance(0.0)
 	await _wait(tree, 3)
 	if ckw.sun.light_energy >= sun_clear * 0.8 or ckw.outside_temp() >= t_clear - 2.0:
