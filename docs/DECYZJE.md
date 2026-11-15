@@ -190,3 +190,13 @@
 - **Nowe przedmioty:** zapalniczka, zapałki, piła, nożyczki, deszczułka, garnek, patelnia (też tępa broń), kuchenka, ziemniak, marchew, cebula i ich pokrojone wersje, pieczony ziemniak, spalenizna, książka kucharska. Łupy w lodówkach, szafkach i skrzynkach.
 - **Postać:** umiejętność gotowania (krojenie, pieczenie, zupy), zawód kucharz.
 - Zapis w wersji 10 zawiera płonące ogniska; stan kuchenki i stopień ugotowania zapisują się w przedmiotach.
+
+### Poprawki po buildzie 11 (start gry i mysz)
+
+- Ekran tworzenia postaci nie miał kursora: koniec startu gry chował mysz pod kamerę zaraz po tym, jak ekran ją pokazał. Teraz kursor zostaje do „Rozpocznij”, a kliknięcie nie łapie myszy, dopóki ekran jest otwarty.
+- Cechy wybiera się i odznacza jednym kliknięciem (wcześniej trzeba było klikać dwa razy).
+- Zombie na start pojawiały się zanim mapa nawigacji była gotowa, więc w prawdziwej grze nie było ich wcale (testy tego nie łapały, bo tam mapa była już gotowa). Teraz pojawiają się po „Rozpocznij”, po synchronizacji mapy.
+- Enter na ekranie śmierci rzucał błąd skryptu przy przeładowaniu sceny.
+- Otwarcie ekwipunku albo przełączenie na inny program puszcza trzymane przyciski (praca narzędziem, garda), żeby po powrocie mysz nie prowadziła dalej narzędzia zamiast kamery.
+- Piła startowa nachodziła na deskę w pokoju, a ziemniak na skrzynkę (do tego starsza kolizja puszki z chlebem). Fizyka rozpychała bryły i czasem wypychała deskę przez ścianę. Przedmioty przestawione, a nowy test 0 sprawdza, że nic ze `start.json` nie nachodzi na inne przedmioty ani bryły pokoju.
+- Nowa kontrola `game/tests/start_check.gd` sprawdza prawdziwy start gry z kliknięciami myszą, czego zwykłe testy (`--test`) nie widzą.

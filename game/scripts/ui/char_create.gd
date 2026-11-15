@@ -94,11 +94,10 @@ func setup(main_node) -> void:
 			_bad.add_item("%s (+%d)" % [character.local(t), -cost])
 			_bad_ids.append(id)
 	_profs.item_selected.connect(func(i): prof = _prof_ids[i]; _refresh(); _describe_prof())
-	_good.item_activated.connect(func(i): _toggle(_good_ids[i]))
-	_bad.item_activated.connect(func(i): _toggle(_bad_ids[i]))
-	_good.item_selected.connect(func(i): _describe_trait(_good_ids[i]))
-	_bad.item_selected.connect(func(i): _describe_trait(_bad_ids[i]))
-	_chosen_list.item_activated.connect(func(i): _toggle(chosen[i]))
+	# jedno kliknięcie wybiera albo odznacza cechę i pokazuje jej opis
+	_good.item_clicked.connect(_clicked.bind(_good_ids))
+	_bad.item_clicked.connect(_clicked.bind(_bad_ids))
+	_chosen_list.item_clicked.connect(_clicked.bind(chosen))
 	_profs.select(0)
 	_refresh()
 	_describe_prof()
@@ -119,6 +118,11 @@ func _column(parent: Container, label: String) -> ItemList:
 
 
 ## Dwuklik dodaje lub usuwa cechę (cechy wykluczające się nie wejdą razem).
+func _clicked(i: int, _at: Vector2, btn: int, ids: Array) -> void:
+	if btn == MOUSE_BUTTON_LEFT and i < ids.size():
+		_toggle(str(ids[i]))
+
+
 func _toggle(id: String) -> void:
 	if chosen.has(id):
 		chosen.erase(id)

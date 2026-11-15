@@ -29,6 +29,13 @@ func setup(main_node) -> void:
 
 
 func start_population() -> void:
+	# siatka nawigacji jest gotowa dopiero po pierwszej synchronizacji mapy;
+	# wcześniej losowanie punktów zawodzi i nikt by się nie pojawił
+	var m: RID = main.world.get_world_3d().navigation_map
+	for i in 120:
+		if NavigationServer3D.map_get_iteration_id(m) > 0:
+			break
+		await get_tree().physics_frame
 	var placed := 0
 	var tries := 0
 	while placed < int(settings.get("start_zombies", 10)) and tries < 200:

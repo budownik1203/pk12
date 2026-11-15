@@ -100,6 +100,18 @@ static func _lever_until(main: Node, cond: Callable, limit_px: float = 4000.0) -
 	return px
 
 
+## Obrys brył kolizji ciała w podanym położeniu (do sprawdzania nachodzenia).
+static func _shape_box(body: CollisionObject3D, xf: Transform3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for c in body.get_children():
+		if c is CollisionShape3D and c.shape != null:
+			var a: AABB = (xf * c.transform) * c.shape.get_debug_mesh().get_aabb()
+			box = a if first else box.merge(a)
+			first = false
+	return box
+
+
 static func _place(main: Node, pos: Vector3, yaw_deg: float, pitch_deg: float = 0.0) -> void:
 	main.player.teleport(pos)
 	main.player.set_view(deg_to_rad(yaw_deg), deg_to_rad(pitch_deg))
@@ -110,6 +122,23 @@ static func run_tests(main: Node) -> void:
 	var errors := PackedStringArray()
 	var player = main.player
 	var inter = main.interaction
+
+	# 0. Przedmioty startowe (start.json) nie nachodzą na siebie ani na bryły pokoju:
+	#    nachodzące bryły fizyka rozpycha i potrafi wypchnąć je przez ścianę.
+	var start_boxes: Array = []
+	var start_list: Array = JSON.parse_string(FileAccess.get_file_as_string("res://data/start.json")).get("world", [])
+	for i in mini(start_list.size(), main.world_items.bodies.size()):
+		var sb: RigidBody3D = main.world_items.bodies[i]
+		var sp: Array = start_list[i]["position"]
+		start_boxes.append([str(start_list[i]["def"]), _shape_box(sb, Transform3D(Basis(), Vector3(float(sp[0]), float(sp[1]), float(sp[2]))))])
+	for b in main.bodies:
+		start_boxes.append([str(b.name), _shape_box(b, b.global_transform)])
+	for i in start_list.size():
+		for j in range(i + 1, start_boxes.size()):
+			var ba: AABB = start_boxes[i][1].grow(-0.004)
+			if ba.intersects(start_boxes[j][1].grow(-0.004)):
+				errors.append("0: przedmiot startowy %s nachodzi na %s" % [start_boxes[i][0], start_boxes[j][0]])
+				print(errors[errors.size() - 1])
 
 	# 1. Bryły opadają i się uspokajają; nic nie wypada poza świat.
 	await _wait(tree, 240)
@@ -1443,7 +1472,7 @@ static func run_tests(main: Node) -> void:
 	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
 	await _wait(tree, 4)
 	zm.clear_all()
-	zm.start_population()
+	await zm.start_population()
 	var far_ok := true
 	for z in zm.zombies:
 		if z.global_position.distance_to(player.global_position) < 13.5 or zm.zone_of(z.global_position) != "out":

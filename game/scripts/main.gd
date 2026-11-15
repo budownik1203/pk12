@@ -70,6 +70,7 @@ var sink: StaticBody3D
 var zombies: ZombiesScript
 var weather: WeatherScript
 var heat: HeatScript
+var creating_character := false  # ekran tworzenia postaci: kursor wolny
 var saw: SawScript
 var character: CharacterScript
 var char_panel: CharPanelScript
@@ -217,8 +218,7 @@ func _ready() -> void:
 		if a == "--test" or a.begins_with("--zrzuty"):
 			dev_run = true
 	if not dev_run:
-		zombies.start_population()
-		_show_char_create()
+		_show_char_create()  # zombie pojawią się po rozpoczęciu (mapa nawigacji stoi w pauzie)
 	else:
 		# testy i zrzuty: postać umiejąca to, czego wymagają sprawdzane czynności
 		character.create("Test", "bezrobotny", [])
@@ -246,7 +246,7 @@ func _ready() -> void:
 		DevTests.run_tests(self)
 	elif shots:
 		DevTests.take_screenshots(self, args)
-	else:
+	elif not creating_character:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -351,8 +351,22 @@ func _feed_fire(fire) -> void:
 	hud.show_message(tr("MSG_NOT_FUEL"))
 
 
+## Puszcza wszystko, co trzymają przyciski myszy (praca, garda), gdy puszczenie
+## przycisku nie dotrze do gry: otwarte okno, przełączenie na inny program.
+func release_mouse_holds() -> void:
+	work.end()
+	if combat != null:
+		combat.blocking = false
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and work != null:
+		release_mouse_holds()
+
+
 func open_inventory(container_id: String = "", with_health: bool = false) -> void:
 	interaction.release()
+	release_mouse_holds()
 	inv_ui.health_open = with_health and container_id == ""
 	inv_ui.open(container_id)
 	hud.hints.visible = false
@@ -468,9 +482,12 @@ func _show_char_create() -> void:
 	hud.add_child(cc)
 	cc.setup(self)
 	get_tree().paused = true
+	creating_character = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	cc.finished.connect(func():
+		creating_character = false
 		get_tree().paused = false
+		zombies.start_population()
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		hud.show_message(tr("MSG_WELCOME") % (character.char_name if character.char_name != "" else tr("CC_DEFAULT_NAME"))))
 
@@ -540,12 +557,12 @@ func awake_body_count() -> int:
 
 func _input(event: InputEvent) -> void:
 	if health != null and health.dead:
+		get_viewport().set_input_as_handled()  # przed przeładowaniem sceny: potem węzła już nie ma w drzewie
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.physical_keycode == KEY_ENTER:
 				get_tree().reload_current_scene()  # nowy ocalały (permadeath: świat zostanie od buildu świata)
 			elif event.physical_keycode == KEY_F9:
 				load_game()
-		get_viewport().set_input_as_handled()
 		return
 	if needs != null and needs.sleeping:
 		if event is InputEventKey and event.pressed and not event.echo:
@@ -607,7 +624,8 @@ func _input(event: InputEvent) -> void:
 		if not event.pressed:
 			return
 		if not captured:
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			if not creating_character:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if interaction.held == null:
 				work.press("r")  # prawa ręka

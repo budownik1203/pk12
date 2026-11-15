@@ -64,4 +64,10 @@ tools/test.sh /sciezka/do/godot
 
 Sprawdza: uspokojenie brył, bezwładność ruchu, sprint i wytrzymałość, kucanie, wychylanie, wspinanie na stół, pchanie, chwyt i niesienie, wleczenie ciężkiej skrzyni, drzwi na zawiasie, włącznik światła, stopy na podłodze, zginanie nóg w kucaniu, dłonie na trzymanym przedmiocie, opóźnienie latarki w dłoni, kształty i obrót w siatce, podnoszenie, plecak i redukcja wagi, stosy, skróty 1–9, wyrzucanie, przeciąganie w oknie, zapis ekwipunku, zrywanie i przybijanie desek, wygięte gwoździe, klamka i zatrzask, nakładka i zamek na wkręty, klucz, wykręcanie i słabe otwory, zużycie końcówki, moneta, wyważanie zamkniętych drzwi, hałas, brak brył wylatujących z pokoju, zapis i odczyt, odrzucenie uszkodzonego zapisu, komplet tłumaczeń.
 
+Kontrola prawdziwego startu gry (z oknem, bez trybu testowego): ekran tworzenia postaci z kursorem, klikanie myszką w cechy i w „Rozpocznij”, zombie na ulicy po starcie, kursor przy ekwipunku, puszczanie trzymanych przycisków, nowa postać po śmierci:
+
+```
+godot --path game -s res://tests/start_check.gd
+```
+
 Ustawienia piaskownicy: `game/data/sandbox.json` (liczba zombie na start, szybkość, wytrzymałość, rodzaje ran, zakażenie, czas do śmierci po zakażeniu).
