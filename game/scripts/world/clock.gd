@@ -52,6 +52,11 @@ func game_hours(real_delta: float) -> float:
 	return real_delta * GAME_SECONDS_PER_REAL * speed / 3600.0
 
 
+## Ile sekund prawdziwych trwa tyle minut gry (testy, odliczanie).
+func real_seconds_for(game_minutes: float) -> float:
+	return game_minutes * 60.0 / (GAME_SECONDS_PER_REAL * maxf(speed, 0.001))
+
+
 func is_night() -> bool:
 	var h := hour()
 	return h < SUNRISE or h > SUNSET

@@ -7,7 +7,7 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 10, ulica i domy
+## Stan: build 11, rzemiosło i gotowanie
 
 Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do komórki na zatrzasku z klamką, w szafce nakładka, zamek i wkręty, na stole klucz.
 
@@ -24,6 +24,7 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | numpad + / − | (dev) zombie za oknem / usunięcie wszystkich zombie |
 | numpad / | (dev) następny rodzaj pogody |
 | C | okno postaci: zawód, cechy, umiejętności (poziomy 0–10 i postęp) |
+| F (drewno, ognisko, kuchenka) | z zapałkami lub zapalniczką w ręce na drewnie leżącym na dworze: ognisko (stos w promieniu metra); na ognisku z drewnem w ręce: dokładanie; na kuchence: włącz/wyłącz, Shift+F podnosi |
 | F (drzwi domu, rama okna) | drzwi: klamka i pchnięcie, otwarte domyka; rama z odłamkami: wybicie resztek szkła |
 | numpad 0 | paski i liczby postępu pracy (domyślnie wyłączone: postęp widać na gwoździach i wkrętach) |
 | F | użycie: klamka i pchnięcie drzwi, zamek (z kluczem albo od środka), szafka, podniesienie przedmiotu |
@@ -41,6 +42,10 @@ Praca narzędziem:
 - **Młotek** (wbijanie 3): gwoździe w jednej ręce, młotek w drugiej. Przytrzymaj przycisk ręki z gwoździami (gwóźdź przyłożony), klikaj przyciskiem ręki z młotkiem; między uderzeniami 0,45 s przerwy, 3 uderzenia na gwóźdź. Gwoździe ubywają z garści.
 - **Śrubokręt** (wkręcanie 3): koła myszą zgodnie z ruchem wskazówek zegara wkręcają, przeciwnie wykręcają; 4 obroty na wkręt. Końcówka się zużywa; zużyta zrywa łby. Wykręcony otwór trzyma słabiej.
 - **Moneta i nóż** (wkręcanie 1): trzy razy wolniej; nóż szybko się tępi.
+- **Piła** (piłowanie 3): celuj w środek deski leżącej w świecie, prawy przycisk i ruchy myszy w dół. Deska rozpada się na dwie deszczułki (opał albo szyna).
+- **Nóż, nożyczki** (cięcie): warzywo albo ubranie w lewej ręce, prawy przycisk i ruchy w dół. Warzywa kroją się do zupy, ubrania tną się na szmaty (zawartość kieszeni wraca do ekwipunku).
+
+Gotowanie: patelnia albo garnek postawione na ognisku lub włączonej kuchence gotują zawartość. Ziemniak na patelni piecze się w 40 minut gry, zostawiony dłużej robi się spalenizną. Garnek ze zlewu z wodą i pokrojonymi warzywami daje zupę, którą je się porcjami (przeciągnij garnek na postać w oknie zdrowia, H).
 
 Zrzuty: `docs/build1/` do `docs/build4/`.
 

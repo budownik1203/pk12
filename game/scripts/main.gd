@@ -25,6 +25,8 @@ const ClockScript := preload("res://scripts/world/clock.gd")
 const HandWorkScript := preload("res://scripts/work/hand_work.gd")
 const ZombiesScript := preload("res://scripts/zombie/zombies.gd")
 const WeatherScript := preload("res://scripts/world/weather.gd")
+const HeatScript := preload("res://scripts/craft/heat.gd")
+const SawScript := preload("res://scripts/craft/saw.gd")
 const CharacterScript := preload("res://scripts/character/character.gd")
 const CharCreateScript := preload("res://scripts/ui/char_create.gd")
 const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
@@ -67,6 +69,8 @@ var clock: ClockScript
 var sink: StaticBody3D
 var zombies: ZombiesScript
 var weather: WeatherScript
+var heat: HeatScript
+var saw: SawScript
 var character: CharacterScript
 var char_panel: CharPanelScript
 var town: TownScript
@@ -200,6 +204,14 @@ func _ready() -> void:
 	add_child(weather)
 	weather.setup(self)
 	clock.weather = weather
+	heat = HeatScript.new()
+	heat.name = "Ogien"
+	add_child(heat)
+	heat.setup(self)
+	saw = SawScript.new()
+	saw.name = "Pila"
+	add_child(saw)
+	saw.setup(self)
 	var dev_run := false
 	for a in OS.get_cmdline_user_args():
 		if a == "--test" or a.begins_with("--zrzuty"):
@@ -286,12 +298,57 @@ func use_object(target: Object) -> void:
 		needs.try_sleep(float(target.get_meta("bed")))
 	elif target.has_meta("container_id"):
 		open_inventory(target.get_meta("container_id"))
+	elif target.has_meta("fire"):
+		_feed_fire(target.get_meta("fire"))
+	elif target.has_meta("item") and _use_world_item(target):
+		pass
 	elif target.has_meta("item"):
 		var at: Vector3 = (target as Node3D).global_position
 		if not inventory.pick_up(target):
 			hud.show_message(tr(inventory.last_error))
 		else:
 			sound.play("pickup", at, -6.0)
+
+
+## F na przedmiocie w świecie, zanim zostanie podniesiony: kuchenka (włącz,
+## Shift+F podnosi), drewno z zapalniczką w ręce (rozpalenie). Zwraca, czy obsłużone.
+func _use_world_item(body) -> bool:
+	var it = body.get_meta("item")
+	var d: Dictionary = it.get_def()
+	if d.has("appliance") and not Input.is_key_pressed(KEY_SHIFT):
+		var on := not bool(it.props.get("on", false))
+		if on and float(it.props.get("gas", float(d["appliance"].get("gas", 240.0)))) <= 0.0:
+			hud.show_message(tr("MSG_STOVE_EMPTY"))
+			return true
+		it.props["on"] = on
+		heat._stove_flame(body, on)
+		sound.play("switch", body.global_position, -6.0, 0.8)
+		hud.show_message(tr("MSG_STOVE_ON" if on else "MSG_STOVE_OFF"))
+		return true
+	if d.has("fuel") and heat.has_lighter() != null:
+		return heat.try_ignite(body)
+	return false
+
+
+## F na ognisku: dokłada drewno (jedną sztukę) z ręki.
+func _feed_fire(fire) -> void:
+	for side in ["r", "l"]:
+		var it = inventory.hand(side)
+		if it == null:
+			continue
+		var f := float(it.get_def().get("fuel", 0.0))
+		if f <= 0.0:
+			continue
+		fire.add_fuel(f)
+		hud.show_message(tr("MSG_FUEL_ADDED") % it.display_name())
+		if it.count > 1:
+			it.count -= 1
+			inventory.changed.emit()
+		else:
+			inventory.take_hand(side)
+		sound.play("place", fire.global_position, -6.0, 0.8)
+		return
+	hud.show_message(tr("MSG_NOT_FUEL"))
 
 
 func open_inventory(container_id: String = "", with_health: bool = false) -> void:
@@ -435,6 +492,8 @@ func light_level() -> float:
 		light = maxf(light, clock.daylight() * (1.0 - weather.cloud * 0.4))
 	if player.lamp.visible:
 		light = maxf(light, 0.75)
+	if heat != null:
+		light = maxf(light, heat.light_at(pp))
 	return light
 
 

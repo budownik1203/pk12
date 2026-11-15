@@ -295,6 +295,88 @@
 				0.84,
 				-1.9
 			]
+		},
+		{
+			"def": "pila",
+			"position": [
+				0.3,
+				0.03,
+				3.0
+			]
+		},
+		{
+			"def": "kuchenka",
+			"position": [
+				1.6,
+				0.06,
+				-2.6
+			]
+		},
+		{
+			"def": "garnek",
+			"position": [
+				2.2,
+				0.08,
+				-2.6
+			]
+		},
+		{
+			"def": "patelnia",
+			"position": [
+				2.7,
+				0.03,
+				-2.6
+			]
+		},
+		{
+			"def": "ziemniak",
+			"count": 3,
+			"position": [
+				1.6,
+				0.05,
+				-1.9
+			]
+		},
+		{
+			"def": "marchew",
+			"count": 2,
+			"position": [
+				1.9,
+				0.05,
+				-1.9
+			]
+		},
+		{
+			"def": "cebula",
+			"position": [
+				2.2,
+				0.05,
+				-1.9
+			]
+		},
+		{
+			"def": "ksiazka_gotowanie",
+			"position": [
+				-2.25,
+				0.88,
+				-2.3
+			]
+		},
+		{
+			"def": "zapalki",
+			"position": [
+				2.5,
+				0.03,
+				-1.9
+			]
+		},
+		{
+			"def": "nozyczki",
+			"position": [
+				2.8,
+				0.03,
+				-1.9
+			]
 		}
 	]
 }

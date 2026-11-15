@@ -42,6 +42,7 @@ const CATEGORY_COLORS := {
 	"jedzenie": Color(0.3, 0.36, 0.22),
 	"pojemnik": Color(0.24, 0.28, 0.22),
 	"odziez": Color(0.22, 0.25, 0.3),
+	"kuchnia": Color(0.3, 0.27, 0.24),
 }
 
 var inv                         # inventory.gd
@@ -557,6 +558,15 @@ func _draw_tooltip(it) -> void:
 	if not it.liquid.is_empty():
 		lines.append(tr("INV_TIP_LIQUID") % [ItemDB.liquid_name(str(it.liquid.get("type", ""))),
 				float(it.liquid.get("amount", 0.0)), float(it.get_def().get("liquid_capacity", 1.0))])
+	var cooked := float(it.props.get("cooked", 0.0))
+	if cooked > 0.0:
+		lines.append(tr("INV_TIP_COOKED") % int(minf(cooked, 1.0) * 100.0))
+	if it.get_def().has("lighter"):
+		lines.append(tr("INV_TIP_DOSES") % int(it.props.get("doses", int(it.get_def().get("doses", 20)))))
+	if it.get_def().has("appliance"):
+		lines.append(tr("INV_TIP_GAS") % int(float(it.props.get("gas", float(it.get_def()["appliance"].get("gas", 240.0))))))
+	if it.get_def().has("fuel"):
+		lines.append(tr("INV_TIP_FUEL") % int(it.get_def()["fuel"]))
 	if it.is_container():
 		lines.append(tr("INV_TIP_CONTENTS") % it.contents_mass())
 		if it.reduction() > 0.0:

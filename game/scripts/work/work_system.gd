@@ -196,10 +196,10 @@ func find_candidate():
 	var cam: Camera3D = main.player.camera
 	var o := cam.global_position
 	var dir := -cam.global_transform.basis.z
-	var q := PhysicsRayQueryParameters3D.create(o, o + dir * REACH)
+	var q := PhysicsRayQueryParameters3D.create(o, o + dir * 2.2)
 	q.exclude = [main.player.get_rid()]
 	var hit: Dictionary = main.player.get_world_3d().direct_space_state.intersect_ray(q)
-	var block: float = REACH if hit.is_empty() else o.distance_to(hit["position"])
+	var block: float = 2.2 if hit.is_empty() else o.distance_to(hit["position"])
 	var best = null
 	var best_off := INF
 	for p in points:
@@ -207,7 +207,7 @@ func find_candidate():
 			continue
 		var wp: Vector3 = p.world_pos()
 		var t := (wp - o).dot(dir)
-		if t < 0.1 or t > float(KIND_REACH.get(p.kind, REACH)) or t > block + 0.12:
+		if t < 0.1 or t > float(p.data.get("reach", KIND_REACH.get(p.kind, REACH))) or t > block + 0.12:
 			continue
 		var off := (wp - (o + dir * t)).length()
 		if off > RAY_TOLERANCE:

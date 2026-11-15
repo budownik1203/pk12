@@ -609,7 +609,13 @@
 				"blunt": 0.1
 			},
 			"insulation": 0.35,
-			"waterproof": 0.35
+			"waterproof": 0.35,
+			"rip": {
+				"ability": "ciecie",
+				"strokes": 2.0,
+				"result": "szmata",
+				"count": 5
+			}
 		},
 		"spodnie": {
 			"pl": "Spodnie",
@@ -659,7 +665,13 @@
 				"blunt": 0.05
 			},
 			"insulation": 0.2,
-			"waterproof": 0.1
+			"waterproof": 0.1,
+			"rip": {
+				"ability": "ciecie",
+				"strokes": 2.0,
+				"result": "szmata",
+				"count": 4
+			}
 		},
 		"moneta": {
 			"pl": "Moneta",
@@ -705,7 +717,8 @@
 			"abilities": {
 				"wkrecanie": 1,
 				"podwazanie": 1,
-				"otwieranie": 2
+				"otwieranie": 2,
+				"ciecie": 3
 			},
 			"length": 0.22,
 			"wear": 0.03,
@@ -753,8 +766,8 @@
 				"dlugie"
 			],
 			"mount": "deska",
-			"desc_pl": "Za duża do plecaka: nosi się w obu rękach, ile sztuk naraz, zależy od siły. Przyłóż do okna przyciskiem ręki i przybij młotkiem.",
-			"desc_en": "Too big for a bag: carried in both hands, how many at once depends on strength. Hold it to a window with that hand's button and nail it.",
+			"desc_pl": "Za duża do plecaka: nosi się w obu rękach, ile sztuk naraz, zależy od siły. Przyłóż do okna przyciskiem ręki i przybij młotkiem. Piłą przetniesz ją na deszczułki.",
+			"desc_en": "Too big for a bag: carried in both hands, how many at once depends on strength. Hold it to a window with that hand's button and nail it. A saw cuts it into slats.",
 			"model": {
 				"type": "box",
 				"size": [
@@ -772,7 +785,13 @@
 			"bulky": {
 				"per_strength": 0.6
 			},
-			"stack": 10
+			"stack": 10,
+			"saw_into": {
+				"result": "deszczulka",
+				"count": 2,
+				"strokes": 3.0
+			},
+			"fuel": 45
 		},
 		"wkrety": {
 			"pl": "Wkręty",
@@ -961,8 +980,8 @@
 			"stack": 5,
 			"medical": "bandage",
 			"dirt": 0.35,
-			"desc_pl": "Prowizoryczny opatrunek: tamuje krew, ale łatwo o zakażenie. Później z podartych ubrań.",
-			"desc_en": "Improvised dressing: stops blood but infects easily. Later from torn clothes.",
+			"desc_pl": "Prowizoryczny opatrunek: tamuje krew, ale łatwo o zakażenie. Drze się z ubrań nożem albo nożyczkami.",
+			"desc_en": "Improvised dressing: stops blood but infects easily. Torn from clothes with a knife or scissors.",
 			"model": {
 				"type": "box",
 				"size": [
@@ -975,7 +994,8 @@
 					0.42,
 					0.36
 				]
-			}
+			},
+			"fuel": 4
 		},
 		"spirytus": {
 			"pl": "Spirytus",
@@ -1256,7 +1276,7 @@
 			"short_en": "Opener",
 			"mass": 0.08,
 			"material": "metal",
-			"category": "narzedzia",
+			"category": "narzedzie",
 			"shape": [
 				"#"
 			],
@@ -1311,7 +1331,8 @@
 					0.42,
 					0.3
 				]
-			}
+			},
+			"fuel": 12
 		},
 		"ksiazka_pierwsza_pomoc": {
 			"pl": "Pierwsza pomoc. Poradnik",
@@ -1344,7 +1365,8 @@
 					0.2,
 					0.18
 				]
-			}
+			},
+			"fuel": 12
 		},
 		"ksiazka_majsterkowanie": {
 			"pl": "Złota rączka",
@@ -1377,7 +1399,8 @@
 					0.35,
 					0.55
 				]
-			}
+			},
+			"fuel": 12
 		},
 		"rekawice": {
 			"pl": "Rękawice robocze",
@@ -1416,6 +1439,12 @@
 					0.38,
 					0.25
 				]
+			},
+			"rip": {
+				"ability": "ciecie",
+				"strokes": 2.0,
+				"result": "szmata",
+				"count": 1
 			}
 		},
 		"czapka": {
@@ -1454,7 +1483,606 @@
 					0.25,
 					0.35
 				]
+			},
+			"rip": {
+				"ability": "ciecie",
+				"strokes": 2.0,
+				"result": "szmata",
+				"count": 1
 			}
+		},
+		"zapalniczka": {
+			"pl": "Zapalniczka",
+			"en": "Lighter",
+			"mass": 0.03,
+			"material": "plastik",
+			"category": "narzedzie",
+			"shape": [
+				"#"
+			],
+			"lighter": true,
+			"doses": 40,
+			"desc_pl": "W ręce: F na drewnie leżącym na dworze rozpala ognisko (stos w promieniu metra, co najmniej dwie deski albo kilka deszczułek).",
+			"desc_en": "In hand: F on wood lying outdoors lights a campfire (a pile within a metre, at least two planks or a few slats).",
+			"model": {
+				"type": "box",
+				"size": [
+					0.025,
+					0.07,
+					0.012
+				],
+				"color": [
+					0.75,
+					0.2,
+					0.15
+				]
+			}
+		},
+		"zapalki": {
+			"pl": "Zapałki",
+			"en": "Matches",
+			"mass": 0.02,
+			"material": "papier",
+			"category": "narzedzie",
+			"shape": [
+				"#"
+			],
+			"lighter": true,
+			"doses": 12,
+			"desc_pl": "Pudełko na kilkanaście rozpaleń. W ręce: F na drewnie na dworze rozpala ognisko.",
+			"desc_en": "A box good for a dozen fires. In hand: F on wood outdoors lights a campfire.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.05,
+					0.015,
+					0.035
+				],
+				"color": [
+					0.8,
+					0.65,
+					0.3
+				]
+			}
+		},
+		"pila": {
+			"pl": "Piła do drewna",
+			"en": "Hand saw",
+			"short_pl": "Piła",
+			"short_en": "Saw",
+			"mass": 0.6,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"##",
+				"##"
+			],
+			"abilities": {
+				"pilowanie": 3,
+				"ciecie": 1
+			},
+			"length": 0.5,
+			"wear": 0.004,
+			"desc_pl": "W prawej ręce: celuj w środek deski leżącej w świecie, przytrzymaj prawy przycisk i ciągnij myszą w dół. Z deski robią się dwie deszczułki.",
+			"desc_en": "In the right hand: aim at the middle of a plank in the world, hold the right button and pull the mouse down. A plank becomes two slats.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.5,
+					0.01,
+					0.12
+				],
+				"color": [
+					0.6,
+					0.6,
+					0.62
+				]
+			},
+			"combat": {
+				"damage": 10,
+				"windup": 0.2,
+				"recover": 0.3,
+				"reach": 0.9,
+				"block": 0.15,
+				"stamina": 7,
+				"force": 20,
+				"type": "ostra"
+			}
+		},
+		"nozyczki": {
+			"pl": "Nożyczki",
+			"en": "Scissors",
+			"mass": 0.08,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"#"
+			],
+			"abilities": {
+				"ciecie": 2
+			},
+			"length": 0.18,
+			"wear": 0.005,
+			"desc_pl": "Tną materiał: ubranie w lewej ręce, nożyczki w prawej, prawy przycisk i ruchy w dół, a z ubrania robią się szmaty.",
+			"desc_en": "Cut cloth: clothing in the left hand, scissors in the right, right button and downward strokes turn it into rags.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.17,
+					0.01,
+					0.06
+				],
+				"color": [
+					0.5,
+					0.5,
+					0.55
+				]
+			}
+		},
+		"deszczulka": {
+			"pl": "Deszczułka",
+			"en": "Slat",
+			"mass": 0.9,
+			"material": "drewno",
+			"category": "material",
+			"shape": [
+				"#",
+				"#",
+				"#"
+			],
+			"stack": 4,
+			"fuel": 25,
+			"medical": "splint",
+			"desc_pl": "Opał na ognisko (około 25 minut ognia) albo szyna na złamanie.",
+			"desc_en": "Campfire fuel (about 25 minutes of fire) or a splint for a fracture.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.7,
+					0.025,
+					0.12
+				],
+				"color": [
+					0.45,
+					0.34,
+					0.22
+				]
+			}
+		},
+		"garnek": {
+			"pl": "Garnek",
+			"en": "Cooking pot",
+			"mass": 1.1,
+			"material": "metal",
+			"category": "kuchnia",
+			"shape": [
+				"##",
+				"##"
+			],
+			"grids": [
+				{
+					"w": 3,
+					"h": 3
+				}
+			],
+			"access": 0.6,
+			"liquid_capacity": 2.0,
+			"cookware": "garnek",
+			"desc_pl": "Napełnij wodą przy zlewie, wrzuć pokrojone warzywa i postaw na ogniu albo kuchence: będzie zupa. Zupę je się porcjami (przeciągnij garnek na postać w oknie zdrowia).",
+			"desc_en": "Fill with water at the sink, add chopped vegetables and put it on a fire or stove: soup. Eat the soup in portions (drag the pot onto the body in the health window).",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.12,
+				"height": 0.14,
+				"color": [
+					0.3,
+					0.3,
+					0.33
+				]
+			}
+		},
+		"patelnia": {
+			"pl": "Patelnia",
+			"en": "Frying pan",
+			"mass": 1.3,
+			"material": "metal",
+			"category": "kuchnia",
+			"shape": [
+				"###"
+			],
+			"grids": [
+				{
+					"w": 3,
+					"h": 2
+				}
+			],
+			"access": 0.4,
+			"cookware": "patelnia",
+			"length": 0.45,
+			"desc_pl": "Połóż na niej coś do usmażenia i postaw na ogniu. Pilnuj, bo się przypali. Dobrze też uderza.",
+			"desc_en": "Put something to fry on it and set it over a fire. Watch it or it burns. Also hits hard.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.13,
+				"height": 0.04,
+				"color": [
+					0.15,
+					0.15,
+					0.16
+				]
+			},
+			"combat": {
+				"damage": 16,
+				"windup": 0.24,
+				"recover": 0.34,
+				"reach": 0.85,
+				"block": 0.3,
+				"stamina": 9,
+				"force": 55,
+				"type": "tepa"
+			}
+		},
+		"kuchenka": {
+			"pl": "Kuchenka turystyczna",
+			"en": "Camping stove",
+			"short_pl": "Kuchenka",
+			"short_en": "Stove",
+			"mass": 1.4,
+			"material": "metal",
+			"category": "kuchnia",
+			"shape": [
+				"##",
+				"##"
+			],
+			"appliance": {
+				"gas": 360
+			},
+			"desc_pl": "Postaw ją (upuść z ręki), F włącza i wyłącza, Shift+F podnosi. Działa też w domu. Kartusz starcza na kilka godzin gotowania.",
+			"desc_en": "Put it down (drop it), F switches it on and off, Shift+F picks it up. Works indoors too. The canister lasts a few hours of cooking.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.26,
+					0.1,
+					0.26
+				],
+				"color": [
+					0.2,
+					0.25,
+					0.2
+				]
+			}
+		},
+		"ziemniak": {
+			"pl": "Ziemniak",
+			"en": "Potato",
+			"mass": 0.2,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"food": {
+				"hunger": 4,
+				"thirst": 0,
+				"portions": 1,
+				"stale_days": 14,
+				"rot_days": 30
+			},
+			"cut": {
+				"ability": "ciecie",
+				"strokes": 1.0,
+				"result": "ziemniak_pokrojony"
+			},
+			"cook": {
+				"minutes": 40,
+				"result": "ziemniak_pieczony"
+			},
+			"desc_pl": "Na surowo prawie nie syci. Upiecz na patelni albo pokrój (lewa ręka, nóż w prawej) do zupy.",
+			"desc_en": "Barely filling raw. Roast it in a pan or chop it (left hand, knife in the right) for soup.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.035,
+				"height": 0.06,
+				"color": [
+					0.6,
+					0.48,
+					0.3
+				]
+			}
+		},
+		"ziemniak_pieczony": {
+			"pl": "Pieczony ziemniak",
+			"en": "Roast potato",
+			"short_pl": "Ziemniak piecz.",
+			"short_en": "Roast potato",
+			"mass": 0.18,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"food": {
+				"hunger": 16,
+				"thirst": -1,
+				"portions": 1,
+				"stale_days": 1,
+				"rot_days": 3
+			},
+			"desc_pl": "Ciepły i sycący.",
+			"desc_en": "Warm and filling.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.035,
+				"height": 0.06,
+				"color": [
+					0.45,
+					0.3,
+					0.15
+				]
+			}
+		},
+		"ziemniak_pokrojony": {
+			"pl": "Pokrojony ziemniak",
+			"en": "Chopped potato",
+			"short_pl": "Ziemniak pokr.",
+			"short_en": "Chopped potato",
+			"mass": 0.2,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"food": {
+				"hunger": 4,
+				"portions": 1,
+				"stale_days": 1,
+				"rot_days": 2
+			},
+			"soup": {
+				"hunger": 18,
+				"thirst": 1
+			},
+			"cook": {
+				"minutes": 25
+			},
+			"desc_pl": "Do garnka z wodą: zupa.",
+			"desc_en": "Into a pot of water: soup.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.06,
+					0.03,
+					0.06
+				],
+				"color": [
+					0.85,
+					0.78,
+					0.55
+				]
+			}
+		},
+		"marchew": {
+			"pl": "Marchew",
+			"en": "Carrot",
+			"mass": 0.1,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 5,
+			"food": {
+				"hunger": 5,
+				"thirst": 2,
+				"portions": 1,
+				"stale_days": 10,
+				"rot_days": 20
+			},
+			"cut": {
+				"ability": "ciecie",
+				"strokes": 0.8,
+				"result": "marchew_pokrojona"
+			},
+			"desc_pl": "Można zjeść na surowo albo pokroić do zupy.",
+			"desc_en": "Eat it raw or chop it for soup.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.015,
+				"height": 0.16,
+				"color": [
+					0.9,
+					0.45,
+					0.1
+				]
+			}
+		},
+		"marchew_pokrojona": {
+			"pl": "Pokrojona marchew",
+			"en": "Chopped carrot",
+			"short_pl": "Marchew pokr.",
+			"short_en": "Chopped carrot",
+			"mass": 0.1,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 5,
+			"food": {
+				"hunger": 5,
+				"thirst": 2,
+				"portions": 1,
+				"stale_days": 1,
+				"rot_days": 3
+			},
+			"soup": {
+				"hunger": 12,
+				"thirst": 2
+			},
+			"cook": {
+				"minutes": 20
+			},
+			"desc_pl": "Do zupy.",
+			"desc_en": "For soup.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.05,
+					0.02,
+					0.05
+				],
+				"color": [
+					0.95,
+					0.5,
+					0.12
+				]
+			}
+		},
+		"cebula": {
+			"pl": "Cebula",
+			"en": "Onion",
+			"mass": 0.12,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"food": {
+				"hunger": 3,
+				"thirst": 1,
+				"portions": 1,
+				"stale_days": 20,
+				"rot_days": 40
+			},
+			"cut": {
+				"ability": "ciecie",
+				"strokes": 0.8,
+				"result": "cebula_pokrojona"
+			},
+			"desc_pl": "Surowa szczypie, w zupie dodaje smaku i sytości.",
+			"desc_en": "Sharp raw, adds flavour and substance to soup.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.035,
+				"height": 0.06,
+				"color": [
+					0.8,
+					0.7,
+					0.45
+				]
+			}
+		},
+		"cebula_pokrojona": {
+			"pl": "Pokrojona cebula",
+			"en": "Chopped onion",
+			"short_pl": "Cebula pokr.",
+			"short_en": "Chopped onion",
+			"mass": 0.12,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"food": {
+				"hunger": 3,
+				"portions": 1,
+				"stale_days": 1,
+				"rot_days": 3
+			},
+			"soup": {
+				"hunger": 10,
+				"thirst": 1
+			},
+			"cook": {
+				"minutes": 15
+			},
+			"desc_pl": "Do zupy.",
+			"desc_en": "For soup.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.05,
+					0.02,
+					0.05
+				],
+				"color": [
+					0.92,
+					0.88,
+					0.75
+				]
+			}
+		},
+		"spalenizna": {
+			"pl": "Spalenizna",
+			"en": "Burnt mess",
+			"mass": 0.1,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"fuel": 3,
+			"food": {
+				"hunger": 2,
+				"thirst": -4,
+				"portions": 1
+			},
+			"desc_pl": "Przypalone na węgiel. Lepiej nie jeść.",
+			"desc_en": "Burnt to charcoal. Better not to eat.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.05,
+					0.03,
+					0.05
+				],
+				"color": [
+					0.06,
+					0.05,
+					0.04
+				]
+			}
+		},
+		"ksiazka_gotowanie": {
+			"pl": "Kuchnia polska. Przepisy",
+			"en": "Home Cooking Recipes",
+			"short_pl": "Książka",
+			"short_en": "Book",
+			"mass": 0.4,
+			"material": "papier",
+			"category": "ksiazki",
+			"shape": [
+				"##",
+				"##"
+			],
+			"book": {
+				"skill": "gotowanie",
+				"up_to": 4,
+				"xp": 20
+			},
+			"desc_pl": "Czytanie (przeciągnij na postać w oknie zdrowia, potrzebne światło): nauka tej umiejętności 2,5 raza szybsza do poziomu 4.",
+			"desc_en": "Reading (drag onto the body in the health window, needs light): this skill grows 2.5× faster up to level 4.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.2,
+					0.03,
+					0.14
+				],
+				"color": [
+					0.85,
+					0.6,
+					0.15
+				]
+			},
+			"fuel": 12
 		}
 	},
 	"liquids": {
@@ -1462,6 +2090,11 @@
 			"pl": "Woda",
 			"en": "Water",
 			"density": 1.0
+		},
+		"zupa": {
+			"pl": "Zupa",
+			"en": "Soup",
+			"density": 1.05
 		}
 	},
 	"fists": {

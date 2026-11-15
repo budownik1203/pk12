@@ -424,7 +424,7 @@ func treatment_for(item, id: String) -> Dictionary:
 			return {"error": "HP_ERR_SEALED"}
 		return {"kind": "eat", "wound": {}}
 	if not item.liquid.is_empty():
-		if str(item.liquid.get("type", "")) == "woda" and float(item.liquid.get("amount", 0.0)) > 0.001:
+		if str(item.liquid.get("type", "")) in ["woda", "zupa"] and float(item.liquid.get("amount", 0.0)) > 0.001:
 			return {"kind": "drink", "wound": {}}
 		return {"error": "HP_ERR_EMPTY"}
 	if item.get_def().has("liquid_capacity"):

@@ -1420,7 +1420,12 @@ static func run_tests(main: Node) -> void:
 	main.health.reset()
 	inv.slots.erase("rekawice")
 	var wounds0: int = main.health.wound_count()
-	pane._on_body(player)
+	var jacket_saved = inv.slots.get("kurtka")
+	inv.slots.erase("kurtka")
+	for k in 4:  # cięcie losuje rękę: kilka przejść, żeby wynik nie zależał od losowania
+		pane._on_body(player)
+	if jacket_saved != null:
+		inv.slots["kurtka"] = jacket_saved
 	if main.health.wound_count() <= wounds0:
 		errors.append("24c: odłamki nie kaleczą bez rękawic")
 	pane.clear_shards()
@@ -1446,6 +1451,164 @@ static func run_tests(main: Node) -> void:
 	if zm.zombies.size() != 10 or not far_ok:
 		errors.append("24e: zombie na start: %d, z dala od gracza: %s" % [zm.zombies.size(), far_ok])
 	zm.clear_all()
+	await _wait(tree, 20)
+
+	# 25a. krojenie w dłoni: marchew w lewej, nóż w prawej, ruchy w dół
+	var cws = main.work
+	_hand(main, "noz")
+	_hand(main, "marchew", {}, "l")
+	cws.end()
+	player.set_view(player.rotation.y, deg_to_rad(80.0))
+	await _wait(tree, 3)
+	if cws.candidate == null or cws.candidate.id != "dlon" or cws.candidate.kind != "lever":
+		errors.append("25a: nie ma punktu krojenia w dłoni")
+	else:
+		cws.press("r")
+		_lever_until(main, func(): return inv.hand("l") != null and inv.hand("l").def_id == "marchew_pokrojona", 3000.0)
+		cws.release("r")
+		if inv.hand("l") == null or inv.hand("l").def_id != "marchew_pokrojona":
+			errors.append("25a: marchew się nie pokroiła")
+	# 25b. darcie ubrania na szmaty nożyczkami, zawartość kieszeni zostaje
+	_hand(main, "nozyczki")
+	var trousers = _hand(main, "spodnie", {}, "l")
+	trousers.grids[0].place(ItemScript.new("moneta", 2), Vector2i.ZERO, 0)
+	cws.end()
+	await _wait(tree, 3)
+	if cws.candidate == null or cws.candidate.id != "dlon":
+		errors.append("25b: nie ma punktu cięcia ubrania")
+	else:
+		cws.press("r")
+		_lever_until(main, func(): return inv.hand("l") != null and inv.hand("l").def_id == "szmata", 3000.0)
+		cws.release("r")
+		var rags = inv.hand("l")
+		if rags == null or rags.def_id != "szmata" or rags.count != 4:
+			errors.append("25b: ze spodni nie ma 4 szmat")
+		var coins := 0
+		for x in inv.all_carried():
+			if x.def_id == "moneta":
+				coins += x.count
+		if coins < 2:
+			errors.append("25b: monety z kieszeni przepadły")
+	player.set_view(player.rotation.y, 0.0)
+	inv.slots.erase("w_lewej")
+	# 25c. piłowanie deski leżącej w świecie: dwie deszczułki
+	_hand(main, "pila")
+	var plank = main.world_items.spawn(ItemScript.new("deska", 1), Transform3D(Basis(), Vector3(0.0, 0.05, 1.2)))
+	_place(main, Vector3(0.0, 0.02, 2.0), 0.0)
+	await _wait(tree, 40)
+	_aim(main, plank.global_position)
+	await _wait(tree, 3)
+	if cws.candidate == null or cws.candidate.owner != main.saw:
+		errors.append("25c: nie ma punktu piłowania na desce")
+	else:
+		cws.press("r")
+		_lever_until(main, func(): return not is_instance_valid(plank) or not main.world_items.bodies.has(plank), 3000.0)
+		cws.release("r")
+		await _wait(tree, 3)
+		var slats := 0
+		for b in main.world_items.bodies:
+			if b.get_meta("item").def_id == "deszczulka":
+				slats += 1
+		if slats != 2:
+			errors.append("25c: deszczułek po piłowaniu %d zamiast 2" % slats)
+	for b in main.world_items.bodies.duplicate():
+		if b.get_meta("item").def_id == "deszczulka":
+			main.world_items.remove(b)
+	# 25d. ognisko na dworze: drewno obok siebie, zapałki w ręce, F
+	var fire_at := Vector3(1.5, 0.05, 6.5)
+	if main.town.indoors(fire_at):
+		errors.append("25d: miejsce próby ogniska jest pod dachem")
+	main.weather.rain = 0.0
+	var wood1 = main.world_items.spawn(ItemScript.new("deszczulka", 1), Transform3D(Basis(), fire_at))
+	main.world_items.spawn(ItemScript.new("deszczulka", 1), Transform3D(Basis(), fire_at + Vector3(0.2, 0.05, 0.1)))
+	main.world_items.spawn(ItemScript.new("deska", 1), Transform3D(Basis(), fire_at + Vector3(-0.2, 0.1, -0.1)))
+	_hand(main, "zapalki")
+	_place(main, fire_at + Vector3(0, 0, 1.5), 0.0)
+	await _wait(tree, 20)
+	main.use_object(wood1)
+	await _wait(tree, 3)
+	var heat = main.heat
+	if heat.fires.size() != 1:
+		errors.append("25d: ognisko się nie rozpaliło")
+	else:
+		var fire = heat.fires[0]
+		if absf(fire.fuel - 95.0) > 3.0:
+			errors.append("25d: opał ogniska %.0f zamiast 95" % fire.fuel)
+		if heat.warmth_at(fire.global_position + Vector3(1.0, 0.5, 0)) < 4.0:
+			errors.append("25d: ognisko nie grzeje")
+		if heat.light_at(fire.global_position + Vector3(1.0, 0, 0)) < 0.5:
+			errors.append("25d: ognisko nie świeci")
+		if int(inv.hand("r").props.get("doses", 12)) != 11:
+			errors.append("25d: zapałki się nie zużyły")
+		# dokładanie: F na ognisku z deszczułką w ręce
+		_hand(main, "deszczulka")
+		var f0: float = fire.fuel
+		main.use_object(fire.get_child(0))
+		if fire.fuel < f0 + 20.0 or inv.hand("r") != null:
+			errors.append("25d: dokładanie do ognia nie działa")
+		# 25e. patelnia na ogniu: ziemniak się piecze, potem przypala
+		var pan_item = ItemScript.new("patelnia", 1)
+		pan_item.grids[0].place(ItemScript.new("ziemniak", 1), Vector2i.ZERO, 0)
+		main.world_items.spawn(pan_item, Transform3D(Basis(), fire.global_position + Vector3(0, 0.45, 0)))
+		await _wait(tree, 60)
+		heat._physics_process(heat.main.clock.real_seconds_for(42.0))
+		var in_pan = pan_item.grids[0].items[0] if not pan_item.grids[0].items.is_empty() else null
+		if in_pan == null or in_pan.def_id != "ziemniak_pieczony":
+			errors.append("25e: ziemniak na patelni się nie upiekł (%s)" % (in_pan.def_id if in_pan != null else "pusto"))
+		heat._physics_process(heat.main.clock.real_seconds_for(40.0))
+		in_pan = pan_item.grids[0].items[0] if not pan_item.grids[0].items.is_empty() else null
+		if in_pan == null or in_pan.def_id != "spalenizna":
+			errors.append("25e: ziemniak zostawiony na ogniu się nie przypalił")
+		# zapis ogniska
+		var fsave: Array = heat.to_dict()
+		heat.from_dict([])
+		heat.from_dict(JSON.parse_string(JSON.stringify(fsave)))
+		await _wait(tree, 2)
+		if heat.fires.size() != 1 or absf(heat.fires[0].fuel - float(fsave[0]["fuel"])) > 0.5:
+			errors.append("25e: zapis ogniska")
+	# ognisko w domu: odmowa
+	var wood_in = main.world_items.spawn(ItemScript.new("deska", 2), Transform3D(Basis(), Vector3(0.5, 0.05, 0.5)))
+	_hand(main, "zapalniczka")
+	main.use_object(wood_in)
+	if heat.fires.size() > 1:
+		errors.append("25d: ognisko rozpaliło się w domu")
+	main.world_items.remove(wood_in)
+	heat.from_dict([])
+	# 25f. kuchenka w domu, garnek z wodą i pokrojonymi warzywami: zupa, jedzenie porcjami
+	var stove_item = ItemScript.new("kuchenka", 1)
+	var stove = main.world_items.spawn(stove_item, Transform3D(Basis(), Vector3(0.5, 0.08, 0.0)))
+	inv.slots.erase("w_reku")
+	await _wait(tree, 30)
+	main.use_object(stove)
+	if not bool(stove_item.props.get("on", false)):
+		errors.append("25f: kuchenka się nie włączyła")
+	var pot_item = ItemScript.new("garnek", 1)
+	pot_item.liquid = {"type": "woda", "amount": 1.0}
+	pot_item.grids[0].place(ItemScript.new("marchew_pokrojona", 2), Vector2i(0, 0), 0)
+	pot_item.grids[0].place(ItemScript.new("cebula_pokrojona", 1), Vector2i(1, 0), 0)
+	main.world_items.spawn(pot_item, Transform3D(Basis(), stove.global_position + Vector3(0, 0.3, 0)))
+	await _wait(tree, 60)
+	heat._physics_process(heat.main.clock.real_seconds_for(25.0))
+	if str(pot_item.liquid.get("type", "")) != "zupa" or float(pot_item.liquid.get("hunger", 0.0)) < 30.0 or not pot_item.grids[0].items.is_empty():
+		errors.append("25f: zupa się nie ugotowała (%s)" % JSON.stringify(pot_item.liquid))
+	if float(stove_item.props.get("gas", 360.0)) >= 360.0:
+		errors.append("25f: kuchenka nie zużywa gazu")
+	nd.hunger = 70.0
+	nd.drink(pot_item)
+	if nd.hunger > 62.0 or absf(float(pot_item.liquid.get("amount", 0.0)) - 0.75) > 0.01:
+		errors.append("25f: porcja zupy: głód %.0f, w garnku %.2f l" % [nd.hunger, float(pot_item.liquid.get("amount", 0.0))])
+	if main.health.treatment_for(pot_item, "glowa").get("kind", "") != "drink":
+		errors.append("25f: zupy nie da się zjeść z okna zdrowia")
+	main.use_object(stove)
+	if bool(stove_item.props.get("on", true)):
+		errors.append("25f: kuchenka się nie wyłączyła")
+	nd.hunger = 20.0
+	for b in main.world_items.bodies.duplicate():
+		if b.get_meta("item").def_id in ["kuchenka", "garnek", "patelnia", "deska", "deszczulka", "spalenizna"] and b.global_position.z > 4.5 or b.get_meta("item") in [stove_item, pot_item]:
+			main.world_items.remove(b)
+	inv.slots.erase("w_reku")
+	inv.slots.erase("w_lewej")
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
 	await _wait(tree, 20)
 
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
@@ -1885,7 +2048,90 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	await _wait(tree, 20)
 	await _shot(main, dir + "/drzwi_zamek.png")
 	ws.end()
+	await _build11_shots(main, dir)
 	tree.quit(0)
+
+
+## Kadry buildu 11: ognisko z patelnią o zmierzchu, kuchenka z garnkiem,
+## piłowanie deski, krojenie w dłoni.
+static func _build11_shots(main: Node, dir: String) -> void:
+	var tree := main.get_tree()
+	var inv = main.inventory
+	var ws = main.work
+	main.zombies.clear_all()
+	main.weather.set_kind("pogodnie", true)
+	main.weather.next_change = 999.0
+	# piłowanie deski na podłodze
+	main.clock.minutes = 12.0 * 60.0
+	main.clock.advance(0.0)
+	main.set_switch("lampa_sala", true)
+	_hand(main, "pila")
+	var plank = main.world_items.spawn(ItemScript.new("deska", 1), Transform3D(Basis(), Vector3(0.6, 0.05, 1.0)))
+	_place(main, Vector3(0.6, 0.02, 1.85), 0.0)
+	await _wait(tree, 40)
+	_aim(main, plank.global_position + Vector3(0, 0, 0.0))
+	await _wait(tree, 3)
+	ws.press("r")
+	for k in 6:
+		ws.mouse(Vector2(0, 40))
+		await _wait(tree, 2)
+	await _shot(main, dir + "/pilowanie.png")
+	ws.release("r")
+	ws.end()
+	# krojenie marchwi w dłoni
+	_hand(main, "noz")
+	_hand(main, "marchew", {}, "l")
+	main.player.set_view(main.player.rotation.y, deg_to_rad(-35.0))
+	await _wait(tree, 5)
+	if ws.candidate != null:
+		ws.press("r")
+		ws.mouse(Vector2(0, 30))
+		await _wait(tree, 4)
+	await _shot(main, dir + "/krojenie.png")
+	ws.release("r")
+	ws.end()
+	inv.slots.erase("w_lewej")
+	# kuchenka i garnek z zupą w domu
+	var stove_item = ItemScript.new("kuchenka", 1)
+	var stove = main.world_items.spawn(stove_item, Transform3D(Basis(), Vector3(0.4, 0.08, 0.2)))
+	await _wait(tree, 30)
+	main.use_object(stove)
+	var pot = ItemScript.new("garnek", 1)
+	pot.liquid = {"type": "woda", "amount": 1.4}
+	pot.grids[0].place(ItemScript.new("ziemniak_pokrojony", 2), Vector2i(0, 0), 0)
+	main.world_items.spawn(pot, Transform3D(Basis(), stove.global_position + Vector3(0, 0.14, 0)))
+	inv.slots.erase("w_reku")
+	_place(main, Vector3(-0.6, 0.02, 1.4), 0.0, 0.0)
+	await _wait(tree, 60)
+	var kcam := Camera3D.new()
+	main.world.add_child(kcam)
+	kcam.global_position = stove.global_position + Vector3(0.7, 0.75, 0.75)
+	kcam.look_at(stove.global_position + Vector3(0, 0.1, 0))
+	kcam.make_current()
+	await _shot(main, dir + "/kuchenka_garnek.png")
+	main.player.camera.make_current()
+	kcam.queue_free()
+	# ognisko z patelnią na dworze o zmierzchu
+	main.clock.minutes = 20.6 * 60.0
+	main.clock.advance(0.0)
+	main.set_switch("lampa_sala", false)
+	var at := Vector3(1.5, 0.05, 6.5)
+	var f = main.heat.make_fire(at, 120.0)
+	var pan = ItemScript.new("patelnia", 1)
+	pan.grids[0].place(ItemScript.new("ziemniak", 2), Vector2i.ZERO, 0)
+	main.world_items.spawn(pan, Transform3D(Basis(), f.global_position + Vector3(0.05, 0.45, 0)))
+	main.world_items.spawn(ItemScript.new("deszczulka", 2), Transform3D(Basis(), at + Vector3(0.8, 0.05, 0.4)))
+	_place(main, at + Vector3(-0.3, 0.0, -1.6), 180.0, -32.0)
+	await _wait(tree, 60)
+	await _shot(main, dir + "/ognisko.png")
+	var cam := Camera3D.new()
+	main.world.add_child(cam)
+	cam.global_position = at + Vector3(-2.2, 1.6, 2.4)
+	cam.look_at(at + Vector3(0, 0.3, 0))
+	cam.make_current()
+	await _shot(main, dir + "/ognisko_z_boku.png")
+	main.player.camera.make_current()
+	cam.queue_free()
 
 
 static func _shot(main: Node, path: String, frames: int = 10) -> void:

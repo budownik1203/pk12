@@ -177,3 +177,16 @@
 - **Zombie:** strefa „w środku” to tylko dom startowy (do niego dalej wchodzi się przez okno); na dworze chodzą po całej ulicy i po domach po siatce nawigacji wypiekanej z całego terenu. Na start 10 zombie (piaskownica) losowo po ulicy, co najmniej 14 m od gracza. Strefa zombie liczy się na bieżąco z jego położenia.
 - **Pod dachem:** deszcz nie pada i nie moczy w domach; w cudzym domu jest ciemno (tylko światło z okien) i tylko o 4 °C cieplej niż na dworze. Krople deszczu lecą nad graczem na dworze i za oknem domu startowego. Rzadsza mgła na otwartej ulicy.
 - Zapis w wersji 9 zawiera stan drzwi i szyb; zawartość pojemników zapisuje się razem z ekwipunkiem.
+
+## Build 11 (15.11.2026): rzemiosło i gotowanie
+
+- **Ognisko** (`scripts/craft/heat.gd`, `fire.gd`): drewno kładzie się na ziemi na dworze (deski, deszczułki, książki, szmaty; pole `fuel` w `items.json` to minuty ognia w czasie gry). F z zapałkami albo zapalniczką w ręce zbiera stos w promieniu metra, potrzeba co najmniej 20 minut opału. Zapałki i zapalniczka mają zużycie. W domu i w ulewie nie zapłonie, deszcz przyspiesza gaśnięcie. F na ognisku z drewnem w ręce dokłada sztukę.
+- **Ogień grzeje i świeci:** do 14 °C odczuwanej temperatury przy samym ogniu (3 m zasięgu), migoczące światło z cieniami. Światło liczy się do czytania i do tego, jak daleko widzą zombie. Ogień trzaszczy (zapętlony dźwięk) i jest słyszalny, gdy gaśnie.
+- **Kuchenka turystyczna:** przedmiot stawiany w świecie. F ją włącza i wyłącza (niebieski płomień), Shift+F podnosi. Działa też w domu. Kartusz na 6 godzin gry, stan gazu widać w podpowiedzi.
+- **Gotowanie** dzieje się w świecie: patelnia albo garnek leżące na źródle ciepła (do 0,45 m w poziomie, do 0,7 m nad nim) gotują wszystko, co mają w siatce. Pole `cook` daje czas i wynik (ziemniak → pieczony ziemniak w 40 min). Każde jedzenie zostawione za długo (1,7 czasu) zmienia się w spaleniznę; umiejętność gotowania przesuwa ten próg.
+- **Zupa:** garnek (2 l) napełniony przy zlewie, do tego pokrojone warzywa (pole `soup`). Gdy wszystkie się ugotują, woda zmienia się w płyn „zupa” z sytością i nawodnieniem ze składników, z dodatkiem za gotowanie. Zupę je się jak picie, porcjami po 0,25 l, z okna zdrowia.
+- **Praca w dłoni** (`hand_work.gd`) obejmuje teraz trzy rodzaje: otwieranie (kręcenie), krojenie i cięcie na szmaty (ruchy w dół, zdolność `ciecie`: nóż 3, nożyczki 2, piła 1). Pola `open`, `cut`, `rip` w danych przedmiotu.
+- **Piłowanie** (`scripts/craft/saw.gd`): każda deska leżąca w świecie ma punkt pracy na środku, widoczny z piłą w ręce (zasięg 2,1 m, żeby sięgnąć podłogi). Trzy „pociągnięcia” dają dwie deszczułki; piłowanie hałasuje i uczy stolarstwa.
+- **Nowe przedmioty:** zapalniczka, zapałki, piła, nożyczki, deszczułka, garnek, patelnia (też tępa broń), kuchenka, ziemniak, marchew, cebula i ich pokrojone wersje, pieczony ziemniak, spalenizna, książka kucharska. Łupy w lodówkach, szafkach i skrzynkach.
+- **Postać:** umiejętność gotowania (krojenie, pieczenie, zupy), zawód kucharz.
+- Zapis w wersji 10 zawiera płonące ogniska; stan kuchenki i stopień ugotowania zapisują się w przedmiotach.

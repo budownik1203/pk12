@@ -1,48 +1,338 @@
 {
 	"_opis": "Postać: umiejętności (poziomy 0-10), zawody i cechy jak w PZ. Punkty: zawód daje lub zabiera punkty, dobre cechy kosztują, złe dają; suma nie może być ujemna. Efekty cech to mnożniki używane przez systemy gry (nazwy w character.gd).",
 	"skills": {
-		"stolarstwo": {"pl": "Stolarstwo", "en": "Carpentry", "base": 0, "rate": 1.0},
-		"majsterkowanie": {"pl": "Majsterkowanie", "en": "Handiwork", "base": 0, "rate": 1.0},
-		"pierwsza_pomoc": {"pl": "Pierwsza pomoc", "en": "First aid", "base": 0, "rate": 1.0},
-		"bron_tepa": {"pl": "Broń tępa", "en": "Blunt weapons", "base": 0, "rate": 1.0},
-		"bron_ostra": {"pl": "Broń ostra", "en": "Blades", "base": 0, "rate": 1.0},
-		"sila": {"pl": "Siła", "en": "Strength", "base": 5, "rate": 0.35},
-		"kondycja": {"pl": "Kondycja", "en": "Fitness", "base": 5, "rate": 0.35},
-		"skradanie": {"pl": "Skradanie", "en": "Sneaking", "base": 0, "rate": 1.0}
+		"stolarstwo": {
+			"pl": "Stolarstwo",
+			"en": "Carpentry",
+			"base": 0,
+			"rate": 1.0
+		},
+		"majsterkowanie": {
+			"pl": "Majsterkowanie",
+			"en": "Handiwork",
+			"base": 0,
+			"rate": 1.0
+		},
+		"pierwsza_pomoc": {
+			"pl": "Pierwsza pomoc",
+			"en": "First aid",
+			"base": 0,
+			"rate": 1.0
+		},
+		"gotowanie": {
+			"pl": "Gotowanie",
+			"en": "Cooking",
+			"base": 0,
+			"rate": 1.0
+		},
+		"bron_tepa": {
+			"pl": "Broń tępa",
+			"en": "Blunt weapons",
+			"base": 0,
+			"rate": 1.0
+		},
+		"bron_ostra": {
+			"pl": "Broń ostra",
+			"en": "Blades",
+			"base": 0,
+			"rate": 1.0
+		},
+		"sila": {
+			"pl": "Siła",
+			"en": "Strength",
+			"base": 5,
+			"rate": 0.35
+		},
+		"kondycja": {
+			"pl": "Kondycja",
+			"en": "Fitness",
+			"base": 5,
+			"rate": 0.35
+		},
+		"skradanie": {
+			"pl": "Skradanie",
+			"en": "Sneaking",
+			"base": 0,
+			"rate": 1.0
+		}
 	},
 	"professions": {
-		"bezrobotny": {"pl": "Bezrobotny", "en": "Unemployed", "points": 8, "skills": {},
-			"desc_pl": "Nic nie umie, ale ma najwięcej punktów na cechy.", "desc_en": "Knows nothing, but has the most trait points."},
-		"ciesla": {"pl": "Cieśla", "en": "Carpenter", "points": 0, "skills": {"stolarstwo": 3, "sila": 1},
-			"desc_pl": "Szybko i pewnie przybija deski, rzadziej gubi gwoździe przy zrywaniu.", "desc_en": "Nails planks quickly and surely, loses fewer nails when prying."},
-		"mechanik": {"pl": "Mechanik", "en": "Mechanic", "points": 0, "skills": {"majsterkowanie": 3, "bron_tepa": 1},
-			"desc_pl": "Montuje zamki od pierwszego dnia, szybciej wkręca, mniej zużywa narzędzia.", "desc_en": "Fits locks from day one, screws faster, wears tools less."},
-		"ratownik": {"pl": "Ratownik medyczny", "en": "Paramedic", "points": -2, "skills": {"pierwsza_pomoc": 3, "kondycja": 1},
-			"desc_pl": "Szybko opatruje i umie zszyć głęboką ranę.", "desc_en": "Treats wounds quickly and can stitch a deep wound."},
-		"policjant": {"pl": "Policjant", "en": "Police officer", "points": -2, "skills": {"bron_tepa": 2, "kondycja": 1, "skradanie": 1},
-			"desc_pl": "Wyszkolony w walce wręcz (broń palna w swoim buildzie).", "desc_en": "Trained in hand-to-hand combat (firearms in their own build)."},
-		"budowlaniec": {"pl": "Robotnik budowlany", "en": "Construction worker", "points": 0, "skills": {"sila": 2, "stolarstwo": 1},
-			"desc_pl": "Silny: uniesie więcej desek, mocniej bije.", "desc_en": "Strong: carries more planks, hits harder."}
+		"bezrobotny": {
+			"pl": "Bezrobotny",
+			"en": "Unemployed",
+			"points": 8,
+			"skills": {},
+			"desc_pl": "Nic nie umie, ale ma najwięcej punktów na cechy.",
+			"desc_en": "Knows nothing, but has the most trait points."
+		},
+		"ciesla": {
+			"pl": "Cieśla",
+			"en": "Carpenter",
+			"points": 0,
+			"skills": {
+				"stolarstwo": 3,
+				"sila": 1
+			},
+			"desc_pl": "Szybko i pewnie przybija deski, rzadziej gubi gwoździe przy zrywaniu.",
+			"desc_en": "Nails planks quickly and surely, loses fewer nails when prying."
+		},
+		"mechanik": {
+			"pl": "Mechanik",
+			"en": "Mechanic",
+			"points": 0,
+			"skills": {
+				"majsterkowanie": 3,
+				"bron_tepa": 1
+			},
+			"desc_pl": "Montuje zamki od pierwszego dnia, szybciej wkręca, mniej zużywa narzędzia.",
+			"desc_en": "Fits locks from day one, screws faster, wears tools less."
+		},
+		"ratownik": {
+			"pl": "Ratownik medyczny",
+			"en": "Paramedic",
+			"points": -2,
+			"skills": {
+				"pierwsza_pomoc": 3,
+				"kondycja": 1
+			},
+			"desc_pl": "Szybko opatruje i umie zszyć głęboką ranę.",
+			"desc_en": "Treats wounds quickly and can stitch a deep wound."
+		},
+		"policjant": {
+			"pl": "Policjant",
+			"en": "Police officer",
+			"points": -2,
+			"skills": {
+				"bron_tepa": 2,
+				"kondycja": 1,
+				"skradanie": 1
+			},
+			"desc_pl": "Wyszkolony w walce wręcz (broń palna w swoim buildzie).",
+			"desc_en": "Trained in hand-to-hand combat (firearms in their own build)."
+		},
+		"budowlaniec": {
+			"pl": "Robotnik budowlany",
+			"en": "Construction worker",
+			"points": 0,
+			"skills": {
+				"sila": 2,
+				"stolarstwo": 1
+			},
+			"desc_pl": "Silny: uniesie więcej desek, mocniej bije.",
+			"desc_en": "Strong: carries more planks, hits harder."
+		},
+		"kucharz": {
+			"pl": "Kucharz",
+			"en": "Cook",
+			"points": -2,
+			"skills": {
+				"gotowanie": 3,
+				"bron_ostra": 1
+			},
+			"desc_pl": "Z garnka wyciąga więcej sytości, rzadziej przypala, szybko kroi.",
+			"desc_en": "Gets more out of a pot, burns food less often, chops fast."
+		}
 	},
 	"traits": {
-		"silny": {"pl": "Silny", "en": "Strong", "cost": 4, "skills": {"sila": 2}, "desc_pl": "+2 siły.", "desc_en": "+2 Strength.", "excl": ["slabowity"]},
-		"wysportowany": {"pl": "Wysportowany", "en": "Athletic", "cost": 4, "skills": {"kondycja": 2}, "desc_pl": "+2 kondycji.", "desc_en": "+2 Fitness.", "excl": ["otyly"]},
-		"szybki_uczen": {"pl": "Szybki uczeń", "en": "Fast learner", "cost": 6, "effects": {"xp": 1.3}, "desc_pl": "Umiejętności rosną o 30% szybciej.", "desc_en": "Skills grow 30% faster.", "excl": ["wolny_uczen"]},
-		"cichy": {"pl": "Cichy krok", "en": "Light-footed", "cost": 3, "effects": {"noise": 0.75}, "desc_pl": "Kroki o 25% cichsze.", "desc_en": "Footsteps 25% quieter.", "excl": ["niezdarny"]},
-		"szybkie_gojenie": {"pl": "Szybkie gojenie", "en": "Fast healer", "cost": 4, "effects": {"heal": 1.3}, "desc_pl": "Rany goją się o 30% szybciej.", "desc_en": "Wounds heal 30% faster.", "excl": []},
-		"odporny": {"pl": "Odporny", "en": "Resilient", "cost": 3, "effects": {"infection": 0.6}, "desc_pl": "Zwykłe zakażenia ran rosną wolniej (nie chroni przed ugryzieniem zombie).", "desc_en": "Ordinary wound infections grow slower (no protection from zombie bites).", "excl": ["chorowity"]},
-		"maly_apetyt": {"pl": "Mały apetyt", "en": "Light eater", "cost": 2, "effects": {"hunger": 0.75}, "desc_pl": "Głód rośnie wolniej.", "desc_en": "Hunger grows slower.", "excl": ["zarloczny"]},
-		"slabowity": {"pl": "Słabowity", "en": "Weak", "cost": -4, "skills": {"sila": -2}, "desc_pl": "−2 siły.", "desc_en": "−2 Strength.", "excl": ["silny"]},
-		"otyly": {"pl": "Otyły", "en": "Obese", "cost": -4, "skills": {"kondycja": -2}, "desc_pl": "−2 kondycji.", "desc_en": "−2 Fitness.", "excl": ["wysportowany"]},
-		"wolny_uczen": {"pl": "Wolny uczeń", "en": "Slow learner", "cost": -4, "effects": {"xp": 0.7}, "desc_pl": "Umiejętności rosną o 30% wolniej.", "desc_en": "Skills grow 30% slower.", "excl": ["szybki_uczen"]},
-		"niezdarny": {"pl": "Niezdarny", "en": "Clumsy", "cost": -3, "effects": {"noise": 1.3, "work": 0.85}, "desc_pl": "Głośniejsze kroki, wolniejsza praca rękami.", "desc_en": "Louder footsteps, slower handiwork.", "excl": ["cichy"]},
-		"hemofilik": {"pl": "Hemofilik", "en": "Hemophiliac", "cost": -4, "effects": {"bleed": 1.6}, "desc_pl": "Rany krwawią o 60% mocniej.", "desc_en": "Wounds bleed 60% more.", "excl": []},
-		"chorowity": {"pl": "Chorowity", "en": "Prone to illness", "cost": -3, "effects": {"infection": 1.5}, "desc_pl": "Zakażenia ran rosną szybciej.", "desc_en": "Wound infections grow faster.", "excl": ["odporny"]},
-		"zarloczny": {"pl": "Żarłoczny", "en": "Hearty appetite", "cost": -3, "effects": {"hunger": 1.35}, "desc_pl": "Głód rośnie szybciej.", "desc_en": "Hunger grows faster.", "excl": ["maly_apetyt"]},
-		"spioch": {"pl": "Śpioch", "en": "Sleepyhead", "cost": -2, "effects": {"fatigue": 1.25}, "desc_pl": "Szybciej się męczy i chce spać.", "desc_en": "Tires and gets sleepy faster.", "excl": []}
+		"silny": {
+			"pl": "Silny",
+			"en": "Strong",
+			"cost": 4,
+			"skills": {
+				"sila": 2
+			},
+			"desc_pl": "+2 siły.",
+			"desc_en": "+2 Strength.",
+			"excl": [
+				"slabowity"
+			]
+		},
+		"wysportowany": {
+			"pl": "Wysportowany",
+			"en": "Athletic",
+			"cost": 4,
+			"skills": {
+				"kondycja": 2
+			},
+			"desc_pl": "+2 kondycji.",
+			"desc_en": "+2 Fitness.",
+			"excl": [
+				"otyly"
+			]
+		},
+		"szybki_uczen": {
+			"pl": "Szybki uczeń",
+			"en": "Fast learner",
+			"cost": 6,
+			"effects": {
+				"xp": 1.3
+			},
+			"desc_pl": "Umiejętności rosną o 30% szybciej.",
+			"desc_en": "Skills grow 30% faster.",
+			"excl": [
+				"wolny_uczen"
+			]
+		},
+		"cichy": {
+			"pl": "Cichy krok",
+			"en": "Light-footed",
+			"cost": 3,
+			"effects": {
+				"noise": 0.75
+			},
+			"desc_pl": "Kroki o 25% cichsze.",
+			"desc_en": "Footsteps 25% quieter.",
+			"excl": [
+				"niezdarny"
+			]
+		},
+		"szybkie_gojenie": {
+			"pl": "Szybkie gojenie",
+			"en": "Fast healer",
+			"cost": 4,
+			"effects": {
+				"heal": 1.3
+			},
+			"desc_pl": "Rany goją się o 30% szybciej.",
+			"desc_en": "Wounds heal 30% faster.",
+			"excl": []
+		},
+		"odporny": {
+			"pl": "Odporny",
+			"en": "Resilient",
+			"cost": 3,
+			"effects": {
+				"infection": 0.6
+			},
+			"desc_pl": "Zwykłe zakażenia ran rosną wolniej (nie chroni przed ugryzieniem zombie).",
+			"desc_en": "Ordinary wound infections grow slower (no protection from zombie bites).",
+			"excl": [
+				"chorowity"
+			]
+		},
+		"maly_apetyt": {
+			"pl": "Mały apetyt",
+			"en": "Light eater",
+			"cost": 2,
+			"effects": {
+				"hunger": 0.75
+			},
+			"desc_pl": "Głód rośnie wolniej.",
+			"desc_en": "Hunger grows slower.",
+			"excl": [
+				"zarloczny"
+			]
+		},
+		"slabowity": {
+			"pl": "Słabowity",
+			"en": "Weak",
+			"cost": -4,
+			"skills": {
+				"sila": -2
+			},
+			"desc_pl": "−2 siły.",
+			"desc_en": "−2 Strength.",
+			"excl": [
+				"silny"
+			]
+		},
+		"otyly": {
+			"pl": "Otyły",
+			"en": "Obese",
+			"cost": -4,
+			"skills": {
+				"kondycja": -2
+			},
+			"desc_pl": "−2 kondycji.",
+			"desc_en": "−2 Fitness.",
+			"excl": [
+				"wysportowany"
+			]
+		},
+		"wolny_uczen": {
+			"pl": "Wolny uczeń",
+			"en": "Slow learner",
+			"cost": -4,
+			"effects": {
+				"xp": 0.7
+			},
+			"desc_pl": "Umiejętności rosną o 30% wolniej.",
+			"desc_en": "Skills grow 30% slower.",
+			"excl": [
+				"szybki_uczen"
+			]
+		},
+		"niezdarny": {
+			"pl": "Niezdarny",
+			"en": "Clumsy",
+			"cost": -3,
+			"effects": {
+				"noise": 1.3,
+				"work": 0.85
+			},
+			"desc_pl": "Głośniejsze kroki, wolniejsza praca rękami.",
+			"desc_en": "Louder footsteps, slower handiwork.",
+			"excl": [
+				"cichy"
+			]
+		},
+		"hemofilik": {
+			"pl": "Hemofilik",
+			"en": "Hemophiliac",
+			"cost": -4,
+			"effects": {
+				"bleed": 1.6
+			},
+			"desc_pl": "Rany krwawią o 60% mocniej.",
+			"desc_en": "Wounds bleed 60% more.",
+			"excl": []
+		},
+		"chorowity": {
+			"pl": "Chorowity",
+			"en": "Prone to illness",
+			"cost": -3,
+			"effects": {
+				"infection": 1.5
+			},
+			"desc_pl": "Zakażenia ran rosną szybciej.",
+			"desc_en": "Wound infections grow faster.",
+			"excl": [
+				"odporny"
+			]
+		},
+		"zarloczny": {
+			"pl": "Żarłoczny",
+			"en": "Hearty appetite",
+			"cost": -3,
+			"effects": {
+				"hunger": 1.35
+			},
+			"desc_pl": "Głód rośnie szybciej.",
+			"desc_en": "Hunger grows faster.",
+			"excl": [
+				"maly_apetyt"
+			]
+		},
+		"spioch": {
+			"pl": "Śpioch",
+			"en": "Sleepyhead",
+			"cost": -2,
+			"effects": {
+				"fatigue": 1.25
+			},
+			"desc_pl": "Szybciej się męczy i chce spać.",
+			"desc_en": "Tires and gets sleepy faster.",
+			"excl": []
+		}
 	},
 	"requirements": {
-		"stitch": {"skill": "pierwsza_pomoc", "level": 2},
-		"mount_lock": {"skill": "majsterkowanie", "level": 1}
+		"stitch": {
+			"skill": "pierwsza_pomoc",
+			"level": 2
+		},
+		"mount_lock": {
+			"skill": "majsterkowanie",
+			"level": 1
+		}
 	}
 }

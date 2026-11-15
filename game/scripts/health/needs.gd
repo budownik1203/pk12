@@ -104,7 +104,14 @@ func insulation() -> float:
 
 ## Odczuwana temperatura: otoczenie, ubrania, wysiłek.
 func felt_temp() -> float:
-	return ambient_temp() + insulation() * 10.0 + exertion * 6.0 + (3.0 if sleeping else 0.0)
+	return ambient_temp() + insulation() * 10.0 + exertion * 6.0 + (3.0 if sleeping else 0.0) + fire_warmth()
+
+
+## Ciepło od pobliskiego ogniska albo kuchenki (°C).
+func fire_warmth() -> float:
+	if main.get("heat") == null or main.heat == null:
+		return 0.0
+	return main.heat.warmth_at(main.player.global_position + Vector3.UP * 0.5)
 
 
 func _update_temperature(hours: float) -> void:
@@ -168,8 +175,24 @@ func eat(item) -> bool:
 func drink(item) -> bool:
 	if item.liquid.is_empty() or float(item.liquid.get("amount", 0.0)) <= 0.001:
 		return false
-	var amount := minf(0.25, float(item.liquid["amount"]))
-	item.liquid["amount"] = float(item.liquid["amount"]) - amount
+	var total := float(item.liquid["amount"])
+	var amount := minf(0.25, total)
+	if str(item.liquid.get("type", "")) == "zupa":
+		# zupa: porcja syci i poi proporcjonalnie do tego, ile jej ubyło
+		var share := amount / total
+		var h := float(item.liquid.get("hunger", 0.0)) * share
+		var t := float(item.liquid.get("thirst", 0.0)) * share
+		hunger = maxf(0.0, hunger - h)
+		thirst = maxf(0.0, thirst - t)
+		item.liquid["hunger"] = float(item.liquid.get("hunger", 0.0)) - h
+		item.liquid["thirst"] = float(item.liquid.get("thirst", 0.0)) - t
+		item.liquid["amount"] = total - amount
+		if item.liquid["amount"] <= 0.001:
+			item.liquid = {}
+		main.sound.play_ui("eat", -6.0)
+		main.inventory.changed.emit()
+		return true
+	item.liquid["amount"] = total - amount
 	if item.liquid["amount"] <= 0.001:
 		item.liquid = {}
 	drink_water(amount)

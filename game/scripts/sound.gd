@@ -172,6 +172,7 @@ func _build_library() -> void:
 		"water": [1.3, _water], "eat": [0.5, _eat], "drink": [0.6, _drink],
 		"thunder": [3.2, _thunder],
 		"glass": [0.7, _glass],
+		"saw": [0.42, _saw], "rip": [0.45, _rip], "chop": [0.12, _chop], "sizzle": [1.0, _sizzle],
 		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
 	}
 	for n in gens:
@@ -385,6 +386,60 @@ func _thunder(t: float, d: float, st: Dictionary) -> float:
 	var crack := _noise() * exp(-t * 18.0) * 0.6
 	var rumble := _lp(st, _noise(), 0.03) * 6.0 * (0.6 + 0.4 * sin(t * 7.0 + st["seed"] * 4.0))
 	return (crack + rumble) * minf(1.0, t / 0.02) * exp(-t * 1.1) * (1.0 - t / d)
+
+
+func _saw(t: float, d: float, st: Dictionary) -> float:
+	# piła: szorstki szum z pulsowaniem zębów, rośnie i opada z ruchem ręki
+	var teeth := 0.5 + 0.5 * sin(TAU * 38.0 * t)
+	var x := (_noise() - _lp(st, _noise(), 0.08)) * teeth
+	return x * sin(PI * t / d) * 0.8
+
+
+func _rip(t: float, d: float, st: Dictionary) -> float:
+	# darcie materiału: trzeszczące włókna
+	var x := _noise() if _rng.randf() < 0.35 + 0.4 * sin(t * 60.0 + st["seed"] * 9.0) else 0.0
+	return _lp(st, x, 0.5) * sin(PI * t / d) * 1.2
+
+
+func _chop(t: float, _d: float, st: Dictionary) -> float:
+	# nóż w deskę: stuk i chrupnięcie
+	return (_lp(st, _noise(), 0.3) * 1.5 + _sin(320.0, t) * 0.3) * exp(-t * 45.0)
+
+
+func _sizzle(t: float, d: float, st: Dictionary) -> float:
+	var x := _noise() - _lp(st, _noise(), 0.2)
+	var pop := _noise() * 1.2 if _rng.randf() < 0.004 else 0.0
+	return (x * 0.35 + pop) * minf(1.0, t / 0.05) * (1.0 - t / d)
+
+
+var _crackle_loop: AudioStreamWAV
+
+
+## Zapętlony trzask ogniska (2 s).
+func crackle_loop() -> AudioStreamWAV:
+	if _crackle_loop != null:
+		return _crackle_loop
+	var n := RATE * 2
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var lp := 0.0
+	var pop := 0.0
+	for i in n:
+		lp += 0.02 * (_noise() - lp)
+		if _rng.randf() < 0.0012:
+			pop = _noise() * 1.6
+		pop *= 0.985
+		out[i] = lp * 0.9 + pop * _noise() * 0.6
+	var blend := int(0.1 * RATE)
+	for i in blend:
+		var a := float(i) / blend
+		out[i] = out[i] * a + out[n - blend + i] * (1.0 - a)
+	out.resize(n - blend)
+	_crackle_loop = _wav(out)
+	_crackle_loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_crackle_loop.loop_begin = 0
+	_crackle_loop.loop_end = out.size()
+	return _crackle_loop
 
 
 var _rain_loop: AudioStreamWAV
