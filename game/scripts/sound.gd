@@ -152,6 +152,7 @@ func _build_library() -> void:
 		"land": [0.25, _land], "impact_wood": [0.28, _impact_wood],
 		"impact_metal": [0.4, _impact_metal], "pickup": [0.2, _pickup],
 		"whoosh": [0.3, _whoosh], "inv": [0.11, _inv],
+		"water": [1.3, _water], "eat": [0.5, _eat], "drink": [0.6, _drink],
 	}
 	for n in gens:
 		var arr: Array = []
@@ -305,3 +306,31 @@ func _whoosh(t: float, d: float, st: Dictionary) -> float:
 
 func _inv(t: float, d: float, st: Dictionary) -> float:
 	return _pickup(t, d, st) * 0.8
+
+
+func _water(t: float, d: float, st: Dictionary) -> float:
+	# strumień z kranu: szum z bulgotaniem, narasta i cichnie
+	var env := minf(1.0, t / 0.08) * minf(1.0, (d - t) / 0.25)
+	var hiss := _lp(st, _noise(), 0.5) - _lp(st, _noise(), 0.05, "lp2")
+	var gurgle := 0.5 + 0.5 * sin(TAU * (7.0 + sin(t * 3.0) * 3.0) * t)
+	return hiss * env * (0.6 + gurgle * 0.4)
+
+
+func _eat(t: float, _d: float, st: Dictionary) -> float:
+	# trzy kęsy: chrupnięcia
+	var s := 0.0
+	for k in 3:
+		var tk := t - k * 0.15
+		if tk >= 0.0:
+			s += _lp(st, _noise(), 0.4) * exp(-tk * 30.0)
+	return s * 1.2
+
+
+func _drink(t: float, _d: float, st: Dictionary) -> float:
+	# dwa łyki: niskie bulgotnięcia
+	var s := 0.0
+	for k in 2:
+		var tk := t - k * 0.28
+		if tk >= 0.0:
+			s += _sin(180.0 + 60.0 * exp(-tk * 10.0), tk) * exp(-tk * 14.0) + _lp(st, _noise(), 0.15) * exp(-tk * 20.0) * 0.5
+	return s * 0.8

@@ -51,7 +51,7 @@ const FALL_FRACTURE := 9.5
 
 ## czynności opatrywania: czas w sekundach
 const TREAT_TIME := {"bandage": 3.0, "plaster": 1.5, "disinfect": 2.0, "stitch": 6.0,
-		"splint": 5.0, "pills": 1.5, "remove": 1.5}
+		"splint": 5.0, "pills": 1.5, "remove": 1.5, "eat": 3.5, "drink": 2.0}
 
 var main
 var segments := {}                  # id -> {"wounds": Array}
@@ -105,6 +105,8 @@ func overall() -> float:
 		loss += (100.0 - segment_hp(id)) * float(SEGMENTS[id]) * 0.12
 	loss += maxf(0.0, 92.0 - blood) * 1.4
 	loss += max_infection() * 40.0
+	if main != null and main.get("needs") != null:
+		loss += main.needs.damage  # głód, pragnienie, wychłodzenie, zatrucie
 	return clampf(100.0 - loss, 0.0, 100.0)
 
 
@@ -369,6 +371,18 @@ func treatment_for(item, id: String) -> Dictionary:
 	if item == null:
 		return {"error": "HP_ERR_NOTHING"}
 	var use := str(item.get_def().get("medical", ""))
+	# jedzenie i picie: przeciągnięte na postać
+	var food: Dictionary = item.get_def().get("food", {})
+	if not food.is_empty():
+		if bool(food.get("sealed", false)):
+			return {"error": "HP_ERR_SEALED"}
+		return {"kind": "eat", "wound": {}}
+	if not item.liquid.is_empty():
+		if str(item.liquid.get("type", "")) == "woda" and float(item.liquid.get("amount", 0.0)) > 0.001:
+			return {"kind": "drink", "wound": {}}
+		return {"error": "HP_ERR_EMPTY"}
+	if item.get_def().has("liquid_capacity"):
+		return {"error": "HP_ERR_EMPTY"}
 	if use == "":
 		return {"error": "HP_ERR_NOT_MEDICAL"}
 	var list: Array = segments[id]["wounds"]
@@ -480,6 +494,10 @@ func _finish(a: Dictionary) -> void:
 		"pills":
 			_painkiller = PAINKILLER_TIME
 			_use_dose(it)
+		"eat":
+			main.needs.eat(it)
+		"drink":
+			main.needs.drink(it)
 		"remove":
 			if w["bandage"] != "":
 				var used: String = w["bandage"]

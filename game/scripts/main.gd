@@ -20,6 +20,9 @@ const NoiseScript := preload("res://scripts/noise.gd")
 const SoundScript := preload("res://scripts/sound.gd")
 const CombatScript := preload("res://scripts/combat.gd")
 const HealthScript := preload("res://scripts/health/health.gd")
+const NeedsScript := preload("res://scripts/health/needs.gd")
+const ClockScript := preload("res://scripts/world/clock.gd")
+const HandWorkScript := preload("res://scripts/work/hand_work.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -53,6 +56,10 @@ var noise: NoiseScript
 var sound: SoundScript
 var combat: CombatScript
 var health: HealthScript
+var needs: NeedsScript
+var clock: ClockScript
+var sink: StaticBody3D
+var _stream_time := 0.0
 var window_boards: WindowScript
 var door_sys: DoorScript
 var bodies: Array = []
@@ -143,6 +150,19 @@ func _ready() -> void:
 	add_child(health)
 	health.setup(self)
 	health.died.connect(_on_died)
+
+	clock = ClockScript.new()
+	clock.name = "Zegar"
+	add_child(clock)
+	clock.setup(world)
+	needs = NeedsScript.new()
+	needs.name = "Potrzeby"
+	add_child(needs)
+	needs.setup(self)
+	sink = room["sink"]
+	var hand_work := HandWorkScript.new()
+	hand_work.setup(self)
+	work.hand_work = hand_work
 	player.health = health
 
 	inv_ui = InventoryUIScript.new()
@@ -204,6 +224,10 @@ func use_object(target: Object) -> void:
 		sound.play("switch", interaction.focus_point(), -8.0)
 	elif target.has_meta("door_sys"):
 		target.get_meta("door_sys").on_use(interaction.focus_point())
+	elif target.has_meta("sink"):
+		use_sink()
+	elif target.has_meta("bed"):
+		needs.try_sleep(float(target.get_meta("bed")))
 	elif target.has_meta("container_id"):
 		open_inventory(target.get_meta("container_id"))
 	elif target.has_meta("item"):
@@ -270,11 +294,48 @@ func _update_health_hud() -> void:
 			break
 	if health.max_infection() > 0.15:
 		m.append([tr("MOOD_INFECTION"), Color(0.6, 0.85, 0.4)])
+	var lv := func(v: float, keys: Array, col: Color) -> void:
+		if v > 85.0:
+			m.append([tr(keys[2]), col])
+		elif v > 60.0:
+			m.append([tr(keys[1]), col])
+		elif v > 35.0:
+			m.append([tr(keys[0]), col.lerp(Color(0.8, 0.8, 0.8), 0.4)])
+	lv.call(needs.hunger, ["MOOD_HUNGRY", "MOOD_VERY_HUNGRY", "MOOD_STARVING"], Color(0.95, 0.7, 0.45))
+	lv.call(needs.thirst, ["MOOD_THIRSTY", "MOOD_VERY_THIRSTY", "MOOD_DEHYDRATED"], Color(0.5, 0.75, 0.95))
+	lv.call(needs.fatigue, ["MOOD_TIRED", "MOOD_VERY_TIRED", "MOOD_EXHAUSTED"], Color(0.75, 0.7, 0.9))
+	if needs.body_temp < 35.5:
+		m.append([tr("MOOD_HYPOTHERMIA"), Color(0.5, 0.7, 1.0)])
+	elif needs.body_temp < 36.4:
+		m.append([tr("MOOD_COLD"), Color(0.65, 0.8, 1.0)])
+	elif needs.body_temp > 37.8:
+		m.append([tr("MOOD_HOT"), Color(1.0, 0.6, 0.4)])
+	if needs.poison > 0.1:
+		m.append([tr("MOOD_POISON"), Color(0.6, 0.8, 0.3)])
 	hud.set_health(health.overall(), m)
 	if not health.action.is_empty():
 		hud.set_treatment("%s %d%%" % [tr("HP_ACT_" + str(health.action["kind"]).to_upper()), int(health.action_ratio() * 100.0)])
 	else:
 		hud.set_treatment("")
+
+
+## Zlew: napełnia pojemnik z ręki, a z pustymi rękami pije się z kranu.
+func use_sink() -> void:
+	var it = inventory.hand("r")
+	if it == null or not it.get_def().has("liquid_capacity"):
+		it = inventory.hand("l")
+	_stream_time = 1.4
+	sound.play("water", sink.global_position + Vector3(0, 0.6, 0), -6.0)
+	if it != null and it.get_def().has("liquid_capacity"):
+		var cap := float(it.get_def()["liquid_capacity"])
+		it.liquid = {"type": "woda", "amount": cap}
+		inventory.changed.emit()
+		hud.show_message(tr("MSG_FILLED") % it.display_name())
+	elif needs.thirst > 3.0:
+		needs.drink_water(0.3)
+		hud.show_message(tr("MSG_DRANK_TAP"))
+	else:
+		hud.show_message(tr("MSG_NOT_THIRSTY"))
 
 
 ## Ciemnienie i odbarwienie obrazu przy utracie krwi, drżenie przy bólu.
@@ -320,6 +381,11 @@ func _input(event: InputEvent) -> void:
 			elif event.physical_keycode == KEY_F9:
 				load_game()
 		get_viewport().set_input_as_handled()
+		return
+	if needs != null and needs.sleeping:
+		if event is InputEventKey and event.pressed and not event.echo:
+			needs.wake()  # każdy klawisz budzi
+			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.is_action("inventory"):
 		if inv_ui.is_open():
@@ -448,6 +514,16 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_F7:
+			if Input.is_key_pressed(KEY_SHIFT):
+				needs.hunger = 0.0
+				needs.thirst = 0.0
+				needs.fatigue = 0.0
+				needs.body_temp = 37.0
+				needs.damage = 0.0
+			else:
+				clock.advance(60.0)
+			hud.show_message(clock.text())
 		KEY_F8:
 			if Input.is_key_pressed(KEY_SHIFT):
 				health.heal_all()
@@ -477,6 +553,10 @@ func _process(_delta: float) -> void:
 	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r"), "two": inventory.hands_two()}
 	hud.set_stamina(player.stamina, player.STAMINA_MAX, player.exhausted)
 	_update_health_hud()
+	hud.set_clock(clock.text())
+	if _stream_time > 0.0:
+		_stream_time -= _delta
+	sink.get_node("Strumien").visible = _stream_time > 0.0
 	if not dev_visible:
 		return
 	var lines := PackedStringArray()
@@ -488,6 +568,7 @@ func _process(_delta: float) -> void:
 	lines.append(tr("DEV_STAMINA") % int(player.stamina))
 	lines.append(tr("DEV_MASS") % [inventory.carried_mass(), inventory.felt_mass(), int(round(inventory.speed_factor() * 100.0))])
 	lines.append(tr("DEV_RATTLE") % inventory.rattle_count())
+	lines.append(tr("DEV_NEEDS") % [needs.hunger, needs.thirst, needs.fatigue, needs.body_temp, needs.felt_temp()])
 	var act: Dictionary = inventory.current_action()
 	if not act.is_empty():
 		lines.append(tr("DEV_ACTION") % [act["item"].display_name(), act["duration"] - act["time"]])

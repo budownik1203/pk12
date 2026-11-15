@@ -40,6 +40,7 @@ var nail_point = null              # gwóźdź przytrzymywany jedną ręką
 var nail_side := ""
 var holds := {"l": false, "r": false}
 var highlights := true
+var hand_work = null               # hand_work.gd: praca na przedmiocie w lewej ręce
 var show_bars := false             # paski i liczby postępu (numpad 0); docelowo postęp widać na przedmiocie
 
 var _virtual := Vector2.ZERO
@@ -181,6 +182,10 @@ func _physics_process(delta: float) -> void:
 	if active == null and nail_point == null:
 		var busy: bool = (main.interaction != null and main.interaction.grab_mode) or (main.combat != null and main.combat.active)
 		candidate = null if busy else find_candidate()
+		if candidate == null and not busy and hand_work != null:
+			var hp = hand_work.candidate()
+			if hp != null and usable(hp):
+				candidate = hp
 	_update_markers()
 	_update_hud()
 	_update_pose()

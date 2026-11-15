@@ -26,7 +26,77 @@ static func build(world: Node3D) -> Dictionary:
 	_physics_props(world, bodies)
 	_door(world, bodies)
 	var containers := {"szafka": _cabinet(world)}
-	return {"bodies": bodies, "switches": switches, "containers": containers}
+	var sink := _sink(world)
+	_bed(world)
+	return {"bodies": bodies, "switches": switches, "containers": containers, "sink": sink}
+
+
+## Zlew z kranem przy zachodniej ścianie: F pije z kranu albo napełnia butelkę
+## trzymaną w ręce. Strumień wody widać przez chwilę. (Odcięcie wody w świecie
+## przyjdzie z budynkami i zasilaniem; zlew jest pierwszym lokalnym źródłem.)
+static func _sink(world: Node3D) -> StaticBody3D:
+	var wood := Tex.material("wood", false, 1.0)
+	var metal := Tex.material("metal", false, 1.0)
+	var size := Vector3(0.6, 0.86, 0.9)
+	var pos := Vector3(-ROOM_W / 2.0 + size.x / 2.0 + 0.01, size.y / 2.0, -0.6)
+	var counter := _static_box(world, "Zlew", pos, size, wood)
+	counter.set_meta("sink", true)
+	var basin := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.42, 0.04, 0.5)
+	bm.material = metal
+	basin.mesh = bm
+	basin.position = Vector3(0.02, size.y / 2.0 + 0.005, 0)
+	counter.add_child(basin)
+	var tap_mat := StandardMaterial3D.new()
+	tap_mat.albedo_color = Color(0.6, 0.6, 0.62)
+	tap_mat.metallic = 0.7
+	tap_mat.roughness = 0.35
+	for part in [[Vector3(0.025, 0.22, 0.025), Vector3(-0.22, size.y / 2.0 + 0.11, 0)],
+			[Vector3(0.16, 0.025, 0.025), Vector3(-0.15, size.y / 2.0 + 0.215, 0)],
+			[Vector3(0.05, 0.03, 0.05), Vector3(-0.22, size.y / 2.0 + 0.24, 0.0)]]:
+		var mi := MeshInstance3D.new()
+		var m := BoxMesh.new()
+		m.size = part[0]
+		m.material = tap_mat
+		mi.mesh = m
+		mi.position = part[1]
+		counter.add_child(mi)
+	var water_mat := StandardMaterial3D.new()
+	water_mat.albedo_color = Color(0.55, 0.7, 0.85, 0.7)
+	water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var stream := MeshInstance3D.new()
+	stream.name = "Strumien"
+	var c := CylinderMesh.new()
+	c.top_radius = 0.008
+	c.bottom_radius = 0.012
+	c.height = 0.2
+	c.radial_segments = 6
+	c.material = water_mat
+	stream.mesh = c
+	stream.position = Vector3(-0.08, size.y / 2.0 + 0.1, 0)
+	stream.visible = false
+	counter.add_child(stream)
+	return counter
+
+
+## Materac w komórce: F, gdy jesteś zmęczony, kładzie spać.
+static func _bed(world: Node3D) -> void:
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = Color(0.32, 0.34, 0.4)
+	cloth.roughness = 1.0
+	var bed := _static_box(world, "Materac", Vector3(ROOM_W / 2.0 + 2.1, 0.1, 1.75), Vector3(0.9, 0.2, 1.9), cloth)
+	bed.set_meta("bed", 1.0)
+	var pillow_mat := StandardMaterial3D.new()
+	pillow_mat.albedo_color = Color(0.75, 0.73, 0.68)
+	var pillow := MeshInstance3D.new()
+	var pm := BoxMesh.new()
+	pm.size = Vector3(0.6, 0.1, 0.35)
+	pm.material = pillow_mat
+	pillow.mesh = pm
+	pillow.position = Vector3(0, 0.14, 0.7)
+	bed.add_child(pillow)
 
 
 static func _cabinet(world: Node3D) -> StaticBody3D:

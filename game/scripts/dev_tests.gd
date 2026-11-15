@@ -987,6 +987,123 @@ static func run_tests(main: Node) -> void:
 	main.set_hurt_effect(0.0, 0.0)
 	await _wait(tree, 30)
 
+	# 20a. zegar doby: godzina, światło dzienne, noc
+	var ck = main.clock
+	var nd = main.needs
+	var saved_min: float = ck.minutes
+	ck.minutes = 12.0 * 60.0
+	ck.advance(0.0)
+	if ck.daylight() < 0.8 or not ck.sun.visible:
+		errors.append("20a: w południe brak słońca (%.2f)" % ck.daylight())
+	ck.minutes = 23.0 * 60.0
+	ck.advance(0.0)
+	if ck.daylight() > 0.0 or ck.sun.visible or not ck.is_night():
+		errors.append("20a: o 23:00 nadal jasno")
+	ck.advance(60.0)
+	if ck.day() != 2 or int(ck.hour()) != 0:
+		errors.append("20a: po północy dzień %d, godzina %.1f" % [ck.day(), ck.hour()])
+	ck.minutes = saved_min
+	ck.advance(0.0)
+	# 20b. potrzeby rosną z czasem gry
+	nd.hunger = 10.0
+	nd.thirst = 10.0
+	nd.fatigue = 10.0
+	ck.speed = 600.0
+	await _wait(tree, 60)
+	ck.speed = 1.0
+	if nd.hunger < 18.0 or nd.thirst < 20.0 or nd.fatigue < 18.0:
+		errors.append("20b: po ok. 4 h gry głód %.0f, pragnienie %.0f, zmęczenie %.0f" % [nd.hunger, nd.thirst, nd.fatigue])
+	# 20c. jedzenie przeciągnięte na ciało; zamknięta puszka nie; zepsute zatruwa
+	inv.cancel_all()
+	var hp2 = main.health
+	hp2.reset()
+	var bread = ItemScript.new("chleb")
+	bread.props["made"] = ck.minutes / 1440.0
+	inv.give(bread)
+	nd.hunger = 60.0
+	hp2.treat(bread, "brzuch")
+	await _wait(tree, 240)
+	if nd.hunger > 53.0 or int(bread.props.get("portions", 4)) != 3:
+		errors.append("20c: zjedzenie porcji chleba: głód %.0f, porcji %s" % [nd.hunger, bread.props.get("portions", 4)])
+	var sealed = ItemScript.new("puszka_fasoli")
+	inv.give(sealed)
+	if hp2.treat(sealed, "brzuch") or not hp2.action.is_empty():
+		errors.append("20c: zamkniętą puszkę da się zjeść")
+	bread.props["made"] = ck.minutes / 1440.0 - 10.0
+	hp2.treat(bread, "brzuch")
+	await _wait(tree, 240)
+	if nd.poison <= 0.1:
+		errors.append("20c: zepsuty chleb nie zatruwa")
+	nd.poison = 0.0
+	# 20d. otwieranie puszki: puszka w lewej, otwieracz w prawej, kręcenie myszą
+	_hand(main, "otwieracz")
+	inv.slots.erase("w_lewej")
+	var can = ItemScript.new("puszka_fasoli")
+	inv.slots["w_lewej"] = can
+	can.slot = "w_lewej"
+	main.work.end()
+	player.set_view(player.rotation.y, deg_to_rad(80.0))  # patrz w sufit: żadnego punktu w świecie
+	await _wait(tree, 3)
+	if main.work.candidate == null or main.work.candidate.id != "dlon":
+		errors.append("20d: nie ma punktu otwierania puszki w dłoni")
+	else:
+		main.work.press("r")
+		for k in 8:
+			main.work.rotate_by(0.25)
+		main.work.release("r")
+		var opened = inv.hand("l")
+		if opened == null or opened.def_id != "puszka_fasoli_otwarta":
+			errors.append("20d: puszka się nie otworzyła")
+	player.set_view(player.rotation.y, 0.0)
+	inv.slots.erase("w_lewej")
+	inv.slots.erase("w_reku")
+	# 20e. zlew: napełnianie butelki, picie z kranu; picie z butelki
+	var bottle = ItemScript.new("butelka_wody", 1, false)
+	inv.slots["w_reku"] = bottle
+	bottle.slot = "w_reku"
+	main.use_sink()
+	if bottle.liquid.is_empty() or absf(float(bottle.liquid["amount"]) - 1.0) > 0.01:
+		errors.append("20e: zlew nie napełnia butelki")
+	nd.thirst = 60.0
+	hp2.treat(bottle, "glowa")
+	await _wait(tree, 150)
+	if nd.thirst > 40.0 or float(bottle.liquid.get("amount", 0.0)) > 0.76:
+		errors.append("20e: picie z butelki: pragnienie %.0f, w butelce %.2f l" % [nd.thirst, float(bottle.liquid.get("amount", 0.0))])
+	inv.slots.erase("w_reku")
+	nd.thirst = 50.0
+	main.use_sink()
+	if nd.thirst > 25.0:
+		errors.append("20e: picie z kranu nie gasi pragnienia (%.0f)" % nd.thirst)
+	# 20f. sen na materacu przyspiesza czas i zmniejsza zmęczenie; klawisz budzi
+	nd.fatigue = 70.0
+	var t0: float = ck.minutes
+	if not nd.try_sleep(1.0) or not player.controls_locked:
+		errors.append("20f: nie da się zasnąć")
+	await _wait(tree, 60)
+	if ck.minutes - t0 < 20.0 or nd.fatigue >= 70.0:
+		errors.append("20f: sen nie przyspiesza czasu (%.1f min) albo nie regeneruje (%.0f)" % [ck.minutes - t0, nd.fatigue])
+	nd.wake()
+	if nd.sleeping or player.controls_locked or ck.speed != 1.0:
+		errors.append("20f: pobudka nie przywraca sterowania")
+	# 20g. ubrania grzeją; skrajne pragnienie szkodzi zdrowiu
+	if nd.insulation() < 0.5:
+		errors.append("20g: izolacja ubrań %.2f" % nd.insulation())
+	var hp_ok: float = hp2.overall()
+	nd.thirst = 100.0
+	ck.speed = 600.0
+	await _wait(tree, 30)
+	ck.speed = 1.0
+	if hp2.overall() >= hp_ok - 1.0:
+		errors.append("20g: odwodnienie nie obniża zdrowia (%.0f -> %.0f)" % [hp_ok, hp2.overall()])
+	var nsave: Dictionary = nd.to_dict()
+	nd.from_dict(JSON.parse_string(JSON.stringify(nsave)))
+	if absf(nd.thirst - float(nsave["thirst"])) > 0.01:
+		errors.append("20g: zapis potrzeb się nie zgadza")
+	nd.from_dict({})
+	hp2.reset()
+	main.revive_if_needed()
+	await _wait(tree, 30)
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -1268,6 +1385,23 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	hpk.reset()
 	main.set_hurt_effect(0.0, 0.0)
 	await _wait(tree, 5)
+	# kadry czasu: słońce przez okno w południe, noc z lampą, zlew, materac
+	var ckk = main.clock
+	var keep_min: float = ckk.minutes
+	ckk.minutes = 13.0 * 60.0
+	ckk.advance(0.0)
+	main.set_switch("lampa_sala", false)
+	_place(main, Vector3(-1.0, 0.02, 1.2), 160.0, -15.0)
+	await _shot(main, dir + "/czas_poludnie.png", 20)
+	ckk.minutes = 22.5 * 60.0
+	ckk.advance(0.0)
+	main.set_switch("lampa_sala", true)
+	await _shot(main, dir + "/czas_noc.png", 20)
+	ckk.minutes = keep_min
+	ckk.advance(0.0)
+	_place(main, Vector3(-3.2, 0.02, -0.6), 90.0, -25.0)
+	main.use_sink()
+	await _shot(main, dir + "/zlew.png", 12)
 	# kadr: styl klasyczny PS1
 	_place(main, Vector3(-1.0, 0.02, 2.6), -35.0, -8.0)
 	main.set_style(1, false)

@@ -104,7 +104,8 @@
 			},
 			"abilities": {
 				"podwazanie": 3,
-				"obuch": 2
+				"obuch": 2,
+				"otwieranie": 1
 			},
 			"length": 0.75,
 			"two_hand": true,
@@ -145,7 +146,8 @@
 			"short_pl": "Śrubokr.",
 			"short_en": "Screwdr.",
 			"abilities": {
-				"wkrecanie": 3
+				"wkrecanie": 3,
+				"otwieranie": 1
 			},
 			"length": 0.21,
 			"wear": 0.004,
@@ -342,7 +344,17 @@
 				]
 			},
 			"short_pl": "Fasola",
-			"short_en": "Beans"
+			"short_en": "Beans",
+			"food": {
+				"sealed": true
+			},
+			"open": {
+				"ability": "otwieranie",
+				"turns": 1.5,
+				"result": "puszka_fasoli_otwarta"
+			},
+			"desc_pl": "Zamknięta. Trzymaj w lewej ręce, w prawej otwieracz albo nóż, przytrzymaj prawy przycisk i kręć myszą.",
+			"desc_en": "Sealed. Hold it in the left hand, an opener or knife in the right, hold the right button and circle the mouse."
 		},
 		"butelka_wody": {
 			"pl": "Butelka",
@@ -370,7 +382,9 @@
 				]
 			},
 			"short_pl": "Butelka",
-			"short_en": "Bottle"
+			"short_en": "Bottle",
+			"desc_pl": "Pij: przeciągnij na postać w oknie zdrowia (H). Napełnisz ją przy zlewie (F z butelką w ręce).",
+			"desc_en": "Drink: drag onto the body in the health window (H). Refill at the sink (F with the bottle in hand)."
 		},
 		"apteczka": {
 			"pl": "Apteczka",
@@ -442,7 +456,8 @@
 					0.3,
 					0.2
 				]
-			}
+			},
+			"insulation": 0.04
 		},
 		"kamizelka": {
 			"pl": "Kamizelka taktyczna",
@@ -500,7 +515,8 @@
 				"cut": 0.55,
 				"bite": 0.45,
 				"blunt": 0.3
-			}
+			},
+			"insulation": 0.08
 		},
 		"pas": {
 			"pl": "Pas z ładownicami",
@@ -585,7 +601,8 @@
 				"cut": 0.25,
 				"bite": 0.2,
 				"blunt": 0.1
-			}
+			},
+			"insulation": 0.35
 		},
 		"spodnie": {
 			"pl": "Spodnie",
@@ -633,7 +650,8 @@
 				"cut": 0.2,
 				"bite": 0.15,
 				"blunt": 0.05
-			}
+			},
+			"insulation": 0.2
 		},
 		"moneta": {
 			"pl": "Moneta",
@@ -678,7 +696,8 @@
 			],
 			"abilities": {
 				"wkrecanie": 1,
-				"podwazanie": 1
+				"podwazanie": 1,
+				"otwieranie": 2
 			},
 			"length": 0.22,
 			"wear": 0.03,
@@ -1062,6 +1081,192 @@
 					0.9,
 					0.9,
 					0.85
+				]
+			}
+		},
+		"puszka_fasoli_otwarta": {
+			"pl": "Otwarta fasola",
+			"en": "Opened beans",
+			"short_pl": "Fasola",
+			"short_en": "Beans",
+			"mass": 0.42,
+			"material": "metal",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"food": {
+				"hunger": 45,
+				"thirst": 4,
+				"portions": 2,
+				"stale_days": 1,
+				"rot_days": 2,
+				"empty": "puszka_pusta"
+			},
+			"desc_pl": "Zjedz: przeciągnij na postać w oknie zdrowia (H). Otwarta szybko się psuje.",
+			"desc_en": "Eat: drag onto the body in the health window (H). Spoils quickly once open.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.037,
+				"height": 0.11,
+				"color": [
+					0.6,
+					0.25,
+					0.18
+				]
+			}
+		},
+		"puszka_pusta": {
+			"pl": "Pusta puszka",
+			"en": "Empty can",
+			"short_pl": "Puszka",
+			"short_en": "Can",
+			"mass": 0.05,
+			"material": "metal",
+			"category": "material",
+			"shape": [
+				"#"
+			],
+			"desc_pl": "Złom. Później: zbieranie deszczówki i grzechotka alarmowa na sznurku.",
+			"desc_en": "Scrap. Later: rainwater collecting and a tin-can alarm on a string.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.037,
+				"height": 0.11,
+				"color": [
+					0.55,
+					0.55,
+					0.57
+				]
+			}
+		},
+		"chleb": {
+			"pl": "Chleb",
+			"en": "Bread",
+			"short_pl": "Chleb",
+			"short_en": "Bread",
+			"mass": 0.5,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"##"
+			],
+			"food": {
+				"hunger": 32,
+				"thirst": -3,
+				"portions": 4,
+				"stale_days": 3,
+				"rot_days": 6
+			},
+			"desc_pl": "Cztery porcje. Czerstwieje po 3 dniach, pleśnieje po 6.",
+			"desc_en": "Four portions. Goes stale after 3 days, moldy after 6.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.25,
+					0.1,
+					0.12
+				],
+				"color": [
+					0.62,
+					0.45,
+					0.25
+				]
+			}
+		},
+		"jablko": {
+			"pl": "Jabłko",
+			"en": "Apple",
+			"short_pl": "Jabłko",
+			"short_en": "Apple",
+			"mass": 0.18,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"food": {
+				"hunger": 9,
+				"thirst": 6,
+				"portions": 1,
+				"stale_days": 6,
+				"rot_days": 10
+			},
+			"desc_pl": "Trochę syci i gasi pragnienie.",
+			"desc_en": "A little filling, a little thirst-quenching.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.035,
+				"height": 0.07,
+				"color": [
+					0.6,
+					0.15,
+					0.1
+				]
+			}
+		},
+		"batonik": {
+			"pl": "Baton",
+			"en": "Candy bar",
+			"short_pl": "Baton",
+			"short_en": "Bar",
+			"mass": 0.06,
+			"material": "jedzenie",
+			"category": "jedzenie",
+			"shape": [
+				"#"
+			],
+			"stack": 5,
+			"food": {
+				"hunger": 12,
+				"thirst": -4,
+				"portions": 1
+			},
+			"desc_pl": "Nie psuje się, ale wzmaga pragnienie.",
+			"desc_en": "Doesn't spoil, but makes you thirsty.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.12,
+					0.015,
+					0.035
+				],
+				"color": [
+					0.4,
+					0.2,
+					0.1
+				]
+			}
+		},
+		"otwieracz": {
+			"pl": "Otwieracz do puszek",
+			"en": "Can opener",
+			"short_pl": "Otwieracz",
+			"short_en": "Opener",
+			"mass": 0.08,
+			"material": "metal",
+			"category": "narzedzia",
+			"shape": [
+				"#"
+			],
+			"abilities": {
+				"otwieranie": 3
+			},
+			"wear": 0.001,
+			"desc_pl": "Otwiera puszki szybko i czysto (w prawej ręce, puszka w lewej).",
+			"desc_en": "Opens cans quickly and cleanly (right hand, can in the left).",
+			"model": {
+				"type": "box",
+				"size": [
+					0.15,
+					0.015,
+					0.03
+				],
+				"color": [
+					0.6,
+					0.6,
+					0.62
 				]
 			}
 		}

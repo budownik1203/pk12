@@ -142,7 +142,7 @@ func _update_focus() -> void:
 	if hit.is_empty():
 		return
 	var collider: Object = hit["collider"]
-	if collider.has_meta("switch_id") or collider.has_meta("container_id"):
+	if collider.has_meta("switch_id") or collider.has_meta("container_id") or collider.has_meta("sink") or collider.has_meta("bed"):
 		focus_kind = "use"
 	elif collider.has_meta("item"):
 		focus_kind = "item"

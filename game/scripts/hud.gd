@@ -52,6 +52,8 @@ var _hp_label: Label
 var _moodles: VBoxContainer
 var _death: ColorRect
 var _treat_label: Label
+var _clock_label: Label
+var _sleep: ColorRect
 var _work_back: ColorRect
 var _work_fill: ColorRect
 
@@ -124,6 +126,10 @@ func _init() -> void:
 	top_right.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	top_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(top_right)
+	_clock_label = _label(15)
+	remove_child(_clock_label)
+	top_right.add_child(_clock_label)
+	_clock_label.position = Vector2(-214, 0)
 	_hp_label = _label(15)
 	remove_child(_hp_label)
 	top_right.add_child(_hp_label)
@@ -149,6 +155,13 @@ func _init() -> void:
 	center.add_child(_treat_label)
 	_treat_label.position = Vector2(-250, 64)
 	_treat_label.visible = false
+	# sen: ekran gaśnie
+	_sleep = ColorRect.new()
+	_sleep.color = Color(0, 0, 0, 0.93)
+	_sleep.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_sleep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sleep.visible = false
+	add_child(_sleep)
 	# śmierć
 	_death = ColorRect.new()
 	_death.color = Color(0.12, 0.0, 0.0, 0.72)
@@ -283,6 +296,14 @@ func set_health(overall: float, moodles: Array) -> void:
 func set_treatment(text: String) -> void:
 	_treat_label.text = text
 	_treat_label.visible = text != ""
+
+
+func set_clock(text: String) -> void:
+	_clock_label.text = text
+
+
+func set_sleep(on: bool) -> void:
+	_sleep.visible = on
 
 
 func show_death(on: bool) -> void:

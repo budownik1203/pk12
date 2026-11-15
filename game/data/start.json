@@ -229,6 +229,48 @@
 				0.15,
 				3.0
 			]
+		},
+		{
+			"def": "chleb",
+			"position": [
+				-2.9,
+				0.84,
+				-2.1
+			]
+		},
+		{
+			"def": "jablko",
+			"count": 2,
+			"position": [
+				-2.6,
+				0.84,
+				-2.35
+			]
+		},
+		{
+			"def": "batonik",
+			"count": 2,
+			"position": [
+				-2.3,
+				0.84,
+				-2.0
+			]
+		},
+		{
+			"def": "otwieracz",
+			"position": [
+				-3.1,
+				0.82,
+				-2.4
+			]
+		},
+		{
+			"def": "puszka_fasoli",
+			"position": [
+				-2.0,
+				0.86,
+				-2.4
+			]
 		}
 	]
 }

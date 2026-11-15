@@ -168,11 +168,14 @@ func _draw_detail() -> void:
 
 
 func _draw_summary() -> void:
-	var y := origin.y + H - 70.0
+	var y := origin.y + H - 88.0
 	var x := origin.x + 4.0
 	ui.draw_line(Vector2(x, y - 22), Vector2(origin.x + W - 20, y - 22), ui.C_LINE, 1.0)
 	ui._text(Vector2(x, y), ui.tr("HP_SUMMARY") % [health.overall(), health.blood, health.pain,
 			int(health.max_infection() * 100.0)], 15, ui.C_TEXT)
+	y += 20
+	var nd = health.main.needs
+	ui._text(Vector2(x, y), ui.tr("HP_NEEDS") % [nd.hunger, nd.thirst, nd.fatigue, nd.body_temp], 14, ui.C_DIM)
 	y += 22
 	if not health.action.is_empty():
 		var label: String = ui.tr("HP_ACT_" + str(health.action["kind"]).to_upper())

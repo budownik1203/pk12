@@ -112,3 +112,15 @@
 - **Skutki:** złamana noga 0,5 prędkości (z szyną 0,8) i bez sprintu, głęboka rana nogi 0,85; ranne ręce słabiej biją, wolniej podważają i wbijają; ból spowalnia odnawianie wytrzymałości i przy dużym bólu obraz drży; utrata krwi odbarwia i przyciemnia obraz.
 - **Źródła ran w tym buildzie:** upadek (od 6,5 m/s stłuczenia, od 9,5 m/s możliwe złamanie łydek) i pięść w ścianę (stłuczenie dłoni). Zombie od buildu 7.
 - **Widok:** stany jak w PZ w prawym górnym rogu (krwawienie, utrata krwi, ból, złamanie, zakażenie), pasek zdrowia ukryty przy pełnym zdrowiu. Opatrunki i szyny widać na kończynach postaci. Śmierć: ekran z F9 (wczytaj) albo Enter (nowy ocalały). Zapis wersji 4 zawiera zdrowie.
+
+
+## Build 6 (15.11.2026): czas i potrzeby
+
+- **Zegar doby** (`scripts/world/clock.gd`): doba gry = godzina prawdziwego czasu (domyślne tempo PZ), start dzień 1, 8:00. Słońce (światło kierunkowe z cieniami) wschodzi o 6, zachodzi o 20 i świeci od południa, czyli przez okno pokoju; tło za oknem, światło otoczenia i mgła zmieniają się z porą dnia. Na zewnątrz jesień: 4–15 °C, najcieplej około 15:00. Zegar w prawym górnym rogu.
+- **Potrzeby** (`scripts/health/needs.gd`, 0–100): głód +4/h, pragnienie +6/h, zmęczenie +5/h gry, szybciej przy wysiłku (sprint, walka, praca), pragnienie też przy przegrzaniu. Od 60 i 85 słabsze odnawianie wytrzymałości; od 85 głodu lub pragnienia, przy wychłodzeniu, przegrzaniu i zatruciu rosną obrażenia od potrzeb, które odejmują się od zdrowia ogólnego i odrabiają się, gdy wszystko jest w normie.
+- **Temperatura ciała:** otoczenie z zegara, w pokoju +7 °C, minus 1,5 °C za każde brakujące zabezpieczenie okna (nieszczelne okno ciągnie zimnem). Ubrania mają pole `insulation` (kurtka 0,35, spodnie 0,2, kamizelka 0,08, plecak 0,04); odczuwana = otoczenie + izolacja × 10 + wysiłek × 6. Komfort 18–29 °C odczuwanej, poza nim ciało powoli traci lub zyskuje ciepło.
+- **Jedzenie i picie przeciąganiem na postać** w oknie zdrowia (jak opatrunki): pole `food` (głód, pragnienie, porcje, czerstwienie i psucie w dniach gry, pusty pojemnik po zjedzeniu). Zepsute jedzenie syci słabiej i zatruwa. Picie po 0,25 l z pojemnika z wodą.
+- **Otwieranie puszki w dłoni** (`scripts/work/hand_work.gd`): zamknięta puszka w lewej ręce, narzędzie ze zdolnością `otwieranie` w prawej, prawy przycisk i kręcenie myszą (1,5 obrotu). Otwieracz 3, nóż 2 (tępi się), łom i śrubokręt 1 (część się wylewa). Punkt pracy w dłoni pojawia się, gdy nie celujesz w żaden punkt w świecie.
+- **Zlew z kranem** (pierwsze lokalne źródło wody): F z pojemnikiem w ręce napełnia go, z pustymi rękami pijesz z kranu. Odcięcie wody przyjdzie razem z budynkami i siecią.
+- **Sen:** materac w komórce, F przy zmęczeniu od 20. Ekran gaśnie, czas biegnie 90 razy szybciej (8 h w około 13 s), zmęczenie spada 14/h; budzi każdy klawisz, niskie zmęczenie, silny ból, skrajny głód lub pragnienie. Nie zaśniesz, krwawiąc.
+- **Nowe przedmioty:** otwarta i pusta puszka, chleb, jabłko, baton, otwieracz. Na stole jedzenie i otwieracz. Zapis w wersji 5 zawiera zegar i potrzeby.

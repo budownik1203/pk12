@@ -57,6 +57,7 @@ var load_factor := 1.0             # mnożnik prędkości od odczuwanej masy ekw
 var injury_speed := 1.0            # mnożnik prędkości od ran nóg (health.gd)
 var injury_sprint := true          # złamana noga albo duża utrata krwi: bez sprintu
 var pain_regen := 1.0              # ból spowalnia odnawianie wytrzymałości
+var needs_regen := 1.0             # głód, pragnienie, zmęczenie i zimno też
 var controls_locked := false       # po śmierci
 var health                         # health.gd (opatrunki widoczne na ciele)
 var load_stamina := 1.0            # mnożnik zużycia wytrzymałości od masy
@@ -253,7 +254,7 @@ func _update_stamina(delta: float, draining: bool) -> void:
 	elif _stamina_pause > 0.0:
 		_stamina_pause -= delta
 	else:
-		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * pain_regen * delta)
+		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * pain_regen * needs_regen * delta)
 	if stamina <= 0.5:
 		exhausted = true
 	elif exhausted and stamina >= EXHAUSTED_UNTIL:
