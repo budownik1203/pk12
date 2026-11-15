@@ -296,6 +296,8 @@ func work_apply(point, ev: Dictionary) -> void:
 			var p: Dictionary = parts[d["part"]]
 			if p["placed"] or ev.get("item") == null:
 				return
+			if d["part"] == "zamek" and not main.character.meets("mount_lock"):
+				return  # montaż zamka wymaga majsterkowania
 			p["item"] = main.inventory.take_hand(str(ev.get("side", "r")))
 			p["placed"] = true
 			for sc in p["screws"]:

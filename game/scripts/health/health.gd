@@ -51,7 +51,9 @@ const FALL_FRACTURE := 9.5
 
 ## czynności opatrywania: czas w sekundach
 const TREAT_TIME := {"bandage": 3.0, "plaster": 1.5, "disinfect": 2.0, "stitch": 6.0,
-		"splint": 5.0, "pills": 1.5, "remove": 1.5, "eat": 3.5, "drink": 2.0}
+		"splint": 5.0, "pills": 1.5, "remove": 1.5, "eat": 3.5, "drink": 2.0, "read": 12.0}
+## doświadczenie pierwszej pomocy za czynność
+const TREAT_XP := {"bandage": 6.0, "plaster": 3.0, "disinfect": 4.0, "stitch": 14.0, "splint": 10.0, "remove": 2.0}
 
 var main
 var segments := {}                  # id -> {"wounds": Array}
@@ -133,6 +135,8 @@ func wound_bleed(w: Dictionary) -> float:
 		base *= STITCH_FACTOR
 	if w["bandage"] != "":
 		base *= BANDAGE_FACTOR * (1.0 + float(w["dirt"]) * 2.0)
+	if main != null and main.get("character") != null:
+		base *= main.character.effect("bleed")  # hemofilik
 	return base * (1.0 - float(w["heal"]))
 
 
@@ -347,7 +351,7 @@ func _infect(w: Dictionary, delta: float) -> void:
 	if w["disinfected"] and not (w["bandage"] != "" and float(w["dirt"]) > 0.7):
 		w["infection"] = maxf(0.0, float(w["infection"]) - INFECT_RATE * 0.5 * delta)
 	elif dirty:
-		var rate := INFECT_RATE * (1.6 if w["type"] == "ugryzienie" else 1.0)
+		var rate: float = INFECT_RATE * (1.6 if w["type"] == "ugryzienie" else 1.0) * main.character.effect("infection")
 		w["infection"] = minf(1.0, float(w["infection"]) + rate * delta * float(w["sev"]))
 
 
@@ -364,6 +368,7 @@ func _heal(w: Dictionary, delta: float) -> void:
 		mult *= 0.0
 	if wound_bleed(w) > 0.05:
 		mult *= 0.3
+	mult *= main.character.effect("heal")
 	w["heal"] = minf(1.0, float(w["heal"]) + delta / float(info["heal"]) * mult)
 
 
@@ -407,6 +412,11 @@ func treatment_for(item, id: String) -> Dictionary:
 	if item == null:
 		return {"error": "HP_ERR_NOTHING"}
 	var use := str(item.get_def().get("medical", ""))
+	# książka: czytanie wymaga światła
+	if item.get_def().has("book"):
+		if main.light_level() < 0.4:
+			return {"error": "HP_ERR_TOO_DARK"}
+		return {"kind": "read", "wound": {}}
 	# jedzenie i picie: przeciągnięte na postać
 	var food: Dictionary = item.get_def().get("food", {})
 	if not food.is_empty():
@@ -436,6 +446,8 @@ func treatment_for(item, id: String) -> Dictionary:
 					return {"kind": "disinfect", "wound": w}
 			return {"error": "HP_ERR_NOTHING_TO_CLEAN"}
 		"stitch":
+			if not main.character.meets("stitch", false):
+				return {"error": "HP_ERR_STITCH_SKILL"}
 			for w in list:
 				if w["type"] == "gleboka_rana" and not w["stitched"]:
 					return {"kind": "stitch", "wound": w}
@@ -464,6 +476,9 @@ func treat(item, id: String) -> bool:
 	var dur: float = TREAT_TIME[t["kind"]]
 	# ranną ręką opatruje się wolniej
 	dur /= maxf(0.5, (arm_factor("l") + arm_factor("r")) / 2.0)
+	if TREAT_XP.has(t["kind"]):
+		# wprawa w pierwszej pomocy i zręczność skracają opatrywanie
+		dur *= (1.0 - main.character.level("pierwsza_pomoc") * 0.06) / main.character.effect("work")
 	action = {"kind": t["kind"], "seg": id, "item": item, "wound": t["wound"], "t": 0.0, "dur": dur}
 	main.sound.play_ui("pickup")
 	return true
@@ -530,6 +545,8 @@ func _finish(a: Dictionary) -> void:
 		"pills":
 			_painkiller = PAINKILLER_TIME
 			_use_dose(it)
+		"read":
+			main.character.read_book(it)
 		"eat":
 			main.needs.eat(it)
 		"drink":
@@ -547,6 +564,8 @@ func _finish(a: Dictionary) -> void:
 				w["splint"] = false
 				main.inventory.give(ItemScript.new("szyna", 1))
 	main.sound.play_ui("inv")
+	if TREAT_XP.has(a["kind"]):
+		main.character.add_xp("pierwsza_pomoc", TREAT_XP[a["kind"]])
 	changed.emit()
 
 

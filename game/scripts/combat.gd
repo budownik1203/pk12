@@ -92,6 +92,12 @@ func profile() -> Dictionary:
 			p["block"] = minf(0.95, float(p["block"]) * TWO_HAND_BLOCK)
 			p["force"] = float(p["force"]) * 1.3
 		p["bulky"] = it.is_bulky()
+	# umiejętność broni i siła: mocniej i taniej
+	var skill := "bron_ostra" if str(p.get("type", "tepa")) == "ostra" else "bron_tepa"
+	var lvl: int = main.character.level(skill)
+	p["skill"] = skill
+	p["damage"] = float(p["damage"]) * (1.0 + lvl * 0.05) * (0.8 + main.character.level("sila") * 0.04)
+	p["stamina"] = float(p["stamina"]) * (1.0 - lvl * 0.04)
 	return p
 
 
@@ -206,6 +212,8 @@ func _hit() -> void:
 	hits.append(record)
 	if hits.size() > 20:
 		hits.pop_front()
+	main.character.add_xp(str(_prof.get("skill", "bron_tepa")), 3.0)
+	main.character.add_xp("sila", 0.5)
 	if col.has_method("take_hit"):
 		# zombie: głowa liczy się podwójnie i więcej, mocny cios zatacza
 		var killed: bool = col.take_hit(dmg, pos, fwd, bool(_prof.get("two", false)) or dmg > 25.0)

@@ -297,6 +297,8 @@ func mouse(rel: Vector2) -> void:
 				if main.inventory.hands_two():
 					amount *= TWO_HAND_LEVER  # oburącz łom podważa mocniej
 				amount *= main.health.arm_factor(active_side if active_side != "" else "r")
+				amount *= (0.75 + main.character.level("sila") * 0.05) * main.character.effect("work")
+				main.character.add_xp("sila", amount * 2.0)
 				_phase = fmod(_phase + rel.y * 0.006, 1.0)
 				active.owner.work_apply(active, {"type": "lever", "amount": amount, "tool": it})
 		"rotate":
@@ -321,7 +323,10 @@ func rotate_by(turns: float) -> void:
 	var it = hand(side)
 	var lvl := tool_level(it, active.ability)
 	_phase += turns
-	active.owner.work_apply(active, {"type": "rotate", "turns": turns * (lvl / 3.0), "raw": turns, "tool": it})
+	# majsterkowanie przyspiesza kręcenie
+	var skill_mult: float = (1.0 + main.character.level("majsterkowanie") * 0.06) * main.character.effect("work")
+	active.owner.work_apply(active, {"type": "rotate", "turns": turns * (lvl / 3.0) * skill_mult, "raw": turns, "tool": it})
+	main.character.add_xp("majsterkowanie", absf(turns) * 3.0)
 
 
 func cooldown_left() -> float:

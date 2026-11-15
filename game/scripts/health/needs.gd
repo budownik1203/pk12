@@ -50,9 +50,9 @@ func _physics_process(delta: float) -> void:
 		if fatigue <= 2.0 or main.health.pain > 70.0 or thirst > 95.0 or hunger > 95.0:
 			wake()
 	else:
-		hunger += HUNGER_PER_HOUR * (1.0 + exertion * 0.5) * hours
+		hunger += HUNGER_PER_HOUR * (1.0 + exertion * 0.5) * main.character.effect("hunger") * hours
 		thirst += THIRST_PER_HOUR * mult * (1.3 if body_temp > 37.6 else 1.0) * hours
-		fatigue += FATIGUE_PER_HOUR * (1.0 + exertion * 0.5 + main.health.pain / 200.0) * hours
+		fatigue += FATIGUE_PER_HOUR * (1.0 + exertion * 0.5 + main.health.pain / 200.0) * main.character.effect("fatigue") * hours
 	hunger = clampf(hunger, 0.0, 100.0)
 	thirst = clampf(thirst, 0.0, 100.0)
 	fatigue = clampf(fatigue, 0.0, 100.0)

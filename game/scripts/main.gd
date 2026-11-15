@@ -25,6 +25,9 @@ const ClockScript := preload("res://scripts/world/clock.gd")
 const HandWorkScript := preload("res://scripts/work/hand_work.gd")
 const ZombiesScript := preload("res://scripts/zombie/zombies.gd")
 const WeatherScript := preload("res://scripts/world/weather.gd")
+const CharacterScript := preload("res://scripts/character/character.gd")
+const CharCreateScript := preload("res://scripts/ui/char_create.gd")
+const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -63,6 +66,8 @@ var clock: ClockScript
 var sink: StaticBody3D
 var zombies: ZombiesScript
 var weather: WeatherScript
+var character: CharacterScript
+var char_panel: CharPanelScript
 var _flash := 0.0
 var _stream_time := 0.0
 var window_boards: WindowScript
@@ -92,6 +97,11 @@ func _ready() -> void:
 	player.name = "Gracz"
 	player.position = Vector3(-1.0, 0.02, 2.6)
 	world.add_child(player)
+
+	character = CharacterScript.new()
+	character.name = "Postac"
+	add_child(character)
+	character.setup(self)
 	player.set_view(deg_to_rad(-35.0), deg_to_rad(-8.0))
 
 	hud = HudScript.new()
@@ -183,7 +193,18 @@ func _ready() -> void:
 			dev_run = true
 	if not dev_run:
 		zombies.start_population()
+		_show_char_create()
+	else:
+		# testy i zrzuty: postać umiejąca to, czego wymagają sprawdzane czynności
+		character.create("Test", "bezrobotny", [])
+		character.levels["majsterkowanie"] = 3
+		character.levels["pierwsza_pomoc"] = 3
 	player.health = health
+
+	char_panel = CharPanelScript.new()
+	char_panel.name = "OknoPostaci"
+	hud.add_child(char_panel)
+	char_panel.setup(self)
 
 	inv_ui = InventoryUIScript.new()
 	inv_ui.name = "OknoEkwipunku"
@@ -368,6 +389,38 @@ func use_sink() -> void:
 		hud.show_message(tr("MSG_NOT_THIRSTY"))
 
 
+## Ekran tworzenia postaci: świat stoi, dopóki gracz nie kliknie „Rozpocznij”.
+func _show_char_create() -> void:
+	var cc := CharCreateScript.new()
+	cc.name = "TworzeniePostaci"
+	hud.add_child(cc)
+	cc.setup(self)
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	cc.finished.connect(func():
+		get_tree().paused = false
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		hud.show_message(tr("MSG_WELCOME") % (character.char_name if character.char_name != "" else tr("CC_DEFAULT_NAME"))))
+
+
+## Poziom światła przy graczu (0 ciemno, 1 jasno): lampy, dzień przy oknie, latarka.
+func light_level() -> float:
+	var pp: Vector3 = player.global_position
+	var light := 0.15
+	if zombies.zone_of(pp) == "in":
+		if pp.x < zombies.door_wall_x and switches.get("lampa_sala", {}).get("on", false):
+			light = 1.0
+		elif pp.x >= zombies.door_wall_x and switches.get("lampa_komorka", {}).get("on", false):
+			light = 1.0
+		if pp.z > 1.5:
+			light = maxf(light, clock.daylight() * 0.8 * (1.0 - weather.cloud * 0.4))
+	else:
+		light = maxf(light, clock.daylight() * (1.0 - weather.cloud * 0.4))
+	if player.lamp.visible:
+		light = maxf(light, 0.75)
+	return light
+
+
 ## Krótki czerwony błysk przy trafieniu przez zombie.
 func set_hurt_flash() -> void:
 	_flash = 1.0
@@ -550,6 +603,8 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_C:
+			char_panel.toggle()
 		KEY_KP_DIVIDE:
 			var kinds := weather.KINDS.keys()
 			weather.set_kind(kinds[(kinds.find(weather.kind) + 1) % kinds.size()], true)

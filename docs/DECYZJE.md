@@ -148,3 +148,20 @@
 - **Zombie:** deszcz zmniejsza promień słyszenia do 65%, deszcz i mgła skracają zasięg wzroku (mgła do połowy).
 - Zegar pokazuje pogodę i temperaturę na zewnątrz. Zapis w wersji 7 zawiera pogodę.
 - **Ograniczenie:** za oknem jest tylko kawałek gruntu; dalszy świat (budynki, miasto) przyjdzie w buildzie świata.
+
+
+## Build 9 (15.11.2026): postać
+
+- **Tworzenie postaci** przed startem i po śmierci (nowy ocalały): imię, zawód, cechy z bilansem punktów jak w PZ (zawód daje lub zabiera punkty, dobre cechy kosztują, złe dają; start możliwy przy bilansie ≥ 0; cechy wykluczające się nie wejdą razem). Świat stoi na pauzie do kliknięcia „Rozpocznij”. Dane w `data/character.json`.
+- **Umiejętności 0–10** (`scripts/character/character.gd`) rosną od używania; próg poziomu 40 × (poziom + 1)^1,35 punktów, siła i kondycja zaczynają od 5 i rosną prawie 3 razy wolniej:
+  - stolarstwo: wbijanie (+7% siły uderzenia na poziom), przykładanie i zrywanie desek, odzysk gwoździ (+4% na poziom);
+  - majsterkowanie: szybsze kręcenie (+6% na poziom), montaż zamka wymaga poziomu 1;
+  - pierwsza pomoc: opatrywanie krótsze o 6% na poziom, zszywanie wymaga poziomu 2;
+  - broń tępa i ostra (pole `type` w profilu walki): +5% obrażeń i −4% wytrzymałości na poziom;
+  - siła: udźwig desek, siła ciosu, dźwignia przy podważaniu; rośnie od podważania, ciosów i noszenia ciężaru;
+  - kondycja: zużycie i odnawianie wytrzymałości; rośnie od biegu;
+  - skradanie: kroki cichsze o 6% na poziom, trudniej zauważyć; rośnie od kucania, szybciej przy zombie.
+- **Zawody:** bezrobotny (+8 pkt), cieśla, mechanik, ratownik medyczny (−2), policjant (−2), robotnik budowlany.
+- **Cechy** jako mnożniki dla systemów: silny, słabowity, wysportowany, otyły, szybki i wolny uczeń, cichy krok, niezdarny (głośniej i wolniejsza praca), szybkie gojenie, hemofilik (krwawienie ×1,6), odporny, chorowity (zakażenia ran), mały apetyt, żarłoczny, śpioch.
+- **Książki** (pole `book`): czytanie przeciągnięciem na postać w oknie zdrowia, 12 s, tylko w świetle; potem nauka danej umiejętności ×2,5 do poziomu 4. Trzy książki leżą na stole.
+- **Okno postaci (C)** z poziomami jak w PZ i paskiem postępu. Komunikat i dźwięk przy awansie. Wspólna funkcja poziomu światła przy graczu (lampy, dzień przy oknie, latarka) służy zombie i czytaniu. Zapis w wersji 8 zawiera postać.

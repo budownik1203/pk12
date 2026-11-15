@@ -116,7 +116,8 @@
 				"reach": 1.25,
 				"block": 0.65,
 				"stamina": 13,
-				"force": 90
+				"force": 90,
+				"type": "tepa"
 			}
 		},
 		"srubokret": {
@@ -160,7 +161,8 @@
 				"reach": 0.85,
 				"block": 0.1,
 				"stamina": 4,
-				"force": 15
+				"force": 15,
+				"type": "ostra"
 			}
 		},
 		"mlotek": {
@@ -204,7 +206,8 @@
 				"reach": 0.95,
 				"block": 0.3,
 				"stamina": 7,
-				"force": 45
+				"force": 45,
+				"type": "tepa"
 			}
 		},
 		"pistolet": {
@@ -239,7 +242,8 @@
 				"reach": 0.85,
 				"block": 0.2,
 				"stamina": 6,
-				"force": 30
+				"force": 30,
+				"type": "tepa"
 			}
 		},
 		"naboje_9mm": {
@@ -728,7 +732,8 @@
 				"reach": 0.85,
 				"block": 0.15,
 				"stamina": 5,
-				"force": 20
+				"force": 20,
+				"type": "ostra"
 			}
 		},
 		"deska": {
@@ -1274,6 +1279,105 @@
 					0.62
 				]
 			}
+		},
+		"ksiazka_stolarstwo": {
+			"pl": "Stolarstwo dla każdego",
+			"en": "Carpentry for Everyone",
+			"short_pl": "Książka",
+			"short_en": "Book",
+			"mass": 0.4,
+			"material": "papier",
+			"category": "ksiazki",
+			"shape": [
+				"##",
+				"##"
+			],
+			"book": {
+				"skill": "stolarstwo",
+				"up_to": 4,
+				"xp": 20
+			},
+			"desc_pl": "Czytanie (przeciągnij na postać w oknie zdrowia, potrzebne światło): nauka tej umiejętności 2,5 raza szybsza do poziomu 4.",
+			"desc_en": "Reading (drag onto the body in the health window, needs light): this skill grows 2.5× faster up to level 4.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.2,
+					0.03,
+					0.14
+				],
+				"color": [
+					0.5,
+					0.42,
+					0.3
+				]
+			}
+		},
+		"ksiazka_pierwsza_pomoc": {
+			"pl": "Pierwsza pomoc. Poradnik",
+			"en": "First Aid Handbook",
+			"short_pl": "Książka",
+			"short_en": "Book",
+			"mass": 0.4,
+			"material": "papier",
+			"category": "ksiazki",
+			"shape": [
+				"##",
+				"##"
+			],
+			"book": {
+				"skill": "pierwsza_pomoc",
+				"up_to": 4,
+				"xp": 20
+			},
+			"desc_pl": "Czytanie (przeciągnij na postać w oknie zdrowia, potrzebne światło): nauka tej umiejętności 2,5 raza szybsza do poziomu 4.",
+			"desc_en": "Reading (drag onto the body in the health window, needs light): this skill grows 2.5× faster up to level 4.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.2,
+					0.03,
+					0.14
+				],
+				"color": [
+					0.7,
+					0.2,
+					0.18
+				]
+			}
+		},
+		"ksiazka_majsterkowanie": {
+			"pl": "Złota rączka",
+			"en": "The Handyman",
+			"short_pl": "Książka",
+			"short_en": "Book",
+			"mass": 0.4,
+			"material": "papier",
+			"category": "ksiazki",
+			"shape": [
+				"##",
+				"##"
+			],
+			"book": {
+				"skill": "majsterkowanie",
+				"up_to": 4,
+				"xp": 20
+			},
+			"desc_pl": "Czytanie (przeciągnij na postać w oknie zdrowia, potrzebne światło): nauka tej umiejętności 2,5 raza szybsza do poziomu 4.",
+			"desc_en": "Reading (drag onto the body in the health window, needs light): this skill grows 2.5× faster up to level 4.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.2,
+					0.03,
+					0.14
+				],
+				"color": [
+					0.25,
+					0.35,
+					0.55
+				]
+			}
 		}
 	},
 	"liquids": {
@@ -1290,6 +1394,7 @@
 		"reach": 0.75,
 		"block": 0.1,
 		"stamina": 5,
-		"force": 25
+		"force": 25,
+		"type": "tepa"
 	}
 }

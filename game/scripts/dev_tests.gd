@@ -658,8 +658,9 @@ static func run_tests(main: Node) -> void:
 	ws.active = sp
 	ws.rotate_by(-1.0)
 	var coin_step: float = before_coin - ds.parts["nakladka"]["screws"][0]["t"]
-	if absf(coin_step - 0.25 / 3.0) > 0.01:
-		errors.append("moneta wykręciła %.3f zamiast %.3f obrotu wkrętu" % [coin_step, 0.25 / 3.0])
+	var coin_expect: float = 0.25 / 3.0 * (1.0 + main.character.level("majsterkowanie") * 0.06)
+	if absf(coin_step - coin_expect) > 0.01:
+		errors.append("moneta wykręciła %.3f zamiast %.3f obrotu wkrętu" % [coin_step, coin_expect])
 	ws.rotate_by(1.0)
 	ws.end()
 	# 16i. wyważenie zamkniętych drzwi łomem: zamek i nakładka spadają
@@ -1300,6 +1301,81 @@ static func run_tests(main: Node) -> void:
 	main.revive_if_needed()
 	await _wait(tree, 20)
 
+	# 23a. tworzenie postaci: zawód i cechy ustawiają poziomy i siłę
+	var chr = main.character
+	var saved_char: Dictionary = chr.to_dict()
+	chr.create("Jan", "budowlaniec", ["silny", "hemofilik"])
+	if chr.level("sila") != 9 or player.strength != 9 or chr.level("stolarstwo") != 1:
+		errors.append("23a: budowlaniec + silny: siła %d (gracz %d), stolarstwo %d" % [chr.level("sila"), player.strength, chr.level("stolarstwo")])
+	if chr.points_for("budowlaniec", ["silny", "hemofilik"]) != 0 or chr.points_for("ratownik", ["szybki_uczen"]) != -8:
+		errors.append("23a: bilans punktów cech")
+	if absf(chr.effect("bleed") - 1.6) > 0.001:
+		errors.append("23a: hemofilik nie zwiększa krwawienia")
+	if inv.bulky_limit(ItemScript.new("deska")) != 5:
+		errors.append("23a: siła 9 nie daje 5 desek (%d)" % inv.bulky_limit(ItemScript.new("deska")))
+	# 23b. umiejętności rosną od używania; szybki uczeń szybciej
+	chr.create("Jan", "bezrobotny", [])
+	var need: float = chr.xp_needed("stolarstwo")
+	chr.add_xp("stolarstwo", need + 1.0)
+	if chr.level("stolarstwo") != 1:
+		errors.append("23b: stolarstwo nie wzrosło po %.0f pkt" % need)
+	chr.create("Jan", "bezrobotny", ["szybki_uczen"])
+	chr.add_xp("stolarstwo", need / 1.3 + 0.5)
+	if chr.level("stolarstwo") != 1:
+		errors.append("23b: szybki uczeń nie uczy się szybciej")
+	if chr.xp_needed("sila") <= chr.xp_needed("stolarstwo") * 2.0:
+		errors.append("23b: siła rośnie za szybko")
+	# 23c. wymagania: bez pierwszej pomocy nie zszyjesz, bez majsterkowania nie zamontujesz zamka
+	chr.create("Jan", "bezrobotny", [])
+	main.health.reset()
+	main.health.wound("udo_l", "gleboka_rana", 0.6, true)
+	var needle = ItemScript.new("igla_nici")
+	if not main.health.treatment_for(needle, "udo_l").get("error", "") == "HP_ERR_STITCH_SKILL":
+		errors.append("23c: szycie bez umiejętności nie jest zablokowane")
+	if chr.meets("mount_lock", false):
+		errors.append("23c: montaż zamka bez majsterkowania")
+	chr.levels["pierwsza_pomoc"] = 2
+	if main.health.treatment_for(needle, "udo_l").has("error"):
+		errors.append("23c: z pierwszą pomocą 2 nadal nie można szyć")
+	main.health.reset()
+	# 23d. książka: czytanie mnoży naukę do poziomu 4 (w świetle); w ciemności się nie da
+	main.set_switch("lampa_sala", true)
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
+	await _wait(tree, 4)
+	var book = ItemScript.new("ksiazka_stolarstwo")
+	inv.give(book)
+	if main.health.treatment_for(book, "glowa").get("kind", "") != "read":
+		errors.append("23d: przy zapalonej lampie nie można czytać (%s)" % main.health.treatment_for(book, "glowa"))
+	chr.read_book(book)
+	if int(chr.books.get("stolarstwo", 0)) != 4:
+		errors.append("23d: książka nie działa do poziomu 4")
+	main.set_switch("lampa_sala", false)
+	main.clock.minutes = 23.0 * 60.0
+	main.clock.advance(0.0)
+	player.lamp.visible = false
+	if not main.health.treatment_for(book, "glowa").has("error"):
+		errors.append("23d: w ciemności da się czytać")
+	main.clock.minutes = 9.0 * 60.0
+	main.clock.advance(0.0)
+	main.set_switch("lampa_sala", true)
+	# 23e. wbijanie gwoździ uczy stolarstwa; zapis postaci
+	var xp0: float = float(chr.xp["stolarstwo"])
+	var lv0: int = chr.level("stolarstwo")
+	chr.add_xp("stolarstwo", 4.0)
+	if float(chr.xp["stolarstwo"]) <= xp0 and chr.level("stolarstwo") == lv0:
+		errors.append("23e: brak doświadczenia")
+	var csave: Dictionary = chr.to_dict()
+	chr.create("X", "ratownik", [])
+	chr.from_dict(JSON.parse_string(JSON.stringify(csave)))
+	if chr.char_name != "Jan" or int(chr.books.get("stolarstwo", 0)) != 4:
+		errors.append("23e: zapis postaci (%s, %s)" % [chr.char_name, chr.books])
+	chr.from_dict(saved_char)
+	chr.levels["majsterkowanie"] = maxi(chr.level("majsterkowanie"), 3)
+	chr.levels["pierwsza_pomoc"] = maxi(chr.level("pierwsza_pomoc"), 3)
+	main.char_panel.toggle()
+	await _wait(tree, 3)
+	main.char_panel.toggle()
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -1598,6 +1674,23 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	_place(main, Vector3(-3.2, 0.02, -0.6), 90.0, -25.0)
 	main.use_sink()
 	await _shot(main, dir + "/zlew.png", 12)
+	# kadry postaci: ekran tworzenia postaci i okno umiejętności
+	var cc = load("res://scripts/ui/char_create.gd").new()
+	main.hud.add_child(cc)
+	cc.setup(main)
+	cc._profs.select(1)
+	cc.prof = cc._prof_ids[1]
+	cc._toggle("silny")
+	cc._toggle("hemofilik")
+	cc._toggle("cichy")
+	await _shot(main, dir + "/postac_tworzenie.png", 6)
+	cc.queue_free()
+	main.character.add_xp("stolarstwo", 25.0)
+	main.character.add_xp("bron_tepa", 30.0)
+	main.character.books["stolarstwo"] = 4
+	main.char_panel.toggle()
+	await _shot(main, dir + "/postac_umiejetnosci.png", 6)
+	main.char_panel.toggle()
 	# kadry pogody: deszcz za oknem, burza na dworze z błyskiem, mgła
 	var wtk = main.weather
 	var ckp = main.clock

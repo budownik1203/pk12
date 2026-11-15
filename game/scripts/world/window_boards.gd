@@ -238,6 +238,7 @@ func work_apply(point, ev: Dictionary) -> void:
 			if b["state"] != "none" or ev.get("item") == null:
 				return
 			main.inventory.take_hand(str(ev.get("side", "r")))
+			main.character.add_xp("stolarstwo", 2.0)
 			b["state"] = "placed"
 			for e in b["ends"]:
 				e["nails"] = [0.0, 0.0]
@@ -263,7 +264,10 @@ func work_apply(point, ev: Dictionary) -> void:
 					main.hud.show_message(tr("MSG_NO_NAILS"))
 					return
 			main.noise.emit_noise(point.world_pos(), 70.0, "NOISE_HAMMER")
-			end["nails"][d["nail"]] = minf(maxf(v, 0.0) + float(ev.get("amount", 1.0)), STRIKES_PER_NAIL)
+			# stolarstwo: pewniejsze uderzenia (przy wysokim poziomie gwóźdź wchodzi w dwóch)
+			var carp: int = main.character.level("stolarstwo")
+			end["nails"][d["nail"]] = minf(maxf(v, 0.0) + float(ev.get("amount", 1.0)) * (1.0 + carp * 0.07), STRIKES_PER_NAIL)
+			main.character.add_xp("stolarstwo", 4.0)
 			if end["nails"][d["nail"]] >= STRIKES_PER_NAIL and main.get("sound") != null:
 				main.sound.play("nail_done", point.world_pos(), -2.0)  # dobity: dźwięczne „tiiing”
 			if b["state"] == "placed" and is_secure(i):
@@ -282,10 +286,11 @@ func _free_end(i: int, e: int) -> void:
 	var b: Dictionary = boards[i]
 	var end: Dictionary = b["ends"][e]
 	for n in 2:
-		if end["nails"][n] >= STRIKES_PER_NAIL and rng.randf() < NAIL_RECOVERY:
+		if end["nails"][n] >= STRIKES_PER_NAIL and rng.randf() < NAIL_RECOVERY + main.character.level("stolarstwo") * 0.04:
 			b["recovered"] += 1
 	end["nails"] = [0.0, 0.0]
 	end["free"] = true
+	main.character.add_xp("stolarstwo", 3.0)
 	end["pry"] = 0.0
 	main.noise.emit_noise(to_global(_slot_origin(i)), 60.0, "NOISE_BOARD_OFF")
 	if b["ends"][0]["free"] and b["ends"][1]["free"]:

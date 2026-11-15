@@ -81,19 +81,9 @@ func random_point(zone: String, rng: RandomNumberGenerator) -> Vector3:
 func sight_range(z) -> float:
 	var pl = main.player
 	var pp: Vector3 = pl.global_position
-	var light := 0.15
 	var pzone := zone_of(pp)
-	if pzone == "in":
-		if pp.x < door_wall_x and main.switches.get("lampa_sala", {}).get("on", false):
-			light = 1.0
-		elif pp.x >= door_wall_x and main.switches.get("lampa_komorka", {}).get("on", false):
-			light = 1.0
-		if pp.z > RoomBuilder.ROOM_D / 2.0 - 2.0:
-			light = maxf(light, main.clock.daylight() * 0.8)
-	else:
-		light = maxf(light, main.clock.daylight())
-	if pl.lamp.visible:
-		light = maxf(light, 0.75)
+	var light: float = main.light_level()
+	light *= 1.0 - main.character.level("skradanie") * 0.04  # skradanie: trudniej zauważyć
 	if pl.height < pl.STAND_HEIGHT - 0.1:
 		light *= 0.6  # kucający trudniej zauważyć
 	if zone_of(z.global_position) != pzone:

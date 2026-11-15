@@ -7,7 +7,7 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 8, pogoda
+## Stan: build 9, postać
 
 Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do komórki na zatrzasku z klamką, w szafce nakładka, zamek i wkręty, na stole klucz.
 
@@ -23,6 +23,7 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | F7 / Shift+F7 | (dev) +1 godzina / zerowanie potrzeb |
 | numpad + / − | (dev) zombie za oknem / usunięcie wszystkich zombie |
 | numpad / | (dev) następny rodzaj pogody |
+| C | okno postaci: zawód, cechy, umiejętności (poziomy 0–10 i postęp) |
 | numpad 0 | paski i liczby postępu pracy (domyślnie wyłączone: postęp widać na gwoździach i wkrętach) |
 | F | użycie: klamka i pchnięcie drzwi, zamek (z kluczem albo od środka), szafka, podniesienie przedmiotu |
 | lewy / prawy przycisk | lewa / prawa ręka: każdy przycisk działa tym, co trzyma jego ręka; trzymany przy łomie i śrubokręcie przełącza mysz z kamery na narzędzie aż do puszczenia |

@@ -114,8 +114,22 @@ func _physics_process(delta: float) -> void:
 			var vol := -14.0 if crouch else (-6.0 if hv.length() > 4.0 else -10.0)
 			play("step", feet, vol + pl.load_factor * 3.0)
 			# kroki słychać: bieg daleko, chód blisko, kucanie prawie wcale
+			var ch = main.character
+			var quiet: float = ch.effect("noise") * (1.0 - ch.level("skradanie") * 0.06)
 			if not crouch:
-				main.noise.emit_noise(feet, 20.0 if hv.length() > 4.0 else 7.0, "NOISE_STEP")
+				main.noise.emit_noise(feet, (20.0 if hv.length() > 4.0 else 7.0) * quiet, "NOISE_STEP")
+			else:
+				# skradanie rośnie od kucania, szybciej, gdy zombie są blisko
+				var near := false
+				for z in main.zombies.zombies:
+					if not z.is_dead() and z.global_position.distance_to(feet) < 12.0:
+						near = true
+						break
+				ch.add_xp("skradanie", 1.5 if near else 0.3)
+			if hv.length() > 4.0:
+				ch.add_xp("kondycja", 0.6)
+			if pl.load_factor < 0.95 or main.inventory.hands_bulky():
+				ch.add_xp("sila", 0.4)
 		if not _was_floor and _fall_speed > 2.5:
 			play("land", feet, clampf(-12.0 + _fall_speed * 2.0, -12.0, 0.0))
 	else:

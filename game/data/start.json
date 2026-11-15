@@ -271,6 +271,30 @@
 				0.86,
 				-2.4
 			]
+		},
+		{
+			"def": "ksiazka_stolarstwo",
+			"position": [
+				-1.95,
+				0.84,
+				-1.95
+			]
+		},
+		{
+			"def": "ksiazka_pierwsza_pomoc",
+			"position": [
+				-1.95,
+				0.88,
+				-2.25
+			]
+		},
+		{
+			"def": "ksiazka_majsterkowanie",
+			"position": [
+				-2.25,
+				0.84,
+				-1.9
+			]
 		}
 	]
 }

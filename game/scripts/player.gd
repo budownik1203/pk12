@@ -61,7 +61,8 @@ var needs_regen := 1.0             # głód, pragnienie, zmęczenie i zimno też
 var controls_locked := false       # po śmierci
 var health                         # health.gd (opatrunki widoczne na ciele)
 var load_stamina := 1.0            # mnożnik zużycia wytrzymałości od masy
-var strength := 5                  # siła 1–10 (na razie stała; cechy postaci w buildzie 9)
+var strength := 5                  # siła 0–10 (umiejętność postaci, character.gd)
+var fitness := 5                   # kondycja 0–10: zużycie i odnawianie wytrzymałości
 var hand_items := {"l": null, "r": null, "two": false}    # przedmioty w rękach (z ekwipunku)
 var work_targets := {"l": null, "r": null}  # punkty pracy, do których idą dłonie (Vector3)
 var work_rots := {"l": null, "r": null}     # zadane ułożenie dłoni przy pracy (Quaternion)
@@ -250,11 +251,11 @@ func _update_lean(delta: float) -> void:
 
 func _update_stamina(delta: float, draining: bool) -> void:
 	if draining:
-		_spend(SPRINT_DRAIN * load_stamina * delta)
+		_spend(SPRINT_DRAIN * load_stamina * (1.25 - fitness * 0.05) * delta)
 	elif _stamina_pause > 0.0:
 		_stamina_pause -= delta
 	else:
-		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * pain_regen * needs_regen * delta)
+		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * (0.75 + fitness * 0.05) * pain_regen * needs_regen * delta)
 	if stamina <= 0.5:
 		exhausted = true
 	elif exhausted and stamina >= EXHAUSTED_UNTIL:
