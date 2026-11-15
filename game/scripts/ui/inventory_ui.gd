@@ -10,6 +10,7 @@ extends Control
 ## przedmiotem w kamizelce albo pasie przypisuje skrót.
 
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
+const IconsScript := preload("res://scripts/ui/item_icons.gd")
 const HealthPanel := preload("res://scripts/ui/health_panel.gd")
 
 const CELL := 44
@@ -67,6 +68,7 @@ var message := ""
 var _message_time := 0.0
 var _last_click_item = null
 var _last_click_time := 0.0
+var icons                       # item_icons.gd: modele 3D przedmiotów jako ikony
 
 
 func setup(inventory) -> void:
@@ -77,6 +79,11 @@ func setup(inventory) -> void:
 	focus_mode = Control.FOCUS_ALL
 	visible = false
 	inv.changed.connect(_on_changed)
+	icons = IconsScript.new()
+	icons.name = "IkonyPrzedmiotow"
+	icons.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(icons)
+	icons.icon_ready.connect(func(_id): if visible: queue_redraw())
 
 
 func is_open() -> bool:
@@ -420,6 +427,19 @@ func _draw_slot(s: String, r: Rect2) -> void:
 	_text(r.position + Vector2(8, 17), ItemDB.slot_name(s), 13, C_DIM)
 	if it != null:
 		var col: Color = C_TEXT if not it.pending else C_DIM
+		# model przedmiotu po prawej stronie pola (w wąskich polach rąk nad nazwą)
+		var tex: Texture2D = icons.get_icon(it.def_id) if icons != null else null
+		if tex != null:
+			var ts := tex.get_size()
+			var wide: bool = r.size.x > 120.0
+			var box := Vector2(r.size.y * 1.8, r.size.y - 8.0) if wide else r.size - Vector2(8.0, 8.0)
+			var k := minf(box.x / ts.x, box.y / ts.y)
+			var dsz := ts * k
+			# szerokie pola: ikona po prawej; wąskie pola rąk: ikona w tle pod napisami
+			var at := Vector2(r.end.x - dsz.x - 6.0, r.position.y + (r.size.y - dsz.y) * 0.5) if wide \
+					else r.position + (r.size - dsz) * 0.5
+			var a := (1.0 if wide else 0.55) * (0.5 if it.pending else 1.0)
+			draw_texture_rect(tex, Rect2(at, dsz), false, Color(1, 1, 1, a))
 		var nm: String = it.display_name() if r.size.x > 120.0 else ItemDB.short_name_of(it.def_id)
 		if it.count > 1:
 			nm += " ×%d" % it.count
@@ -471,9 +491,29 @@ func _draw_item(it, origin: Vector2, r: int, alpha: float) -> void:
 	var first: Vector2i = cl[0]
 	var tc := C_TEXT
 	tc.a = alpha
-	var small: bool = cl.size() <= 2
-	var label: String = ItemDB.short_name_of(it.def_id) if small else it.display_name()
-	_text(origin + Vector2(first) * CELL + Vector2(4, 14), label, 10 if small else 12, tc, b.x * CELL - 4)
+	# model 3D przedmiotu (ta sama bryła co w świecie i w ręce); dopóki się renderuje: nazwa
+	var tex: Texture2D = icons.get_icon(it.def_id) if icons != null else null
+	if tex != null:
+		var area := Vector2(b) * CELL
+		var mod := Color(1, 1, 1, alpha)
+		if r % 2 == 0:
+			var rect := Rect2(origin, area).grow(-3)
+			if r == 2:
+				draw_set_transform(origin + area * 0.5, PI, Vector2.ONE)
+				rect = Rect2(-area * 0.5, area).grow(-3)
+			draw_texture_rect(tex, rect, false, mod)
+		else:
+			# obrócony w siatce: ikona narysowana obrócona o 90°
+			draw_set_transform(origin + area * 0.5, PI * 0.5 * (1 if r == 1 else -1), Vector2.ONE)
+			var un := Vector2(area.y, area.x)
+			draw_texture_rect(tex, Rect2(-un * 0.5, un).grow(-3), false, mod)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		if cl.size() >= 3:
+			_text(origin + Vector2(first) * CELL + Vector2(4, 12), ItemDB.short_name_of(it.def_id), 10, Color(tc, 0.75 * alpha), b.x * CELL - 6)
+	else:
+		var small: bool = cl.size() <= 2
+		var label: String = ItemDB.short_name_of(it.def_id) if small else it.display_name()
+		_text(origin + Vector2(first) * CELL + Vector2(4, 14), label, 10 if small else 12, tc, b.x * CELL - 4)
 	if it.max_stack() > 1:
 		var t: String = "×%d" % it.count
 		var tw := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x

@@ -1422,8 +1422,22 @@ static func run_tests(main: Node) -> void:
 	var to_house: PackedVector3Array = NavigationServer3D.map_get_path(nmap2, Vector3(0, 0, 12.0), Vector3(hc.x, 0, hc.y), true)
 	if to_house.size() < 2 or to_house[to_house.size() - 1].distance_to(Vector3(hc.x, 0, hc.y)) > 1.5:
 		errors.append("24a: zombie nie dojdą z ulicy do domu (droga %d punktów)" % to_house.size())
+	# 24a2. dom startowy ma drzwi wyjściowe: droga z sali na ulicę prowadzi przez nie
+	var exit_door = tw.doors[0]
+	if exit_door.door_id != "wyjscie":
+		errors.append("24a2: dom startowy nie ma drzwi wyjściowych")
+	var out_path: PackedVector3Array = NavigationServer3D.map_get_path(nmap2, Vector3(0, 0, 0), Vector3(5.6, 0, 12.0), true)
+	if out_path.size() < 2 or out_path[out_path.size() - 1].distance_to(Vector3(5.6, 0, 12.0)) > 1.0:
+		errors.append("24a2: z domu startowego nie da się wyjść na ulicę (droga %d punktów)" % out_path.size())
+	else:
+		var via_door := false
+		for q in out_path:
+			if absf(q.z - 3.6) < 0.4 and q.x > 5.0 and q.x < 6.2:
+				via_door = true
+		if not via_door:
+			errors.append("24a2: droga na ulicę nie prowadzi przez drzwi wyjściowe")
 	# 24b. drzwi domu: F otwiera, drugie F domyka i zaskakują; zombie je wyważa
-	var dr = tw.doors[0]
+	var dr = tw.doors[1]
 	_place(main, dr.door.global_position + dr.door.global_transform.basis.x * 1.2 - Vector3(0, dr.door.global_position.y, 0), 0.0)
 	await _wait(tree, 4)
 	dr.on_use(dr.door.global_position)
@@ -1637,6 +1651,57 @@ static func run_tests(main: Node) -> void:
 			main.world_items.remove(b)
 	inv.slots.erase("w_reku")
 	inv.slots.erase("w_lewej")
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
+	await _wait(tree, 20)
+
+	# 26a. chodzenie przez deskę leżącą na podłodze: bez podbijania w powietrze
+	var walk_plank = main.world_items.spawn(ItemScript.new("deska", 1), Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(-2.2, 0.03, 1.5)))
+	_place(main, Vector3(-3.6, 0.02, 1.5), -90.0)
+	await _wait(tree, 30)
+	var max_y := 0.0
+	var max_vy := 0.0
+	Input.action_press("move_forward")
+	for k in 150:
+		await tree.physics_frame
+		max_y = maxf(max_y, player.global_position.y)
+		max_vy = maxf(max_vy, player.velocity.y)
+	Input.action_release("move_forward")
+	if player.global_position.x < -1.6:
+		errors.append("26a: gracz nie przeszedł przez deskę (x %.2f)" % player.global_position.x)
+	if max_y > 0.12 or max_vy > 1.0:
+		errors.append("26a: deska podbija gracza (wysokość %.2f, prędkość w górę %.2f)" % [max_y, max_vy])
+	main.world_items.remove(walk_plank)
+	# 26b. wejście z trawnika na chodnik (krawężnik) bez skakania
+	_place(main, Vector3(-8.0, 0.0, 6.6), 180.0)
+	await _wait(tree, 30)
+	Input.action_press("move_forward")
+	for k in 120:
+		await tree.physics_frame
+	Input.action_release("move_forward")
+	if player.global_position.z < 8.0:
+		errors.append("26b: gracz zatrzymał się na krawężniku (z %.2f)" % player.global_position.z)
+	# 26c. zombie przechodzi z trawnika przez chodnik na jezdnię (krawężnik)
+	var walker = main.zombies.spawn(Vector3(-10.0, 0.0, 6.4))
+	await _wait(tree, 10)
+	walker.target_pos = Vector3(-10.0, 0.0, 12.0)
+	walker._set_state("investigate")
+	for k in 360:
+		await tree.physics_frame
+		walker.target_pos = Vector3(-10.0, 0.0, 12.0)
+		if walker.global_position.z > 10.5:
+			break
+	if walker.global_position.z < 10.0:
+		errors.append("26c: zombie utknął przy chodniku (z %.2f)" % walker.global_position.z)
+	main.zombies.clear_all()
+	# 26d. drzwi domu otwierają się szeroko (F), da się przez nie przejść
+	var door2 = main.town.doors[0]
+	if door2.latched:
+		_place(main, Vector3(5.6, 0.02, 2.4), 180.0)
+		await _wait(tree, 10)
+		door2.on_use(door2.door.global_position)
+		await _wait(tree, 60)
+		if door2.door_angle() < 1.0:
+			errors.append("26d: drzwi otwierają się tylko na %.2f rad" % door2.door_angle())
 	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
 	await _wait(tree, 20)
 

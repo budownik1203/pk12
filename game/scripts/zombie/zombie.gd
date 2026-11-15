@@ -56,6 +56,9 @@ func setup(main_node, mgr, id: int, pos: Vector3, speed_mult: float) -> void:
 	_rng.seed = 7919 * id + 13
 	speed_walk *= speed_mult
 	speed_chase *= speed_mult
+	platform_floor_layers = 0
+	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
+	floor_snap_length = 0.3
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.28
 	shape.height = 1.7
@@ -123,6 +126,9 @@ func hear(pos: Vector3, loudness: float) -> void:
 
 
 # --- ruch i stany --------------------------------------------------------------------
+
+const StepUp := preload("res://scripts/step_up.gd")
+
 
 func _set_state(s: String) -> void:
 	state = s
@@ -217,6 +223,8 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, delta * 6.0)
 		velocity.z = move_toward(velocity.z, 0.0, delta * 6.0)
 	if state != "dead":
+		if is_on_floor() and _climb < 0.0:
+			StepUp.try_step(self, delta, 0.28)  # krawężnik chodnika, deski
 		move_and_slide()
 		_push_props()
 		_check_stuck(delta, speed)

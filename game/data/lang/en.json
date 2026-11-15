@@ -299,5 +299,7 @@
 	"HINT_FIRE": "F: add wood from your hand",
 	"HINT_IGNITE": "F: light a campfire",
 	"HINT_STOVE": "F: on/off, Shift+F: pick up",
-	"MOODLE_WARM": "Warmed by fire"
+	"MOODLE_WARM": "Warmed by fire",
+	"MSG_REC_START": "Recording on (F12 to stop)",
+	"MSG_REC_STOP": "Recording saved: %d frames in the nagrania folder"
 }

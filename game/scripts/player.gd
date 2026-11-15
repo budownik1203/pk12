@@ -83,6 +83,12 @@ var _mantle_to := Vector3.ZERO
 
 
 func _init() -> void:
+	# bryły pod stopami (deski, puszki) to nie ruchome platformy: postać nie przejmuje
+	# ich prędkości (drgająca deska wyrzucała gracza w górę); przy zejściu ze stopnia
+	# stopy trzymają się podłogi zamiast „odfruwać”
+	platform_floor_layers = 0
+	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
+	floor_snap_length = 0.32
 	_shape = CapsuleShape3D.new()
 	_shape.radius = RADIUS
 	_shape.height = STAND_HEIGHT
@@ -147,6 +153,10 @@ func set_crouched(value: bool) -> void:
 ## Przeniesienie postaci bez wypychania brył (wczytanie zapisu, testy).
 ## Silnik fizyki widzi skok pozycji jako ruch z ogromną prędkością, więc na
 ## dwie klatki wyłączamy zderzenia postaci.
+const StepUp := preload("res://scripts/step_up.gd")
+const STEP_HEIGHT := 0.3   # krawężnik, deska, próg: wchodzi się bez skakania
+
+
 func teleport(pos: Vector3) -> void:
 	_col.disabled = true
 	_teleport_frames = 2
@@ -204,7 +214,14 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y -= _gravity * delta
 
+	var jumping := velocity.y > 0.5
+	if is_on_floor() and not jumping:
+		StepUp.try_step(self, delta, STEP_HEIGHT)
 	move_and_slide()
+	# stojąc na lekkiej bryle (deska, puszka) albo zahaczając o jej krawędź kapsuła
+	# dostawała prędkość w górę i lekko wyskakiwała; bez skoku nie idziemy w górę
+	if is_on_floor() and not jumping and velocity.y > 0.0:
+		velocity.y = 0.0
 	_push_bodies(delta)
 
 

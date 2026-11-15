@@ -27,6 +27,7 @@ const ZombiesScript := preload("res://scripts/zombie/zombies.gd")
 const WeatherScript := preload("res://scripts/world/weather.gd")
 const HeatScript := preload("res://scripts/craft/heat.gd")
 const SawScript := preload("res://scripts/craft/saw.gd")
+const RecorderScript := preload("res://scripts/recorder.gd")
 const CharacterScript := preload("res://scripts/character/character.gd")
 const CharCreateScript := preload("res://scripts/ui/char_create.gd")
 const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
@@ -72,6 +73,7 @@ var weather: WeatherScript
 var heat: HeatScript
 var creating_character := false  # ekran tworzenia postaci: kursor wolny
 var saw: SawScript
+var recorder: RecorderScript
 var character: CharacterScript
 var char_panel: CharPanelScript
 var town: TownScript
@@ -209,6 +211,11 @@ func _ready() -> void:
 	heat.name = "Ogien"
 	add_child(heat)
 	heat.setup(self)
+	recorder = RecorderScript.new()
+	recorder.name = "Nagrywanie"
+	recorder.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(recorder)
+	recorder.setup(self)
 	saw = SawScript.new()
 	saw.name = "Pila"
 	add_child(saw)

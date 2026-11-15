@@ -200,3 +200,13 @@
 - Otwarcie ekwipunku albo przełączenie na inny program puszcza trzymane przyciski (praca narzędziem, garda), żeby po powrocie mysz nie prowadziła dalej narzędzia zamiast kamery.
 - Piła startowa nachodziła na deskę w pokoju, a ziemniak na skrzynkę (do tego starsza kolizja puszki z chlebem). Fizyka rozpychała bryły i czasem wypychała deskę przez ścianę. Przedmioty przestawione, a nowy test 0 sprawdza, że nic ze `start.json` nie nachodzi na inne przedmioty ani bryły pokoju.
 - Nowa kontrola `game/tests/start_check.gd` sprawdza prawdziwy start gry z kliknięciami myszą, czego zwykłe testy (`--test`) nie widzą.
+
+### Poprawki po buildzie 11: wyjście z domu, chodzenie, ikony, nagrywanie
+
+- **Drzwi wyjściowe:** dom startowy dostał drzwi w ścianie południowej komórki (obok łóżka), prowadzące na podwórko i ulicę. Mapa nawigacji też przez nie prowadzi, więc zombie mogą podejść i walić w drzwi.
+- **Drzwi domów** otwierały się tylko na szparę i blokowały przejście: siła szła w płaszczyźnie skrzydła. Teraz pchanie jest prostopadłe do skrzydła, przy wolnej krawędzi, a F otwiera drzwi prawie na 90°.
+- **Stopień** (`scripts/step_up.gd`): gracz (do 0,3 m) i zombie (do 0,28 m) wchodzą na krawężnik, deskę czy próg bez skakania i bez utykania.
+- **Podbijanie na deskach:** postać nie przejmuje już prędkości brył, na których stoi (lekka deska drgała i wyrzucała gracza w górę). Bez skoku prędkość w górę po zetknięciu z ziemią jest zerowana.
+- **Ikony 3D w ekwipunku** (`scripts/ui/item_icons.gd`): każdy rodzaj przedmiotu renderuje się raz z tego samego modelu, który leży w świecie i który postać trzyma w ręce, w osobnym świecie 3D, w kadrze o proporcjach kształtu w siatce. Obrócony w siatce przedmiot ma obróconą ikonę. Ikony są też w polach ubrania i rąk.
+- **Nagrywanie (F12):** klatki JPG co 0,5 s do `nagrania/<data_godzina>/`, a w `klatki.txt` czas, pozycja, kierunek patrzenia, zdrowie, tryb walki, liczba zombie i FPS. Log błędów silnika (z miejscem w skrypcie) trafia zawsze do `nagrania/log_<data>.txt`. Folder jest pominięty w repozytorium.
+- Testy 24a2 i 26: droga z domu na ulicę przez drzwi, przejście przez deskę bez podbicia, wejście gracza i zombie na chodnik, szerokie otwieranie drzwi.

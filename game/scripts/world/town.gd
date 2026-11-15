@@ -49,6 +49,7 @@ func setup(main_node, world_seed: int) -> void:
 	var f := FileAccess.open("res://data/loot.json", FileAccess.READ)
 	_loot = JSON.parse_string(f.get_as_text())
 	_ground()
+	_door(-1, RoomBuilder.exit_hinge(), "wyjscie")  # drzwi domu startowego na podwórko
 	for i in LOTS.size():
 		var lot: Array = LOTS[i]
 		_house(i, float(lot[0]), float(lot[1]), str(lot[2]))
@@ -235,15 +236,17 @@ func _furnish(house: int, room: int, rect: Rect2, kind: String, back_z: float) -
 		_box("Kanapa_%d_%d" % [house, room], Vector3(x + 0.9, 0.4, rect.get_center().y), Vector3(1.8, 0.8, 0.8), _mat("kanapa", Color(0.3, 0.2, 0.18)))
 
 
-func _door(house: int, at: Vector3) -> void:
+func _door(house: int, at: Vector3, id: String = "") -> void:
+	if id == "":
+		id = "dom%d" % house
 	var size := Vector3(0.94, 2.04, 0.04)
 	var center := at + Vector3(0.03 + size.x / 2.0, 0.02 + size.y / 2.0, 0)
-	var body := RoomBuilder._rigid("drzwi_dom%d" % house, center, 30.0)
+	var body := RoomBuilder._rigid("drzwi_" + id, center, 30.0)
 	body.angular_damp = 4.0
 	RoomBuilder._add_box(body, size, Tex.material("wood", false, 1.0))
 	world.add_child(body)
 	var joint := HingeJoint3D.new()
-	joint.name = "Zawias_dom%d" % house
+	joint.name = "Zawias_" + id
 	joint.position = at + Vector3(0.02, center.y, 0)
 	joint.rotation_degrees = Vector3(90, 0, 0)
 	world.add_child(joint)
@@ -253,7 +256,7 @@ func _door(house: int, at: Vector3) -> void:
 	joint.set_param(HingeJoint3D.PARAM_LIMIT_UPPER, deg_to_rad(100.0))
 	var ctl := DoorScript.new()
 	add_child(ctl)
-	ctl.setup(main, body, "dom%d" % house)
+	ctl.setup(main, body, id)
 	doors.append(ctl)
 
 

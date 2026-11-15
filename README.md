@@ -24,6 +24,7 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | numpad + / − | (dev) zombie za oknem / usunięcie wszystkich zombie |
 | numpad / | (dev) następny rodzaj pogody |
 | C | okno postaci: zawód, cechy, umiejętności (poziomy 0–10 i postęp) |
+| F12 | nagrywanie sesji: klatki co pół sekundy do folderu `nagrania/` obok gry (z opisem każdej klatki w `klatki.txt`); log błędów silnika zapisuje się tam zawsze |
 | F (drewno, ognisko, kuchenka) | z zapałkami lub zapalniczką w ręce na drewnie leżącym na dworze: ognisko (stos w promieniu metra); na ognisku z drewnem w ręce: dokładanie; na kuchence: włącz/wyłącz, Shift+F podnosi |
 | F (drzwi domu, rama okna) | drzwi: klamka i pchnięcie, otwarte domyka; rama z odłamkami: wybicie resztek szkła |
 | numpad 0 | paski i liczby postępu pracy (domyślnie wyłączone: postęp widać na gwoździach i wkrętach) |

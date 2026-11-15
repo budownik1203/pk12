@@ -14,6 +14,10 @@ const WINDOW_X0 := -3.0
 const WINDOW_X1 := -1.8
 const WINDOW_SILL := 0.9
 const WINDOW_TOP := 2.1
+## drzwi wyjściowe na podwórko i ulicę: w ścianie południowej komórki
+const EXIT_X0 := 5.1
+const EXIT_W := 1.0
+const EXIT_H := 2.1
 
 
 static func build(world: Node3D) -> Dictionary:
@@ -157,7 +161,11 @@ static func _shell(world: Node3D) -> void:
 	var left_x0 := -hw - WALL
 	var right_x1 := hw + 3.0 + WALL
 	_static_box(world, "ScianaS_L", Vector3((left_x0 + WINDOW_X0) / 2.0, ROOM_H / 2, wz), Vector3(WINDOW_X0 - left_x0, ROOM_H, WALL), wall_m)
-	_static_box(world, "ScianaS_P", Vector3((WINDOW_X1 + right_x1) / 2.0, ROOM_H / 2, wz), Vector3(right_x1 - WINDOW_X1, ROOM_H, WALL), wall_m)
+	# od okna do drzwi wyjściowych, nadproże drzwi, od drzwi do narożnika
+	var ex1 := EXIT_X0 + EXIT_W
+	_static_box(world, "ScianaS_P", Vector3((WINDOW_X1 + EXIT_X0) / 2.0, ROOM_H / 2, wz), Vector3(EXIT_X0 - WINDOW_X1, ROOM_H, WALL), wall_m)
+	_static_box(world, "Nadproze_wyjscie", Vector3(EXIT_X0 + EXIT_W / 2.0, (EXIT_H + ROOM_H) / 2.0, wz), Vector3(EXIT_W, ROOM_H - EXIT_H, WALL), wall_m)
+	_static_box(world, "ScianaS_wyjscie", Vector3((ex1 + right_x1) / 2.0, ROOM_H / 2, wz), Vector3(right_x1 - ex1, ROOM_H, WALL), wall_m)
 	var ww := WINDOW_X1 - WINDOW_X0
 	var wx := (WINDOW_X0 + WINDOW_X1) / 2.0
 	_static_box(world, "Parapet", Vector3(wx, WINDOW_SILL / 2.0, wz), Vector3(ww, WINDOW_SILL, WALL), wall_m)
@@ -174,6 +182,11 @@ static func _shell(world: Node3D) -> void:
 	_static_box(world, "DzialowaN", Vector3(hw, ROOM_H / 2, -hd + north_len / 2.0), Vector3(WALL, ROOM_H, north_len), wall_m)
 	_static_box(world, "DzialowaS", Vector3(hw, ROOM_H / 2, hd - south_len / 2.0), Vector3(WALL, ROOM_H, south_len), wall_m)
 	_static_box(world, "Nadproze", Vector3(hw, door_h + (ROOM_H - door_h) / 2.0, door_z), Vector3(WALL, ROOM_H - door_h, door_w), wall_m)
+
+
+## Zawias drzwi wyjściowych (lewa krawędź otworu, środek grubości ściany, podłoga).
+static func exit_hinge() -> Vector3:
+	return Vector3(EXIT_X0, 0.0, ROOM_D / 2.0 + WALL / 2.0)
 
 
 ## Środek otworu okiennego po stronie wnętrza (tam przybija się deski).

@@ -299,5 +299,7 @@
 	"HINT_FIRE": "F: dołóż drewno z ręki",
 	"HINT_IGNITE": "F: rozpal ognisko",
 	"HINT_STOVE": "F: włącz/wyłącz, Shift+F: podnieś",
-	"MOODLE_WARM": "Ciepło od ognia"
+	"MOODLE_WARM": "Ciepło od ognia",
+	"MSG_REC_START": "Nagrywanie włączone (F12 wyłącza)",
+	"MSG_REC_STOP": "Nagrywanie zapisane: %d klatek w folderze nagrania"
 }

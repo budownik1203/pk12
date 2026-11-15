@@ -15,6 +15,8 @@ var _closed: Transform3D
 var _relatch := 0.0
 var _closing := false
 var _bang := 0.0
+var _width_axis := Vector3.RIGHT   # lokalnie: od zawiasu do wolnej krawędzi
+var _half_width := 0.47
 
 
 func setup(main_node, body: RigidBody3D, id: String) -> void:
@@ -23,6 +25,12 @@ func setup(main_node, body: RigidBody3D, id: String) -> void:
 	door_id = id
 	name = "Drzwi_" + id
 	_closed = door.global_transform
+	# oś szerokości skrzydła (od zawiasu do krawędzi) i oś grubości, z wymiarów bryły
+	for c in door.get_children():
+		if c is CollisionShape3D and c.shape is BoxShape3D:
+			var bs: Vector3 = (c.shape as BoxShape3D).size
+			_width_axis = Vector3.RIGHT if bs.x >= bs.z else Vector3.BACK
+			_half_width = maxf(bs.x, bs.z) * 0.5
 	door.set_meta("door_sys", self)
 	_set_latched(true)
 
@@ -57,7 +65,7 @@ func handle_pull(pitch_drop: float) -> void:
 func on_use(_hit: Vector3) -> void:
 	if latched:
 		try_unlatch()
-		_push_from(main.player.global_position, 14.0)
+		_push_from(main.player.global_position, 30.0)
 	elif door_angle() > LATCH_ANGLE:
 		_closing = true  # domykanie
 		_relatch = 0.0
@@ -65,8 +73,11 @@ func on_use(_hit: Vector3) -> void:
 
 ## Pchnięcie skrzydła od podanego punktu (gracza albo zombie).
 func _push_from(from: Vector3, strength: float) -> void:
-	var edge := door.global_transform * Vector3(0, 0, 0.4)
-	var n := door.global_transform.basis.x
+	# pchamy przy wolnej krawędzi, prostopadle do skrzydła (wcześniej siła szła
+	# w płaszczyźnie drzwi i skrzydło uchylało się tylko na szparę)
+	var edge := door.global_transform * (_width_axis * _half_width * 0.85)
+	var thick_axis := Vector3.BACK if _width_axis == Vector3.RIGHT else Vector3.RIGHT
+	var n := (door.global_transform.basis * thick_axis).normalized()
 	var side := signf(n.dot(edge - from))
 	if side == 0.0:
 		side = 1.0

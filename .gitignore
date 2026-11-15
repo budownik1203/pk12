@@ -5,3 +5,5 @@ export_presets.cfg
 # system
 .DS_Store
 Thumbs.db
+# nagrania sesji (F12) i logi błędów
+nagrania/
