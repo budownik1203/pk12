@@ -172,6 +172,9 @@ func _build_library() -> void:
 		"water": [1.3, _water], "eat": [0.5, _eat], "drink": [0.6, _drink],
 		"thunder": [3.2, _thunder],
 		"glass": [0.7, _glass],
+		"gunshot": [0.9, _gunshot], "shotgun": [1.2, _shotgun], "gun_click": [0.08, _gun_click],
+		"gun_rack": [0.35, _gun_rack], "gun_pump": [0.4, _gun_pump], "mag_out": [0.2, _mag_out],
+		"mag_in": [0.22, _mag_in], "shell_in": [0.18, _shell_in],
 		"saw": [0.42, _saw], "rip": [0.45, _rip], "chop": [0.12, _chop], "sizzle": [1.0, _sizzle],
 		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
 	}
@@ -386,6 +389,55 @@ func _thunder(t: float, d: float, st: Dictionary) -> float:
 	var crack := _noise() * exp(-t * 18.0) * 0.6
 	var rumble := _lp(st, _noise(), 0.03) * 6.0 * (0.6 + 0.4 * sin(t * 7.0 + st["seed"] * 4.0))
 	return (crack + rumble) * minf(1.0, t / 0.02) * exp(-t * 1.1) * (1.0 - t / d)
+
+
+func _gunshot(t: float, _d: float, st: Dictionary) -> float:
+	# huk: ostry trzask, niski grzmot i pogłos ulicy
+	var crack := _noise() * exp(-t * 90.0) * 1.6
+	var boom := (_lp(st, _noise(), 0.12) * 2.2 + _sin(70.0, t) * 0.6) * exp(-t * 14.0)
+	var tail := _lp(st, _noise(), 0.04, "lp2") * exp(-t * 4.0) * 1.4
+	return crack + boom + tail
+
+
+func _shotgun(t: float, _d: float, st: Dictionary) -> float:
+	var crack := _noise() * exp(-t * 60.0) * 1.5
+	var boom := (_lp(st, _noise(), 0.07) * 3.0 + _sin(48.0, t) * 0.8) * exp(-t * 9.0)
+	var tail := _lp(st, _noise(), 0.03, "lp2") * exp(-t * 2.8) * 1.6
+	return crack + boom + tail
+
+
+func _gun_click(t: float, _d: float, _st: Dictionary) -> float:
+	return (_noise() * 0.6 + _sin(3200.0, t) * 0.4) * exp(-t * 160.0)
+
+
+func _gun_rack(t: float, _d: float, _st: Dictionary) -> float:
+	# zamek do tyłu i z trzaskiem do przodu
+	var back := (_noise() * 0.5 + _sin(1800.0, t) * 0.3) * exp(-t * 70.0)
+	var t2 := t - 0.16
+	var fwd := 0.0 if t2 < 0.0 else (_noise() * 0.8 + _sin(2400.0, t2) * 0.4 + _sin(900.0, t2) * 0.3) * exp(-t2 * 55.0)
+	return back + fwd
+
+
+func _gun_pump(t: float, _d: float, st: Dictionary) -> float:
+	var slide := _lp(st, _noise(), 0.3) * (0.4 if t < 0.3 else 0.0)
+	var c1 := (_noise() * 0.7 + _sin(1300.0, t) * 0.3) * exp(-t * 60.0)
+	var t2 := t - 0.22
+	var c2 := 0.0 if t2 < 0.0 else (_noise() * 0.9 + _sin(1100.0, t2) * 0.4) * exp(-t2 * 50.0)
+	return slide * 0.5 + c1 + c2
+
+
+func _mag_out(t: float, _d: float, st: Dictionary) -> float:
+	return (_lp(st, _noise(), 0.4) * 0.6 + _sin(1500.0, t) * 0.25) * exp(-t * 30.0)
+
+
+func _mag_in(t: float, _d: float, _st: Dictionary) -> float:
+	var t2 := t - 0.08
+	var click := 0.0 if t2 < 0.0 else (_noise() * 0.9 + _sin(2100.0, t2) * 0.5) * exp(-t2 * 70.0)
+	return _noise() * 0.25 * exp(-t * 40.0) + click
+
+
+func _shell_in(t: float, _d: float, st: Dictionary) -> float:
+	return (_lp(st, _noise(), 0.5) * 0.5 + _sin(1700.0, t) * 0.3) * exp(-t * 45.0)
 
 
 func _saw(t: float, d: float, st: Dictionary) -> float:

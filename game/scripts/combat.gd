@@ -7,7 +7,8 @@ extends Node
 ## Bez niczego w rękach walczy się pięściami. Profil ciosu (obrażenia, czasy,
 ## zasięg, siła pchnięcia, garda) pochodzi z danych: items.json, pole "combat",
 ## a dla pięści "fists". Chwyt oburącz daje mocniejszy, wolniejszy cios i lepszą
-## gardę. Broń palna (lewy strzał, prawy przyrządy) dojdzie w swoim buildzie.
+## gardę. Z bronią palną w prawej ręce przyciski obsługuje guns.gd (lewy strzał,
+## prawy przyrządy celownicze, R przeładowanie).
 
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
 
@@ -59,7 +60,8 @@ func toggle() -> void:
 		if main.interaction.grab_mode:
 			main.interaction.toggle_grab_mode()
 		main.interaction.release()
-	main.hud.show_message(tr("MSG_COMBAT_ON" if active else "MSG_COMBAT_OFF"))
+	var gun_on: bool = active and main.guns != null and main.guns.current() != null
+	main.hud.show_message(tr("MSG_COMBAT_GUN_ON" if gun_on else ("MSG_COMBAT_ON" if active else "MSG_COMBAT_OFF")))
 	main.hud.set_mode(tr("MODE_COMBAT") if active else "")
 	main.sound.play("pickup", main.player.camera.global_position, -10.0, 0.8)
 
@@ -104,6 +106,9 @@ func profile() -> Dictionary:
 func press(button: int) -> void:
 	if not is_ready():
 		return
+	if main.guns != null and main.guns.current() != null and not main.inventory.hand("r").is_bulky():
+		main.guns.press(button)
+		return
 	if button == MOUSE_BUTTON_RIGHT:
 		blocking = true
 	elif button == MOUSE_BUTTON_LEFT:
@@ -114,6 +119,8 @@ func press(button: int) -> void:
 
 
 func release(button: int) -> void:
+	if main.guns != null:
+		main.guns.release(button)
 	if button == MOUSE_BUTTON_RIGHT:
 		blocking = false
 
@@ -307,6 +314,9 @@ func _update_pose() -> void:
 	var player = main.player
 	if not active:
 		return  # po wyjściu z walki pozę przejmuje praca narzędziem
+	if main.guns != null and main.guns.current() != null and state == "idle":
+		main.guns.update_pose()
+		return
 	var cam: Transform3D = player.camera.global_transform
 	var prof := profile() if state == "idle" else _prof
 	var pose := _current_pose()

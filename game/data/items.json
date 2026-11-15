@@ -211,28 +211,186 @@
 			}
 		},
 		"pistolet": {
-			"pl": "Pistolet (atrapa)",
-			"en": "Pistol (dummy)",
-			"mass": 0.85,
+			"pl": "Pistolet 9 mm",
+			"en": "9mm pistol",
+			"short_pl": "Pistolet",
+			"short_en": "Pistol",
+			"mass": 0.9,
 			"material": "metal",
 			"category": "bron",
 			"shape": [
 				"###",
 				"#.."
 			],
-			"desc_pl": "Zastępczy kształt. Broń palna wchodzi w buildzie 12.",
-			"desc_en": "Placeholder shape. Firearms arrive in build 12.",
-			"model": {
-				"type": "box",
-				"size": [
-					0.19,
-					0.13,
-					0.035
+			"grip": "gun",
+			"clean": {
+				"ability": "czyszczenie",
+				"strokes": 2.5
+			},
+			"gun": {
+				"caliber": "9mm",
+				"feed": "mag",
+				"mag": "magazynek_9mm",
+				"ammo": "naboje_9mm",
+				"action": "semi",
+				"damage": 42,
+				"spread_hip": 3.5,
+				"spread_ads": 0.45,
+				"recoil": 3.0,
+				"rof": 0.2,
+				"noise": 95,
+				"range": 50,
+				"falloff": 0.4,
+				"sight_y": 0.078,
+				"ads_fov": 62,
+				"muzzle": [
+					0.152,
+					0.058,
+					0.0
 				],
-				"color": [
-					0.1,
-					0.1,
-					0.11
+				"support": [
+					-0.015,
+					-0.03,
+					0.01
+				],
+				"dirt_per_shot": 0.006,
+				"wear": 0.0012,
+				"sound": "gunshot",
+				"ads_dist": 0.5
+			},
+			"desc_pl": "Tryb walki (kółko myszy): LPM strzał, PPM przyrządy, R przeładowanie. Magazynek ładujesz w ekwipunku: przeciągnij naboje na magazynek. PPM na broni w ekwipunku rozładowuje.",
+			"desc_en": "Combat mode (mouse wheel click): LMB fire, RMB aim down sights, R reload. Load magazines in the inventory: drag rounds onto a magazine. RMB on the gun in the inventory unloads it.",
+			"model": {
+				"type": "parts",
+				"size": [
+					0.2,
+					0.14,
+					0.032
+				],
+				"center": [
+					0.05,
+					0.02,
+					0.0
+				],
+				"grip_at": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"parts": [
+					{
+						"type": "box",
+						"size": [
+							0.19,
+							0.032,
+							0.028
+						],
+						"pos": [
+							0.055,
+							0.058,
+							0
+						],
+						"color": [
+							0.11,
+							0.11,
+							0.12
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.15,
+							0.022,
+							0.026
+						],
+						"pos": [
+							0.04,
+							0.032,
+							0
+						],
+						"color": [
+							0.07,
+							0.07,
+							0.075
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.032,
+							0.105,
+							0.03
+						],
+						"pos": [
+							0.0,
+							-0.012,
+							0
+						],
+						"rot": [
+							0,
+							0,
+							-14
+						],
+						"color": [
+							0.07,
+							0.07,
+							0.075
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.045,
+							0.01,
+							0.012
+						],
+						"pos": [
+							0.04,
+							0.0,
+							0
+						],
+						"color": [
+							0.07,
+							0.07,
+							0.075
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.008,
+							0.009,
+							0.006
+						],
+						"pos": [
+							0.142,
+							0.078,
+							0
+						],
+						"color": [
+							0.11,
+							0.11,
+							0.12
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.008,
+							0.009,
+							0.022
+						],
+						"pos": [
+							-0.03,
+							0.078,
+							0
+						],
+						"color": [
+							0.11,
+							0.11,
+							0.12
+						]
+					}
 				]
 			},
 			"combat": {
@@ -248,7 +406,9 @@
 		},
 		"naboje_9mm": {
 			"pl": "Naboje 9 mm",
-			"en": "9 mm rounds",
+			"en": "9mm rounds",
+			"short_pl": "9 mm",
+			"short_en": "9mm",
 			"mass": 0.012,
 			"material": "metal",
 			"category": "amunicja",
@@ -256,21 +416,24 @@
 				"#"
 			],
 			"stack": 50,
+			"ammo": {
+				"caliber": "9mm"
+			},
+			"desc_pl": "Do pistoletu. Przeciągnij na magazynek.",
+			"desc_en": "For the pistol. Drag onto a magazine.",
 			"model": {
 				"type": "box",
 				"size": [
-					0.07,
-					0.04,
-					0.045
+					0.05,
+					0.02,
+					0.035
 				],
 				"color": [
-					0.62,
-					0.5,
-					0.2
+					0.72,
+					0.55,
+					0.25
 				]
-			},
-			"short_pl": "9 mm",
-			"short_en": "9 mm"
+			}
 		},
 		"gwozdzie": {
 			"pl": "Gwoździe",
@@ -980,8 +1143,8 @@
 			"stack": 5,
 			"medical": "bandage",
 			"dirt": 0.35,
-			"desc_pl": "Prowizoryczny opatrunek: tamuje krew, ale łatwo o zakażenie. Drze się z ubrań nożem albo nożyczkami.",
-			"desc_en": "Improvised dressing: stops blood but infects easily. Torn from clothes with a knife or scissors.",
+			"desc_pl": "Prowizoryczny opatrunek: tamuje krew, ale łatwo o zakażenie. Drze się z ubrań nożem albo nożyczkami. Czyści też broń, ale tylko z grubsza.",
+			"desc_en": "Improvised dressing: stops blood but infects easily. Torn from clothes with a knife or scissors. Also wipes a gun down, roughly.",
 			"model": {
 				"type": "box",
 				"size": [
@@ -995,7 +1158,10 @@
 					0.36
 				]
 			},
-			"fuel": 4
+			"fuel": 4,
+			"abilities": {
+				"czyszczenie": 1
+			}
 		},
 		"spirytus": {
 			"pl": "Spirytus",
@@ -2083,6 +2249,329 @@
 				]
 			},
 			"fuel": 12
+		},
+		"strzelba": {
+			"pl": "Strzelba pompowa",
+			"en": "Pump shotgun",
+			"short_pl": "Strzelba",
+			"short_en": "Shotgun",
+			"mass": 3.3,
+			"material": "metal",
+			"category": "bron",
+			"shape": [
+				"#####"
+			],
+			"grip": "gun",
+			"clean": {
+				"ability": "czyszczenie",
+				"strokes": 3.5
+			},
+			"two_hand": true,
+			"gun": {
+				"caliber": "12",
+				"feed": "tube",
+				"capacity": 5,
+				"ammo": "naboje_12",
+				"action": "pump",
+				"pellets": 8,
+				"damage": 16,
+				"spread_hip": 5.0,
+				"spread_ads": 2.2,
+				"recoil": 7.0,
+				"rof": 0.3,
+				"pump_time": 0.6,
+				"noise": 130,
+				"range": 35,
+				"falloff": 0.6,
+				"two_handed": true,
+				"sight_y": 0.089,
+				"ads_fov": 66,
+				"muzzle": [
+					0.66,
+					0.04,
+					0.0
+				],
+				"support": [
+					0.0,
+					0.02,
+					-0.38
+				],
+				"dirt_per_shot": 0.01,
+				"wear": 0.002,
+				"sound": "shotgun",
+				"ads_dist": 0.52
+			},
+			"desc_pl": "Oburącz (Z) trzyma się pewnie, w jednej ręce rozrzut i odrzut są dużo większe. R wkłada naboje do rury po jednym (strzał przerywa), po strzale przeładowanie pompką. Naboje możesz też przeciągnąć na strzelbę w ekwipunku.",
+			"desc_en": "Hold it with both hands (Z); one-handed spread and recoil are much worse. R loads shells into the tube one by one (firing interrupts), it pumps after each shot. You can also drag shells onto the shotgun in the inventory.",
+			"model": {
+				"type": "parts",
+				"size": [
+					0.98,
+					0.14,
+					0.05
+				],
+				"center": [
+					0.17,
+					0.0,
+					0.0
+				],
+				"grip_at": [
+					-0.08,
+					-0.035,
+					0.0
+				],
+				"parts": [
+					{
+						"type": "box",
+						"size": [
+							0.3,
+							0.075,
+							0.04
+						],
+						"pos": [
+							-0.3,
+							-0.03,
+							0
+						],
+						"rot": [
+							0,
+							0,
+							8
+						],
+						"color": [
+							0.36,
+							0.21,
+							0.1
+						],
+						"wood": true
+					},
+					{
+						"type": "box",
+						"size": [
+							0.12,
+							0.05,
+							0.038
+						],
+						"pos": [
+							-0.1,
+							-0.01,
+							0
+						],
+						"color": [
+							0.36,
+							0.21,
+							0.1
+						],
+						"wood": true
+					},
+					{
+						"type": "box",
+						"size": [
+							0.2,
+							0.065,
+							0.045
+						],
+						"pos": [
+							0.04,
+							0.02,
+							0
+						],
+						"color": [
+							0.11,
+							0.11,
+							0.12
+						]
+					},
+					{
+						"type": "cylinder",
+						"radius": 0.011,
+						"height": 0.52,
+						"pos": [
+							0.4,
+							0.04,
+							0
+						],
+						"color": [
+							0.07,
+							0.07,
+							0.075
+						]
+					},
+					{
+						"type": "cylinder",
+						"radius": 0.011,
+						"height": 0.4,
+						"pos": [
+							0.33,
+							0.012,
+							0
+						],
+						"color": [
+							0.07,
+							0.07,
+							0.075
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.15,
+							0.035,
+							0.045
+						],
+						"pos": [
+							0.3,
+							0.012,
+							0
+						],
+						"color": [
+							0.36,
+							0.21,
+							0.1
+						],
+						"wood": true
+					},
+					{
+						"type": "box",
+						"size": [
+							0.006,
+							0.006,
+							0.006
+						],
+						"pos": [
+							0.655,
+							0.054,
+							0
+						],
+						"color": [
+							0.8,
+							0.8,
+							0.75
+						]
+					}
+				]
+			}
+		},
+		"magazynek_9mm": {
+			"pl": "Magazynek 9 mm",
+			"en": "9mm magazine",
+			"short_pl": "Magazynek",
+			"short_en": "Magazine",
+			"mass": 0.1,
+			"material": "metal",
+			"category": "amunicja",
+			"shape": [
+				"#"
+			],
+			"magazine": {
+				"caliber": "9mm",
+				"capacity": 15,
+				"ammo": "naboje_9mm"
+			},
+			"desc_pl": "15 naboi. Przeciągnij na niego naboje 9 mm, żeby załadować; PPM rozładowuje. W walce R wkłada najpełniejszy magazynek.",
+			"desc_en": "15 rounds. Drag 9mm rounds onto it to load; RMB unloads. In combat R inserts the fullest magazine.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.03,
+					0.11,
+					0.02
+				],
+				"color": [
+					0.07,
+					0.07,
+					0.075
+				]
+			}
+		},
+		"naboje_12": {
+			"pl": "Naboje śrutowe kal. 12",
+			"en": "12 gauge shells",
+			"short_pl": "Kal. 12",
+			"short_en": "12ga",
+			"mass": 0.04,
+			"material": "plastik",
+			"category": "amunicja",
+			"shape": [
+				"#"
+			],
+			"stack": 25,
+			"ammo": {
+				"caliber": "12"
+			},
+			"desc_pl": "Do strzelby. R z bronią w ręce albo przeciągnij na strzelbę.",
+			"desc_en": "For the shotgun. R with the gun in hand, or drag onto the shotgun.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.012,
+				"height": 0.07,
+				"color": [
+					0.65,
+					0.1,
+					0.08
+				]
+			}
+		},
+		"wycior": {
+			"pl": "Wycior z zestawem",
+			"en": "Cleaning rod kit",
+			"short_pl": "Wycior",
+			"short_en": "Cleaning rod",
+			"mass": 0.25,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"###"
+			],
+			"abilities": {
+				"czyszczenie": 3
+			},
+			"length": 0.5,
+			"desc_pl": "Porządne czyszczenie broni do zera: broń w lewej ręce, wycior w prawej, PPM i ruchy w dół.",
+			"desc_en": "Cleans a gun completely: gun in the left hand, rod in the right, RMB and downward strokes.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.5,
+					0.01,
+					0.01
+				],
+				"color": [
+					0.5,
+					0.5,
+					0.52
+				]
+			}
+		},
+		"wd40": {
+			"pl": "Smar WD-40",
+			"en": "WD-40 spray",
+			"short_pl": "WD-40",
+			"short_en": "WD-40",
+			"mass": 0.3,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"#",
+				"#"
+			],
+			"abilities": {
+				"czyszczenie": 2
+			},
+			"oil": 60,
+			"doses": 15,
+			"desc_pl": "Czyści i smaruje broń: przez 60 strzałów zacięcia zdarzają się czterokrotnie rzadziej. Zużywa się.",
+			"desc_en": "Cleans and oils a gun: for 60 shots jams are four times rarer. Gets used up.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.03,
+				"height": 0.17,
+				"color": [
+					0.2,
+					0.3,
+					0.6
+				]
+			}
 		}
 	},
 	"liquids": {

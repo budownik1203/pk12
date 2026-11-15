@@ -7,7 +7,7 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 11, rzemiosło i gotowanie
+## Stan: build 12, broń palna
 
 Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do komórki na zatrzasku z klamką, w szafce nakładka, zamek i wkręty, na stole klucz.
 
@@ -24,6 +24,7 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | numpad + / − | (dev) zombie za oknem / usunięcie wszystkich zombie |
 | numpad / | (dev) następny rodzaj pogody |
 | C | okno postaci: zawód, cechy, umiejętności (poziomy 0–10 i postęp) |
+| R (broń w prawej ręce) | przeładowanie: najpełniejszy magazynek z ekwipunku i zamek, w strzelbie naboje do rury po jednym; przy zacięciu przeładowanie zamka |
 | F12 | nagrywanie sesji: klatki co pół sekundy do folderu `nagrania/` obok gry (z opisem każdej klatki w `klatki.txt`); log błędów silnika zapisuje się tam zawsze |
 | F (drewno, ognisko, kuchenka) | z zapałkami lub zapalniczką w ręce na drewnie leżącym na dworze: ognisko (stos w promieniu metra); na ognisku z drewnem w ręce: dokładanie; na kuchence: włącz/wyłącz, Shift+F podnosi |
 | F (drzwi domu, rama okna) | drzwi: klamka i pchnięcie, otwarte domyka; rama z odłamkami: wybicie resztek szkła |
@@ -45,6 +46,8 @@ Praca narzędziem:
 - **Moneta i nóż** (wkręcanie 1): trzy razy wolniej; nóż szybko się tępi.
 - **Piła** (piłowanie 3): celuj w środek deski leżącej w świecie, prawy przycisk i ruchy myszy w dół. Deska rozpada się na dwie deszczułki (opał albo szyna).
 - **Nóż, nożyczki** (cięcie): warzywo albo ubranie w lewej ręce, prawy przycisk i ruchy w dół. Warzywa kroją się do zupy, ubrania tną się na szmaty (zawartość kieszeni wraca do ekwipunku).
+
+Broń palna (tryb walki, klik kółkiem): LPM strzał, PPM przytrzymany przyrządy celownicze (przybliżenie, mniejszy rozrzut), R przeładowanie. Magazynki ładuje się w ekwipunku: przeciągnij naboje na magazynek (albo na strzelbę), PPM na magazynku lub broni rozładowuje. Każdy strzał brudzi broń, a brud, zużycie i brak smaru grożą zacięciem. Czyszczenie: broń w lewej ręce, w prawej szmata (z grubsza), WD-40 (czyści i smaruje na 60 strzałów) albo wycior (do zera), PPM i ruchy w dół. Strzał słychać z daleka.
 
 Gotowanie: patelnia albo garnek postawione na ognisku lub włączonej kuchence gotują zawartość. Ziemniak na patelni piecze się w 40 minut gry, zostawiony dłużej robi się spalenizną. Garnek ze zlewu z wodą i pokrojonymi warzywami daje zupę, którą je się porcjami (przeciągnij garnek na postać w oknie zdrowia, H).
 

@@ -101,6 +101,13 @@ static func _lever_until(main: Node, cond: Callable, limit_px: float = 4000.0) -
 
 
 ## Obrys brył kolizji ciała w podanym położeniu (do sprawdzania nachodzenia).
+## Usuwa z zapisu wartości, które same zmieniają się w czasie (krew, wilgoć).
+static func _strip_live(json: String) -> String:
+	var re := RegEx.new()
+	re.compile("\"(blood|wet)\":[0-9.e-]+,?")
+	return re.sub(json, "", true)
+
+
 static func _shape_box(body: CollisionObject3D, xf: Transform3D) -> AABB:
 	var box := AABB()
 	var first := true
@@ -1705,6 +1712,173 @@ static func run_tests(main: Node) -> void:
 	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
 	await _wait(tree, 20)
 
+	# 27a. pistolet: strzał w zombie, nabój z magazynka wchodzi do komory, hałas
+	var gn = main.guns
+	inv.slots.erase("w_lewej")
+	var pistol_t = _hand(main, "pistolet", {"mag": {"def": "magazynek_9mm", "count": 1, "props": {"rounds": 3}}, "chamber": true, "dirt": 0.0})
+	_place(main, Vector3(-1.0, 0.02, 0.0), -90.0)
+	var target_z = main.zombies.spawn(Vector3(3.0, 0.0, 0.0))
+	target_z.set_physics_process(false)  # stoi jak tarcza
+	await _wait(tree, 10)
+	if not main.combat.active:
+		main.combat.toggle()
+	await _wait(tree, 25)
+	_aim(main, target_z.global_position + Vector3(0, 1.1, 0))
+	await _wait(tree, 2)
+	var hp0: float = target_z.hp
+	var noise0: int = main.noise.count_label("NOISE_GUNSHOT")
+	main.combat.press(MOUSE_BUTTON_LEFT)
+	await _wait(tree, 3)
+	if gn.shots.is_empty():
+		errors.append("27a: pistolet nie strzelił")
+	elif target_z.hp >= hp0:
+		errors.append("27a: strzał nie trafił zombie z 4 m (hp %.0f)" % target_z.hp)
+	var rr: Array = gn.rounds(pistol_t)
+	if rr[0] != 2 or rr[1] != 1:
+		errors.append("27a: po strzale w broni %d + %d zamiast 2 + 1" % [rr[0], rr[1]])
+	if float(pistol_t.props.get("dirt", 0.0)) <= 0.0:
+		errors.append("27a: strzał nie brudzi broni")
+	if main.noise.count_label("NOISE_GUNSHOT") <= noise0 and main.noise.last().get("label", "") != "NOISE_GUNSHOT":
+		errors.append("27a: strzał nie robi hałasu")
+	if gn._muzzle().distance_to(player.camera.global_position) > 1.2:
+		errors.append("27a: wylot lufy daleko od postaci (model w dłoni?)")
+	# 27b. przyrządy celownicze: przybliżenie i mniejszy rozrzut
+	main.combat.press(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 25)
+	if player.camera.fov > 66.0:
+		errors.append("27b: przyrządy nie przybliżają (fov %.0f)" % player.camera.fov)
+	await _wait(tree, 15)
+	main.combat.press(MOUSE_BUTTON_LEFT)
+	await _wait(tree, 3)
+	if gn.shots.size() >= 2 and float(gn.shots[gn.shots.size() - 1]["spread"]) >= float(gn.shots[gn.shots.size() - 2]["spread"]):
+		errors.append("27b: rozrzut przy przyrządach nie mniejszy")
+	main.combat.release(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 15)
+	# 27c. do pustej: strzały aż do suchego trzasku, potem R: nowy magazynek i zamek
+	for k in 4:
+		gn._cool = 0.0
+		main.combat.press(MOUSE_BUTTON_LEFT)
+		await _wait(tree, 2)
+	if gn.rounds(pistol_t) != [0, 0]:
+		errors.append("27c: pistolet nie opróżnił się (%s)" % str(gn.rounds(pistol_t)))
+	var spare_mag = ItemScript.new("magazynek_9mm", 1)
+	spare_mag.props["rounds"] = 15
+	inv.give(spare_mag)
+	if not gn.reload():
+		errors.append("27c: R nie zaczęło przeładowania")
+	await _wait(tree, 120)
+	rr = gn.rounds(pistol_t)
+	if rr[0] != 14 or rr[1] != 1:
+		errors.append("27c: po przeładowaniu %d + %d zamiast 14 + 1" % [rr[0], rr[1]])
+	var empty_back := false
+	for x in inv.all_carried():
+		if x.def_id == "magazynek_9mm" and int(x.props.get("rounds", 0)) == 0:
+			empty_back = true
+	if not empty_back:
+		errors.append("27c: pusty magazynek nie wrócił do ekwipunku")
+	# 27d. ładowanie magazynka nabojami (przeciągnięcie) i rozładowanie (PPM)
+	var load_mag = ItemScript.new("magazynek_9mm", 1)
+	var ammo20 = ItemScript.new("naboje_9mm", 20)
+	inv.give(load_mag)
+	inv.give(ammo20)
+	var loaded: int = gn.load_into(ammo20, load_mag)
+	if loaded != 15 or int(load_mag.props.get("rounds", 0)) != 15 or ammo20.count != 5:
+		errors.append("27d: ładowanie magazynka: %d włożono, %d zostało" % [loaded, ammo20.count])
+	if gn.load_into(ItemScript.new("naboje_12", 5), load_mag) != 0:
+		errors.append("27d: naboje śrutowe weszły do magazynka 9 mm")
+	var before_ammo: int = inv.count_of("naboje_9mm")
+	gn.unload(load_mag)
+	if int(load_mag.props.get("rounds", 0)) != 0 or inv.count_of("naboje_9mm") != before_ammo + 15:
+		errors.append("27d: rozładowanie magazynka")
+	# 27e. brud i zużycie: zacięcie, strzał nie wychodzi, R usuwa zacięcie
+	pistol_t.props["dirt"] = 1.0
+	pistol_t.props["condition"] = 0.1
+	var jammed := false
+	for k in 14:
+		gn._cool = 0.0
+		gn.shoot()
+		if bool(pistol_t.props.get("jammed", false)):
+			jammed = true
+			break
+	if not jammed:
+		errors.append("27e: brudna i zużyta broń się nie zacina")
+	else:
+		gn._cool = 0.0
+		if gn.shoot():
+			errors.append("27e: zacięta broń strzeliła")
+		gn.reload()
+		await _wait(tree, 60)
+		if bool(pistol_t.props.get("jammed", false)):
+			errors.append("27e: R nie usunęło zacięcia")
+	# 27f. czyszczenie: broń w lewej ręce, wycior w prawej, ruchy w dół; WD-40 smaruje
+	main.combat.toggle()
+	await _wait(tree, 25)
+	inv.slots.erase("w_reku")
+	inv.slots["w_lewej"] = pistol_t
+	pistol_t.slot = "w_lewej"
+	_hand(main, "wycior")
+	inv.slots["w_lewej"] = pistol_t
+	pistol_t.slot = "w_lewej"
+	main.work.end()
+	player.set_view(player.rotation.y, deg_to_rad(80.0))
+	await _wait(tree, 3)
+	if main.work.candidate == null or main.work.candidate.id != "dlon":
+		errors.append("27f: nie ma punktu czyszczenia broni")
+	else:
+		main.work.press("r")
+		_lever_until(main, func(): return float(pistol_t.props.get("dirt", 1.0)) < 0.01, 3000.0)
+		main.work.release("r")
+		if float(pistol_t.props.get("dirt", 1.0)) > 0.01:
+			errors.append("27f: wycior nie wyczyścił broni (%.2f)" % float(pistol_t.props.get("dirt", 1.0)))
+		_hand(main, "wd40")
+		inv.slots["w_lewej"] = pistol_t
+		pistol_t.slot = "w_lewej"
+		main.work.end()
+		await _wait(tree, 3)
+		main.work.press("r")
+		_lever_until(main, func(): return int(pistol_t.props.get("oiled", 0)) > 0, 3000.0)
+		main.work.release("r")
+		if int(pistol_t.props.get("oiled", 0)) != 60:
+			errors.append("27f: WD-40 nie nasmarowało broni")
+	player.set_view(player.rotation.y, 0.0)
+	inv.slots.erase("w_lewej")
+	# 27g. strzelba oburącz: R wkłada naboje do rury, pompka, śrut (8 promieni)
+	var sg = _hand(main, "strzelba", {"tube": 0, "chamber": false})
+	inv.toggle_two_hands()
+	await _finish(main)
+	inv.give(ItemScript.new("naboje_12", 3))
+	if not inv.hands_two():
+		errors.append("27g: strzelba nie trzyma się oburącz")
+	main.combat.toggle()
+	await _wait(tree, 25)
+	gn.reload()
+	await _wait(tree, 160)
+	rr = gn.rounds(sg)
+	if rr[0] != 2 or rr[1] != 1:
+		errors.append("27g: strzelba po ładowaniu %d + %d zamiast 2 + 1" % [rr[0], rr[1]])
+	_aim(main, target_z.global_position + Vector3(0, 1.1, 0))
+	await _wait(tree, 2)
+	var shots0: int = gn.shots.size()
+	main.combat.press(MOUSE_BUTTON_LEFT)
+	await _wait(tree, 2)
+	if gn.shots.size() == shots0 or (gn.shots[gn.shots.size() - 1]["hits"] as Array).size() < 4:
+		errors.append("27g: śrut nie poleciał (trafień %d)" % ((gn.shots[gn.shots.size() - 1]["hits"] as Array).size() if gn.shots.size() > shots0 else 0))
+	await _wait(tree, 50)
+	rr = gn.rounds(sg)
+	if rr[0] != 1 or rr[1] != 1:
+		errors.append("27g: pompka nie przeładowała (%d + %d)" % [rr[0], rr[1]])
+	main.combat.toggle()
+	await _wait(tree, 25)
+	inv.slots.erase("oburacz")
+	inv.slots.erase("w_reku")
+	main.zombies.clear_all()
+	for x in inv.all_carried():
+		if x.def_id in ["magazynek_9mm", "naboje_9mm", "naboje_12"]:
+			inv.remove_item(x)
+	inv.changed.emit()
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
+	await _wait(tree, 20)
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -1756,8 +1930,15 @@ static func run_tests(main: Node) -> void:
 	if ws_after != ws_saved:
 		errors.append("okno albo drzwi po odczycie różnią się od zapisanych")
 	var inv_after: Dictionary = main.inventory.to_dict()
-	if JSON.stringify(inv_after) != JSON.stringify(inv_saved):
+	# krew i wilgoć na ubraniu zmieniają się z upływem czasu (schną, bledną): pomijamy
+	var sa := _strip_live(JSON.stringify(inv_saved))
+	var sb := _strip_live(JSON.stringify(inv_after))
+	if sa != sb:
 		errors.append("ekwipunek po odczycie różni się od zapisanego")
+		var at := 0
+		while at < mini(sa.length(), sb.length()) and sa[at] == sb[at]:
+			at += 1
+		print("RÓŻNICA ZAPISU: ", sa.substr(maxi(0, at - 120), 240), "\n  PO ODCZYCIE: ", sb.substr(maxi(0, at - 120), 240))
 	if main.world_items.bodies.size() != world_saved:
 		errors.append("przedmiotów w świecie po odczycie: %d zamiast %d" % [main.world_items.bodies.size(), world_saved])
 	if main.switches["lampa_sala"]["on"] != lamp_saved or main.switches["lampa_sala"]["light"].visible != lamp_saved:
@@ -2143,7 +2324,98 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	await _shot(main, dir + "/drzwi_zamek.png")
 	ws.end()
 	await _build11_shots(main, dir)
+	await _build12_shots(main, dir)
 	tree.quit(0)
+
+
+## Kadry buildu 12: pistolet z biodra i przez przyrządy, przeładowanie,
+## strzelba w chwili strzału, ekwipunek z bronią.
+static func _build12_shots(main: Node, dir: String) -> void:
+	var tree := main.get_tree()
+	var inv = main.inventory
+	var gn = main.guns
+	main.clock.minutes = 13.0 * 60.0
+	main.clock.advance(0.0)
+	main.weather.set_kind("pogodnie", true)
+	main.set_switch("lampa_sala", true)
+	main.heat.from_dict([])
+	inv.slots.erase("w_lewej")
+	var pistol = _hand(main, "pistolet", {"mag": {"def": "magazynek_9mm", "count": 1, "props": {"rounds": 9}}, "chamber": true})
+	_place(main, Vector3(-3.0, 0.02, 0.6), -90.0, -4.0)
+	var z = main.zombies.spawn(Vector3(3.2, 0.0, 0.3))
+	z.set_physics_process(false)
+	await _wait(tree, 10)
+	if not main.combat.active:
+		main.combat.toggle()
+	await _wait(tree, 40)
+	_aim(main, z.global_position + Vector3(0, 1.45, 0))
+	await _wait(tree, 10)
+	await _shot(main, dir + "/pistolet_biodro.png")
+	main.combat.press(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 30)
+	await _shot(main, dir + "/pistolet_przyrzady.png")
+	main.combat.release(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 20)
+	var spare = ItemScript.new("magazynek_9mm", 1)
+	spare.props["rounds"] = 15
+	inv.give(spare)
+	gn.reload()
+	await _wait(tree, 6)
+	await _shot(main, dir + "/przeladowanie.png")
+	await _wait(tree, 80)
+	# strzelba oburącz, przyrządy, chwila strzału (błysk)
+	var sg = _hand(main, "strzelba", {"tube": 4, "chamber": true})
+	inv.toggle_two_hands()
+	await _finish(main)
+	await _wait(tree, 20)
+	main.combat.press(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 30)
+	_aim(main, z.global_position + Vector3(0, 1.3, 0))
+	await _wait(tree, 2)
+	main.combat.press(MOUSE_BUTTON_LEFT)
+	await tree.process_frame
+	await _shot(main, dir + "/strzelba_strzal.png")
+	main.combat.release(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 60)
+	await _shot(main, dir + "/strzelba_biodro.png")
+	main.combat.toggle()
+	await _wait(tree, 25)
+	# ekwipunek: broń, magazynki i amunicja jako modele, podpowiedź broni
+	inv.slots.erase("oburacz")
+	inv.slots.erase("w_reku")
+	var pl = ItemScript.new("plecak", 1)
+	inv.slots["plecak"] = pl
+	pl.slot = "plecak"
+	for id in ["pistolet", "magazynek_9mm", "magazynek_9mm", "naboje_9mm", "naboje_12", "wycior", "wd40"]:
+		var x = ItemScript.new(id, 30 if id.begins_with("naboje") else 1)
+		if id == "magazynek_9mm":
+			x.props["rounds"] = 12
+		if id == "pistolet":
+			x.props = {"mag": {"def": "magazynek_9mm", "count": 1, "props": {"rounds": 7}}, "chamber": true, "dirt": 0.35, "oiled": 40}
+		var spot: Dictionary = pl.grids[0].find_space(x)
+		if spot.is_empty():
+			inv.give(x)
+		else:
+			pl.grids[0].place(x, spot["pos"], spot["rot"])
+	inv.slots["oburacz"] = sg
+	sg.slot = "oburacz"
+	main.open_inventory("")
+	for k in 300:
+		await tree.process_frame
+		if main.inv_ui.icons.pending() == 0 and k > 20:
+			break
+	var ui = main.inv_ui
+	for it in pl.grids[0].items:
+		if it.def_id == "pistolet":
+			ui.hover_item = it
+			for b in ui.blocks:
+				if b["grid"] == pl.grids[0]:
+					ui.mouse = (b["rect"] as Rect2).position + Vector2(it.pos) * ui.CELL + Vector2(30, 20)
+	ui.queue_redraw()
+	await _wait(tree, 4)
+	await _shot(main, dir + "/ekwipunek_bron.png")
+	main.close_inventory()
+	main.zombies.clear_all()
 
 
 ## Kadry buildu 11: ognisko z patelnią o zmierzchu, kuchenka z garnkiem,

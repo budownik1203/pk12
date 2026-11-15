@@ -24,7 +24,9 @@ func setup(main_node) -> void:
 
 ## Rodzaje pracy w dłoni: pole w items.json -> [rodzaj ruchu, etykieta].
 ## open: puszka (kręcenie), cut: krojenie, rip: darcie na szmaty (ruch w dół).
-const MODES := {"open": ["rotate", "WORK_OPEN_CAN"], "cut": ["lever", "WORK_CUT"], "rip": ["lever", "WORK_RIP"]}
+## clean: czyszczenie broni (szmata, wycior, WD-40), ruchy w dół.
+const MODES := {"open": ["rotate", "WORK_OPEN_CAN"], "cut": ["lever", "WORK_CUT"], "rip": ["lever", "WORK_RIP"],
+		"clean": ["lever", "WORK_CLEAN"]}
 
 var mode := ""
 
@@ -75,6 +77,32 @@ func work_status(_p) -> Dictionary:
 	return {"text": tr("WORK_PROGRESS_" + mode.to_upper()) % int(progress / need * 100.0), "ratio": progress / need}
 
 
+## Koniec czyszczenia broni: wycior czyści do zera, WD-40 prawie do zera i smaruje
+## (mniej zacięć przez kilkadziesiąt strzałów), szmata tylko z grubsza.
+func _clean(gun, tool) -> void:
+	var lvl: int = main.work.tool_level(tool, "czyszczenie")
+	var dirt := float(gun.props.get("dirt", 0.0))
+	match lvl:
+		3:
+			dirt = 0.0
+		2:
+			dirt *= 0.15
+		_:
+			dirt = minf(dirt, maxf(dirt * 0.5, 0.15))
+	gun.props["dirt"] = dirt
+	if tool != null and tool.get_def().has("oil"):
+		gun.props["oiled"] = int(tool.get_def()["oil"])
+		var doses := int(tool.props.get("doses", int(tool.get_def().get("doses", 15)))) - 1
+		if doses <= 0:
+			main.inventory.remove_item(tool)
+		else:
+			tool.props["doses"] = doses
+	main.character.add_xp("bron_palna", 4.0)
+	main.sound.play("gun_rack", global_position, -6.0)
+	main.hud.show_message(tr("MSG_GUN_CLEANED") % int(dirt * 100.0))
+	main.inventory.changed.emit()
+
+
 func work_apply(_p, ev: Dictionary) -> void:
 	var it = main.inventory.hand("l")
 	if it == null or mode == "":
@@ -101,9 +129,15 @@ func work_apply(_p, ev: Dictionary) -> void:
 				main.character.add_xp("gotowanie", 1.0)
 			"rip":
 				main.sound.play("rip", global_position, -6.0)
+			"clean":
+				main.sound.play("rip", global_position, -14.0, 1.6)
 	if progress < _need():
 		return
 	progress = 0.0
+	if mode == "clean":
+		_clean(it, tool)
+		main.work.active = null
+		return
 	var lvl: int = main.work.tool_level(tool, point.ability)
 	var result := str(o.get("result", ""))
 	var count := int(o.get("count", 1))

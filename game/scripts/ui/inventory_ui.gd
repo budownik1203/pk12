@@ -11,6 +11,7 @@ extends Control
 
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
 const IconsScript := preload("res://scripts/ui/item_icons.gd")
+const GunsScript := preload("res://scripts/combat/guns.gd")
 const HealthPanel := preload("res://scripts/ui/health_panel.gd")
 
 const CELL := 44
@@ -287,6 +288,8 @@ func _gui_input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			if drag_item == null and health_open and hp_panel != null and hp_panel.segment_at(mouse) != "":
 				main.health.remove_dressing(hp_panel.segment_at(mouse))
+			elif drag_item == null and hover_item != null and main != null and main.get("guns") != null:
+				main.guns.unload(hover_item)  # magazynek albo broń: rozładowanie do ekwipunku
 			drag_item = null
 		accept_event()
 		queue_redraw()
@@ -356,6 +359,9 @@ func drop_at(p: Vector2) -> bool:
 		var g = hit["grid"]
 		var target = g.item_at(hit["cell"])
 		var pos: Vector2i = hit["cell"] - drag_grab
+		if target != null and target != it and main != null and main.get("guns") != null and it.get_def().has("ammo") \
+				and main.guns.load_into(it, target) > 0:
+			return true  # naboje do magazynka albo rury strzelby
 		if target != null and target != it and target.def_id == it.def_id and it.max_stack() > 1 and g.items.has(target):
 			ok = inv.merge_into(it, target)
 		elif drag_split:
@@ -598,6 +604,21 @@ func _draw_tooltip(it) -> void:
 	if not it.liquid.is_empty():
 		lines.append(tr("INV_TIP_LIQUID") % [ItemDB.liquid_name(str(it.liquid.get("type", ""))),
 				float(it.liquid.get("amount", 0.0)), float(it.get_def().get("liquid_capacity", 1.0))])
+	var mg: Dictionary = it.get_def().get("magazine", {})
+	if not mg.is_empty():
+		lines.append(tr("INV_TIP_ROUNDS") % [int(it.props.get("rounds", 0)), int(mg.get("capacity", 10))])
+	var gd: Dictionary = it.get_def().get("gun", {})
+	if not gd.is_empty():
+		var rr: Array = GunsScript.rounds(it)
+		var magtag: String = tr("INV_TIP_GUN_MAG") if it.props.get("mag") is Dictionary else ""
+		lines.append(tr("INV_TIP_GUN") % [rr[0] + rr[1], magtag])
+		lines.append(tr("INV_TIP_DIRT") % int(float(it.props.get("dirt", 0.0)) * 100.0))
+		if int(it.props.get("oiled", 0)) > 0:
+			lines.append(tr("INV_TIP_OILED") % int(it.props["oiled"]))
+		if bool(it.props.get("jammed", false)):
+			lines.append(tr("INV_TIP_JAMMED"))
+	if not mg.is_empty() or not gd.is_empty():
+		lines.append(tr("INV_TIP_UNLOAD"))
 	var cooked := float(it.props.get("cooked", 0.0))
 	if cooked > 0.0:
 		lines.append(tr("INV_TIP_COOKED") % int(minf(cooked, 1.0) * 100.0))

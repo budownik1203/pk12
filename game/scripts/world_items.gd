@@ -42,6 +42,9 @@ static func make_visual(item) -> MeshInstance3D:
 		mat.metallic = 0.35
 		mat.roughness = 0.6
 	var mi := MeshInstance3D.new()
+	if model.get("type", "box") == "parts":
+		mi.mesh = parts_mesh(model, item.material() == "metal")
+		return mi
 	if model.get("type", "box") == "cylinder":
 		var cyl := CylinderMesh.new()
 		cyl.top_radius = float(model.get("radius", 0.04))
@@ -58,6 +61,44 @@ static func make_visual(item) -> MeshInstance3D:
 		box.material = mat
 		mi.mesh = box
 	return mi
+
+
+## Model złożony z kilku brył (broń): każda część to osobna powierzchnia z własnym
+## kolorem. Części: {"type": "box"|"cylinder", "size"|"radius"+"height", "pos",
+## "rot" (stopnie), "color"}. Walec domyślnie leży wzdłuż osi X (lufa).
+static func parts_mesh(model: Dictionary, metal: bool) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	for part in model.get("parts", []):
+		var src: PrimitiveMesh
+		if str(part.get("type", "box")) == "cylinder":
+			var c := CylinderMesh.new()
+			c.top_radius = float(part.get("radius", 0.01))
+			c.bottom_radius = c.top_radius
+			c.height = float(part.get("height", 0.1))
+			c.radial_segments = 8
+			c.rings = 1
+			src = c
+		else:
+			var b := BoxMesh.new()
+			var sz: Array = part.get("size", [0.05, 0.05, 0.05])
+			b.size = Vector3(float(sz[0]), float(sz[1]), float(sz[2]))
+			src = b
+		var r: Array = part.get("rot", [0, 0, 0])
+		var basis := Basis.from_euler(Vector3(deg_to_rad(float(r[0])), deg_to_rad(float(r[1])), deg_to_rad(float(r[2]))))
+		if src is CylinderMesh and not part.has("rot"):
+			basis = Basis(Vector3.BACK, PI / 2.0)  # walec wzdłuż X
+		var pp: Array = part.get("pos", [0, 0, 0])
+		var xf := Transform3D(basis, Vector3(float(pp[0]), float(pp[1]), float(pp[2])))
+		var st := SurfaceTool.new()
+		st.append_from(src, 0, xf)
+		var c: Array = part.get("color", model.get("color", [0.2, 0.2, 0.2]))
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(float(c[0]), float(c[1]), float(c[2]))
+		mat.roughness = 0.6 if metal else 0.85
+		mat.metallic = 0.4 if metal and not part.get("wood", false) else 0.0
+		st.set_material(mat)
+		st.commit(out)
+	return out
 
 
 static func _shape_for(item) -> Shape3D:
@@ -89,6 +130,9 @@ func spawn(item, xf: Transform3D) -> RigidBody3D:
 	body.add_child(make_visual(item))
 	var col := CollisionShape3D.new()
 	col.shape = _shape_for(item)
+	var mc: Array = item.get_def().get("model", {}).get("center", [])
+	if mc.size() == 3:
+		col.position = Vector3(float(mc[0]), float(mc[1]), float(mc[2]))  # model złożony: obrys nie w środku
 	body.add_child(col)
 	world.add_child(body)
 	body.global_transform = xf

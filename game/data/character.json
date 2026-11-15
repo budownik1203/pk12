@@ -37,6 +37,12 @@
 			"base": 0,
 			"rate": 1.0
 		},
+		"bron_palna": {
+			"pl": "Broń palna",
+			"en": "Firearms",
+			"base": 0,
+			"rate": 1.0
+		},
 		"sila": {
 			"pl": "Siła",
 			"en": "Strength",
@@ -103,12 +109,12 @@
 			"en": "Police officer",
 			"points": -2,
 			"skills": {
-				"bron_tepa": 2,
-				"kondycja": 1,
-				"skradanie": 1
+				"bron_palna": 3,
+				"bron_tepa": 1,
+				"kondycja": 1
 			},
-			"desc_pl": "Wyszkolony w walce wręcz (broń palna w swoim buildzie).",
-			"desc_en": "Trained in hand-to-hand combat (firearms in their own build)."
+			"desc_pl": "Celnie strzela, szybko przeładowuje, rzadziej ma zacięcia.",
+			"desc_en": "Accurate shot, fast reloads, fewer jams."
 		},
 		"budowlaniec": {
 			"pl": "Robotnik budowlany",

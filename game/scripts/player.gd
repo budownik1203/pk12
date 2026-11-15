@@ -124,9 +124,19 @@ func _init() -> void:
 	body.setup(self, camera)
 
 
+var sens_mult := 1.0   # przy przyrządach celowniczych mysz jest wolniejsza
+
+
 func look(relative: Vector2) -> void:
-	rotate_y(-relative.x * MOUSE_SENS)
-	pitch = clampf(pitch - relative.y * MOUSE_SENS, -1.45, 1.45)
+	rotate_y(-relative.x * MOUSE_SENS * sens_mult)
+	pitch = clampf(pitch - relative.y * MOUSE_SENS * sens_mult, -1.45, 1.45)
+	head.rotation.x = pitch
+
+
+## Odrzut broni: podbicie kamery w górę i lekko w bok (radiany).
+func add_recoil(up: float, side: float) -> void:
+	rotate_y(side)
+	pitch = clampf(pitch + up, -1.45, 1.45)
 	head.rotation.x = pitch
 
 

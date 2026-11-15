@@ -28,6 +28,7 @@ const WeatherScript := preload("res://scripts/world/weather.gd")
 const HeatScript := preload("res://scripts/craft/heat.gd")
 const SawScript := preload("res://scripts/craft/saw.gd")
 const RecorderScript := preload("res://scripts/recorder.gd")
+const GunsScript := preload("res://scripts/combat/guns.gd")
 const CharacterScript := preload("res://scripts/character/character.gd")
 const CharCreateScript := preload("res://scripts/ui/char_create.gd")
 const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
@@ -74,6 +75,7 @@ var heat: HeatScript
 var creating_character := false  # ekran tworzenia postaci: kursor wolny
 var saw: SawScript
 var recorder: RecorderScript
+var guns: GunsScript
 var character: CharacterScript
 var char_panel: CharPanelScript
 var town: TownScript
@@ -92,7 +94,8 @@ func _ready() -> void:
 	Controls.register()
 	Lang.setup()
 	Psx.init()
-	get_tree().node_added.connect(Psx.on_node_added)
+	if not get_tree().node_added.is_connected(Psx.on_node_added):  # po nowej postaci scena wraca, drzewo zostaje
+		get_tree().node_added.connect(Psx.on_node_added)
 	_build_view()
 
 	world = Node3D.new()
@@ -211,6 +214,10 @@ func _ready() -> void:
 	heat.name = "Ogien"
 	add_child(heat)
 	heat.setup(self)
+	guns = GunsScript.new()
+	guns.name = "BronPalna"
+	add_child(guns)
+	guns.setup(self)
 	recorder = RecorderScript.new()
 	recorder.name = "Nagrywanie"
 	recorder.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -364,6 +371,8 @@ func release_mouse_holds() -> void:
 	work.end()
 	if combat != null:
 		combat.blocking = false
+	if guns != null:
+		guns.ads = false
 
 
 func _notification(what: int) -> void:
@@ -657,6 +666,8 @@ func _input(event: InputEvent) -> void:
 			if combat.active:
 				combat.toggle()
 			interaction.toggle_grab_mode()
+		elif event.physical_keycode == KEY_R and guns.current() != null:
+			guns.reload()  # broń w prawej ręce: przeładowanie albo usunięcie zacięcia
 		elif event.physical_keycode == KEY_Z:
 			if not inventory.toggle_two_hands():
 				hud.show_message(tr(inventory.last_error))

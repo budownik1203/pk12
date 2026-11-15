@@ -151,6 +151,11 @@ func _update_hand_visual(side: String, item) -> void:
 		_hand_visuals[side] = vis
 
 
+## Model trzymany w dłoni (do wylotu lufy, efektów).
+func hand_visual(side: String) -> Node3D:
+	return _hand_visuals.get(side)
+
+
 ## Odwrotna kinematyka dwóch kości. Zwraca [staw środkowy, koniec].
 static func solve_two_bone(root: Vector3, target: Vector3, pole: Vector3, l1: float, l2: float) -> Array:
 	var d := target - root
@@ -402,7 +407,12 @@ func _physics_process(delta: float) -> void:
 		var def: Dictionary = player.hand_items[side].get_def()
 		var model: Dictionary = def.get("model", {})
 		var length := float(model.get("size", [0.4])[0]) if model.get("type", "box") == "box" else 0.12
-		if str(def.get("grip", "")) == "up":
+		if str(def.get("grip", "")) == "gun":
+			# broń: chwyt modelu (pole grip_at) w dłoni, lufa (+X modelu) do przodu
+			var ga: Array = model.get("grip_at", [0.0, 0.0, 0.0])
+			var mb := hb * Basis(Vector3.UP, PI / 2.0)
+			vis.global_transform = Transform3D(mb, joints["dlon_" + side] - mb * Vector3(float(ga[0]), float(ga[1]), float(ga[2])))
+		elif str(def.get("grip", "")) == "up":
 			# trzonek pionowo w pięści (młotek): oś X modelu idzie w górę dłoni,
 			# dłoń trzyma trzonek w połowie, obuch patrzy do przodu
 			vis.global_transform = Transform3D(hb * Basis(Vector3.BACK, PI / 2.0), joints["dlon_" + side] + hb * Vector3(0, length * GRIP_UP_OFFSET, 0))
