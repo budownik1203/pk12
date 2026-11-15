@@ -206,6 +206,12 @@ func _hit() -> void:
 	hits.append(record)
 	if hits.size() > 20:
 		hits.pop_front()
+	if col.has_method("take_hit"):
+		# zombie: głowa liczy się podwójnie i więcej, mocny cios zatacza
+		var killed: bool = col.take_hit(dmg, pos, fwd, bool(_prof.get("two", false)) or dmg > 25.0)
+		record["killed"] = killed
+		main.noise.emit_noise(pos, 40.0, "NOISE_HIT")
+		return
 	if col is RigidBody3D and not (col as RigidBody3D).freeze:
 		var body := col as RigidBody3D
 		body.sleeping = false
@@ -237,6 +243,9 @@ func _shove_hit() -> void:
 		if body is RigidBody3D and not body.freeze:
 			body.sleeping = false
 			body.apply_central_impulse(flat * minf(SHOVE_FORCE, body.mass * 6.0))
+			hits.append({"target": body, "damage": 0.0, "shove": true})
+		elif body.has_method("shove"):
+			body.shove(flat)
 			hits.append({"target": body, "damage": 0.0, "shove": true})
 	main.sound.play("whoosh", cam.global_position + fwd * 0.4, -8.0, 0.8)
 

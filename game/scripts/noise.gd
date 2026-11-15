@@ -9,6 +9,8 @@ const KEEP := 40
 var events: Array = []
 var sound   # sound.gd: każdy hałas ma swój dźwięk
 
+signal noise_made(pos: Vector3, loudness: float)  # słyszą to zombie
+
 
 func emit_noise(pos: Vector3, loudness: float, label_key: String) -> void:
 	events.append({"pos": pos, "loud": loudness, "label": label_key,
@@ -17,6 +19,7 @@ func emit_noise(pos: Vector3, loudness: float, label_key: String) -> void:
 		events.pop_front()
 	if sound != null:
 		sound.on_noise(pos, label_key)
+	noise_made.emit(pos, loudness)
 
 
 func last() -> Dictionary:

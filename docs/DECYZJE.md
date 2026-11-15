@@ -124,3 +124,15 @@
 - **Zlew z kranem** (pierwsze lokalne źródło wody): F z pojemnikiem w ręce napełnia go, z pustymi rękami pijesz z kranu. Odcięcie wody przyjdzie razem z budynkami i siecią.
 - **Sen:** materac w komórce, F przy zmęczeniu od 20. Ekran gaśnie, czas biegnie 90 razy szybciej (8 h w około 13 s), zmęczenie spada 14/h; budzi każdy klawisz, niskie zmęczenie, silny ból, skrajny głód lub pragnienie. Nie zaśniesz, krwawiąc.
 - **Nowe przedmioty:** otwarta i pusta puszka, chleb, jabłko, baton, otwieracz. Na stole jedzenie i otwieracz. Zapis w wersji 5 zawiera zegar i potrzeby.
+
+
+## Build 7 (15.11.2026): zombie
+
+- **Zombie** (`scripts/zombie/`): CharacterBody z kapsułą, ciało z segmentów gracza (widoczna głowa, szczęka, losowe ubrania), pozy liczone w kodzie: powłóczysty chód z pochylonym tułowiem, ręce wyciągnięte w pościgu, zamach, zatoczenie, leżenie.
+- **Zmysły:** wzrok w stożku 120° z linią wzroku; zasięg 3–15 m zależnie od światła przy graczu (zapalona lampa, światło dzienne przy oknie, latarka), kucanie i patrzenie przez okno zmniejszają go. Słuch z każdego zdarzenia hałasu: promień = głośność × 0,25 m, przez ścianę × 0,6. Kroki są hałasem (bieg 20, chód 7, kucanie cisza).
+- **Stany:** snucie się, sprawdzanie hałasu, pościg (pamięta gracza 5 s po utracie z oczu), atak (zamach 0,55 s, trafia, jeśli gracz dalej jest w zasięgu 1,35 m i przed nim; odstęp 1,3 s), okno, drzwi, zatoczenie, leżenie (2,6 s), zwłoki.
+- **Nawigacja:** siatka pieczona przy starcie z brył statycznych (pokój z komórką i grunt za oknem). Strefy łączy tylko okno: zombie idzie do okna, wyrywa deski (koniec deski puszcza po 2 s plus 6 s za każdy wbity gwóźdź) i przełazi przez parapet, gdy w otworze nie ma żadnej deski. Zatrzaśnięte drzwi do komórki wyłamuje po 8 s walenia, zamknięte na zamek po 14 s plus czas zależny od tego, jak mocno trzymają nakładka i zamek. Luźne przedmioty przepycha.
+- **Walka z zombie:** 100 punktów życia (piaskownica). Cios w głowę ×2,5, w leżącego ×1,6; mocny cios (oburącz albo ponad 25) zatacza. Odepchnięcie przewraca (65%). Garda gracza przodem do zombie: koszt 12 wytrzymałości, szansa zablokowania = garda broni + 25%; zablokowany zombie się zatacza.
+- **Rany od zombie:** losowa część ciała (najczęściej przedramiona i ramiona, rzadko nogi), rodzaj wg piaskownicy (zadrapanie 50, rana cięta 30, ugryzienie 20). Ubranie może zatrzymać ranę. Czerwony błysk przy trafieniu.
+- **Zakażenie:** szansa wg piaskownicy (jak w PZ: zadrapanie 7%, rana cięta 25%, ugryzienie 100%). Bez objawów przez 35% czasu, potem mdłości, gorączka i agonia z rosnącym bólem i spadkiem zdrowia; po `knox_hours` (48 h gry) śmierć. Lekarstwa brak.
+- **Piaskownica** w `data/sandbox.json`. Na start 2 zombie na gruncie za oknem. Zapis wersji 6 zawiera zombie i liczbę zabitych. Dźwięki: jęk, warknięcie, uderzenie w ciało, upadek, walenie w drzwi.

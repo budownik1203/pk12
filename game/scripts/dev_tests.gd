@@ -1104,6 +1104,139 @@ static func run_tests(main: Node) -> void:
 	main.revive_if_needed()
 	await _wait(tree, 30)
 
+	# 21a. siatka nawigacji pokrywa pokój i grunt za oknem
+	var zm = main.zombies
+	zm.clear_all()
+	var nmap: RID = main.world.get_world_3d().navigation_map
+	await _wait(tree, 3)
+	var npath: PackedVector3Array = NavigationServer3D.map_get_path(nmap, Vector3(-3.0, 0.0, 0.0), Vector3(3.0, 0.0, -2.0), true)
+	if npath.size() < 2:
+		errors.append("21a: brak drogi po siatce nawigacji w pokoju")
+	var npath_out: PackedVector3Array = NavigationServer3D.map_get_path(nmap, Vector3(-3.5, 0.0, 4.3), Vector3(-1.0, 0.0, 5.8), true)
+	if npath_out.size() < 2:
+		errors.append("21a: brak siatki nawigacji za oknem")
+	# 21b. zombie w oświetlonym pokoju zauważa gracza i idzie do niego
+	main.health.reset()
+	main.revive_if_needed()
+	main.set_switch("lampa_sala", true)
+	inv.slots.erase("w_reku")
+	inv.slots.erase("oburacz")
+	_place(main, Vector3(-1.0, 0.02, -1.0), 0.0)
+	await _wait(tree, 4)
+	var zb = zm.spawn(Vector3(-1.0, 0.02, -5.0 + 0.5))
+	zb.global_position = Vector3(-1.0, 0.02, -4.5 + 1.5)
+	zb._fwd = Vector3(0, 0, 1)
+	var d0: float = zb.global_position.distance_to(player.global_position)
+	await _wait(tree, 120)
+	if zb.state != "chase" and zb.state != "attack":
+		errors.append("21b: zombie nie goni gracza (stan %s)" % zb.state)
+	if zb.global_position.distance_to(player.global_position) >= d0 - 0.4:
+		errors.append("21b: zombie się nie zbliża (%.2f -> %.2f)" % [d0, zb.global_position.distance_to(player.global_position)])
+	# 21c. atak: zombie przy graczu rani albo ubranie chroni
+	var hits0: int = zm.hits_on_player
+	for k in 240:
+		await tree.physics_frame
+		if zm.hits_on_player > hits0:
+			break
+	if zm.hits_on_player <= hits0:
+		errors.append("21c: zombie przy graczu nie zaatakował (stan %s, odl. %.2f)" % [zb.state, zb.global_position.distance_to(player.global_position)])
+	# 21d. cios łomem w głowę zabija, w tułów zatacza; odepchnięcie przewraca
+	var wounded: float = zb.hp
+	zb.take_hit(20.0, zb.global_position + Vector3.UP * 1.0, Vector3(0, 0, -1), false)
+	if zb.hp >= wounded or zb.is_dead():
+		errors.append("21d: cios w tułów nie rani albo od razu zabija")
+	zb.shove(Vector3(0, 0, -1))
+	if zb.state != "down" and zb.state != "stagger":
+		errors.append("21d: odepchnięcie nic nie robi (stan %s)" % zb.state)
+	zb._set_state("chase")
+	zb.body.down = 0.0
+	zb.take_hit(43.0, zb.global_position + Vector3.UP * 1.6, Vector3(0, 0, -1), true)
+	if not zb.is_dead():
+		errors.append("21d: cios łomem oburącz w głowę nie zabił (hp %.0f)" % zb.hp)
+	if zb.collision_layer != 0:
+		errors.append("21d: zwłoki blokują przejście")
+	# 21e. cios w trybie walki trafia zombie
+	var zc = zm.spawn(player.global_position + Vector3(0, 0, -1.0))
+	await _wait(tree, 2)
+	zc.global_position = player.global_position + Vector3(0, 0, -1.0)
+	zc._set_state("stagger")
+	_hand(main, "lom")
+	player.set_view(0.0, deg_to_rad(-12.0))
+	player.stamina = player.STAMINA_MAX
+	main.combat.toggle()
+	await _wait(tree, 25)
+	var zc_hp: float = zc.hp
+	main.combat.press(MOUSE_BUTTON_LEFT)
+	await _wait(tree, 45)
+	if zc.hp >= zc_hp and not zc.is_dead():
+		errors.append("21e: cios łomem w trybie walki nie trafił zombie")
+	main.combat.toggle()
+	inv.slots.erase("w_reku")
+	zm.clear_all()
+	main.health.reset()
+	# 21f. hałas przyciąga: zombie za oknem słyszy młotek
+	var zh = zm.spawn(Vector3(-2.4, 0.02, 5.6))
+	await _wait(tree, 3)
+	zh._set_state("wander")
+	zh._seen_t = 99.0
+	main.noise.emit_noise(main.window_boards.global_position, 70.0, "NOISE_HAMMER")
+	if zh.state != "investigate":
+		errors.append("21f: zombie nie słyszy młotka (stan %s)" % zh.state)
+	# 21g. przy oknie wyrywa deski, potem przełazi do pokoju
+	var wbz = main.window_boards
+	zh.global_position = zm.window_point("out")
+	zh._set_state("window")
+	var tries := 0
+	while not wbz.passable() and tries < 200:
+		wbz.zombie_pull(1.0)
+		tries += 1
+	if not wbz.passable():
+		errors.append("21g: deski nie puszczają mimo szarpania")
+	for k in 200:
+		await tree.physics_frame
+		if zh.zone == "in":
+			break
+	if zh.zone != "in":
+		errors.append("21g: zombie nie przelazł przez okno (stan %s, strefa %s)" % [zh.state, zh.zone])
+	zm.clear_all()
+	# 21h. walenie w zatrzaśnięte drzwi wyłamuje zatrzask
+	var dsz = main.door_sys
+	if not dsz.latched:
+		dsz._set_latched(true)
+	var was_locked: bool = dsz.locked
+	dsz.locked = false
+	dsz.zombie_bang(9.0)
+	if dsz.latched:
+		errors.append("21h: walenie nie wyłamało zatrzasku")
+	dsz.locked = was_locked and false
+	await _wait(tree, 60)
+	# 21i. zakażenie: objawy po czasie, na końcu śmierć
+	var hz = main.health
+	hz.reset()
+	hz.infect_knox()
+	if hz.knox_stage() != 0:
+		errors.append("21i: objawy zaraz po zakażeniu")
+	hz.knox = hz.knox_total * 0.7
+	if hz.knox_stage() != 2 or hz.overall() > 80.0:
+		errors.append("21i: zaawansowane zakażenie: etap %d, zdrowie %.0f" % [hz.knox_stage(), hz.overall()])
+	hz.knox = hz.knox_total * 1.01
+	await _wait(tree, 3)
+	if not hz.dead:
+		errors.append("21i: pełne zakażenie nie zabija")
+	hz.reset()
+	main.revive_if_needed()
+	# 21j. zapis zombie
+	var z1 = zm.spawn(Vector3(-3.0, 0.02, 5.0))
+	z1.hp = 37.0
+	zm.spawn(Vector3(-1.5, 0.02, 5.5)).die(Vector3(1, 0, 0))
+	var zsave: Array = zm.to_dict()
+	zm.from_dict(JSON.parse_string(JSON.stringify(zsave)))
+	await _wait(tree, 3)
+	if zm.zombies.size() != 2 or zm.alive_count() != 1 or absf(zm.zombies[0].hp - 37.0) > 0.1:
+		errors.append("21j: zapis zombie: %d, żywych %d" % [zm.zombies.size(), zm.alive_count()])
+	zm.clear_all()
+	await _wait(tree, 30)
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -1402,6 +1535,40 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	_place(main, Vector3(-3.2, 0.02, -0.6), 90.0, -25.0)
 	main.use_sink()
 	await _shot(main, dir + "/zlew.png", 12)
+	# kadry zombie: w pokoju, przy oknie, z bliska, zwłoki
+	var zmk = main.zombies
+	main.set_switch("lampa_sala", true)
+	_place(main, Vector3(-0.5, 0.02, -0.5), 0.0, -4.0)
+	var zk1 = zmk.spawn(Vector3(-0.3, 0.02, -2.6))
+	zk1._fwd = Vector3(0, 0, 1)
+	zk1._set_state("chase")
+	zk1._seen_t = 0.0
+	await _wait(tree, 40)
+	await _shot(main, dir + "/zombie_w_pokoju.png")
+	zk1.die(Vector3(0, 0, -1))
+	var zk2 = zmk.spawn(zmk.window_point("out"))
+	zk2._set_state("window")
+	_place(main, Vector3(-2.4, 0.02, 1.4), 180.0, 4.0)
+	await _wait(tree, 50)
+	await _shot(main, dir + "/zombie_okno.png")
+	var extz := Camera3D.new()
+	main.world.add_child(extz)
+	var zk3 = zmk.spawn(Vector3(1.5, 0.02, 1.0))
+	zk3._fwd = Vector3(-1, 0, 0.3).normalized()
+	zk3._set_state("pozuje")  # stan bez ruchu: kadr z bliska
+	zk3.body.reach = 1.0
+	await _wait(tree, 20)
+	extz.global_position = zk3.global_position + Vector3(-1.6, 1.5, 0.9)
+	extz.look_at(zk3.global_position + Vector3(0, 1.1, 0))
+	extz.make_current()
+	await _shot(main, dir + "/zombie_z_bliska.png")
+	extz.global_position = zk1.global_position + Vector3(1.2, 1.6, 1.2)
+	extz.look_at(zk1.global_position + Vector3(0, 0.2, 0.4))
+	await _shot(main, dir + "/zombie_zwloki.png")
+	player.camera.make_current()
+	extz.queue_free()
+	zmk.clear_all()
+	await _wait(tree, 10)
 	# kadr: styl klasyczny PS1
 	_place(main, Vector3(-1.0, 0.02, 2.6), -35.0, -8.0)
 	main.set_style(1, false)

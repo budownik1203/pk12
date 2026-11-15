@@ -23,6 +23,7 @@ const HealthScript := preload("res://scripts/health/health.gd")
 const NeedsScript := preload("res://scripts/health/needs.gd")
 const ClockScript := preload("res://scripts/world/clock.gd")
 const HandWorkScript := preload("res://scripts/work/hand_work.gd")
+const ZombiesScript := preload("res://scripts/zombie/zombies.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -59,6 +60,8 @@ var health: HealthScript
 var needs: NeedsScript
 var clock: ClockScript
 var sink: StaticBody3D
+var zombies: ZombiesScript
+var _flash := 0.0
 var _stream_time := 0.0
 var window_boards: WindowScript
 var door_sys: DoorScript
@@ -163,6 +166,16 @@ func _ready() -> void:
 	var hand_work := HandWorkScript.new()
 	hand_work.setup(self)
 	work.hand_work = hand_work
+	zombies = ZombiesScript.new()
+	zombies.name = "Zombie"
+	add_child(zombies)
+	zombies.setup(self)
+	var dev_run := false
+	for a in OS.get_cmdline_user_args():
+		if a == "--test" or a.begins_with("--zrzuty"):
+			dev_run = true
+	if not dev_run:
+		zombies.start_population()
 	player.health = health
 
 	inv_ui = InventoryUIScript.new()
@@ -312,6 +325,11 @@ func _update_health_hud() -> void:
 		m.append([tr("MOOD_HOT"), Color(1.0, 0.6, 0.4)])
 	if needs.poison > 0.1:
 		m.append([tr("MOOD_POISON"), Color(0.6, 0.8, 0.3)])
+	match health.knox_stage():
+		1:
+			m.append([tr("MOOD_QUEASY"), Color(0.7, 0.8, 0.5)])
+		2, 3:
+			m.append([tr("MOOD_FEVER"), Color(0.95, 0.5, 0.4)])
 	hud.set_health(health.overall(), m)
 	if not health.action.is_empty():
 		hud.set_treatment("%s %d%%" % [tr("HP_ACT_" + str(health.action["kind"]).to_upper()), int(health.action_ratio() * 100.0)])
@@ -338,10 +356,16 @@ func use_sink() -> void:
 		hud.show_message(tr("MSG_NOT_THIRSTY"))
 
 
+## Krótki czerwony błysk przy trafieniu przez zombie.
+func set_hurt_flash() -> void:
+	_flash = 1.0
+
+
 ## Ciemnienie i odbarwienie obrazu przy utracie krwi, drżenie przy bólu.
 func set_hurt_effect(dim: float, pain_level: float) -> void:
 	_post.set_shader_parameter("hurt", dim)
-	_post.set_shader_parameter("pain", pain_level)
+	_flash = maxf(0.0, _flash - get_process_delta_time() * 3.0)
+	_post.set_shader_parameter("pain", maxf(pain_level, _flash * 1.3))
 	var shake := maxf(0.0, pain_level - 0.45) * 0.006
 	player.camera.h_offset = randf_range(-shake, shake)
 	player.camera.v_offset = randf_range(-shake, shake)
@@ -514,6 +538,12 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_KP_ADD:
+			zombies.spawn(zombies.random_point("out", RandomNumberGenerator.new()))
+			hud.show_message(tr("MSG_DEV_ZOMBIE"))
+		KEY_KP_SUBTRACT:
+			zombies.clear_all()
+			hud.show_message(tr("MSG_DEV_NO_ZOMBIES"))
 		KEY_F7:
 			if Input.is_key_pressed(KEY_SHIFT):
 				needs.hunger = 0.0
@@ -568,6 +598,7 @@ func _process(_delta: float) -> void:
 	lines.append(tr("DEV_STAMINA") % int(player.stamina))
 	lines.append(tr("DEV_MASS") % [inventory.carried_mass(), inventory.felt_mass(), int(round(inventory.speed_factor() * 100.0))])
 	lines.append(tr("DEV_RATTLE") % inventory.rattle_count())
+	lines.append(tr("DEV_ZOMBIES") % [zombies.alive_count(), zombies.kills])
 	lines.append(tr("DEV_NEEDS") % [needs.hunger, needs.thirst, needs.fatigue, needs.body_temp, needs.felt_temp()])
 	var act: Dictionary = inventory.current_action()
 	if not act.is_empty():

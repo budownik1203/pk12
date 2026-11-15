@@ -59,6 +59,8 @@ var blood := 100.0
 var pain := 0.0
 var dead := false
 var action := {}                    # trwające opatrywanie
+var knox := -1.0                    # zakażenie zombie: godziny gry od zakażenia (-1: zdrowy)
+var knox_total := 48.0              # po tylu godzinach zakażenie zabija (piaskownica)
 var rng := RandomNumberGenerator.new()
 
 var _sting := 0.0
@@ -84,6 +86,7 @@ func reset() -> void:
 	blood = 100.0
 	pain = 0.0
 	dead = false
+	knox = -1.0
 	action = {}
 	_sting = 0.0
 	_painkiller = 0.0
@@ -105,6 +108,7 @@ func overall() -> float:
 		loss += (100.0 - segment_hp(id)) * float(SEGMENTS[id]) * 0.12
 	loss += maxf(0.0, 92.0 - blood) * 1.4
 	loss += max_infection() * 40.0
+	loss += knox_damage()
 	if main != null and main.get("needs") != null:
 		loss += main.needs.damage  # głód, pragnienie, wychłodzenie, zatrucie
 	return clampf(100.0 - loss, 0.0, 100.0)
@@ -138,6 +142,35 @@ func max_infection() -> float:
 		for w in segments[id]["wounds"]:
 			m = maxf(m, float(w["infection"]))
 	return m
+
+
+## Zakażenie zombie: objawy dopiero po czasie (mdłości, gorączka), na końcu śmierć.
+func infect_knox() -> void:
+	if knox < 0.0:
+		knox = 0.0
+		if main != null and main.get("zombies") != null:
+			knox_total = float(main.zombies.settings.get("knox_hours", 48.0))
+
+
+## 0 brak objawów, 1 mdłości, 2 gorączka, 3 agonia.
+func knox_stage() -> int:
+	if knox < 0.0:
+		return 0
+	var r := knox / knox_total
+	if r < 0.35:
+		return 0
+	if r < 0.6:
+		return 1
+	if r < 0.85:
+		return 2
+	return 3
+
+
+func knox_damage() -> float:
+	if knox < 0.0:
+		return 0.0
+	var r := knox / knox_total
+	return clampf((r - 0.5) / 0.5, 0.0, 1.0) * 110.0
 
 
 func has_wound(id: String, type: String) -> bool:
@@ -298,6 +331,9 @@ func _physics_process(delta: float) -> void:
 	_painkiller = maxf(0.0, _painkiller - delta)
 	var calm := PAINKILLER * clampf(_painkiller / 60.0, 0.0, 1.0)
 	pain = clampf(wound_pain + _sting + max_infection() * 30.0 - calm, 0.0, 100.0)
+	if knox >= 0.0 and main.get("clock") != null:
+		knox += main.clock.game_hours(delta)
+		pain = clampf(pain + knox_stage() * 8.0, 0.0, 100.0)
 	_update_action(delta)
 	_apply_effects()
 	if blood <= BLOOD_DEATH or overall() <= 0.0 or segment_hp("glowa") <= 0.0:
@@ -360,7 +396,7 @@ func _die() -> void:
 		return
 	dead = true
 	action = {}
-	main.hud.show_message(tr("MSG_DEAD"))
+	main.hud.show_message(tr("MSG_DEAD_KNOX" if knox_stage() >= 3 else "MSG_DEAD"))
 	died.emit()
 
 
@@ -544,13 +580,14 @@ func to_dict() -> Dictionary:
 	var segs := {}
 	for id in segments:
 		segs[id] = segments[id]["wounds"].duplicate(true)
-	return {"blood": blood, "segments": segs, "painkiller": _painkiller}
+	return {"blood": blood, "segments": segs, "painkiller": _painkiller, "knox": knox}
 
 
 func from_dict(d: Dictionary) -> void:
 	reset()
 	blood = float(d.get("blood", 100.0))
 	_painkiller = float(d.get("painkiller", 0.0))
+	knox = float(d.get("knox", -1.0))
 	var segs: Dictionary = d.get("segments", {})
 	for id in segs:
 		if segments.has(id):

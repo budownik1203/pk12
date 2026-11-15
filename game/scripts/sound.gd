@@ -113,6 +113,9 @@ func _physics_process(delta: float) -> void:
 			_step_dist = 0.0
 			var vol := -14.0 if crouch else (-6.0 if hv.length() > 4.0 else -10.0)
 			play("step", feet, vol + pl.load_factor * 3.0)
+			# kroki słychać: bieg daleko, chód blisko, kucanie prawie wcale
+			if not crouch:
+				main.noise.emit_noise(feet, 20.0 if hv.length() > 4.0 else 7.0, "NOISE_STEP")
 		if not _was_floor and _fall_speed > 2.5:
 			play("land", feet, clampf(-12.0 + _fall_speed * 2.0, -12.0, 0.0))
 	else:
@@ -153,6 +156,7 @@ func _build_library() -> void:
 		"impact_metal": [0.4, _impact_metal], "pickup": [0.2, _pickup],
 		"whoosh": [0.3, _whoosh], "inv": [0.11, _inv],
 		"water": [1.3, _water], "eat": [0.5, _eat], "drink": [0.6, _drink],
+		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
 	}
 	for n in gens:
 		var arr: Array = []
@@ -334,3 +338,27 @@ func _drink(t: float, _d: float, st: Dictionary) -> float:
 		if tk >= 0.0:
 			s += _sin(180.0 + 60.0 * exp(-tk * 10.0), tk) * exp(-tk * 14.0) + _lp(st, _noise(), 0.15) * exp(-tk * 20.0) * 0.5
 	return s * 0.8
+
+
+func _groan(t: float, d: float, st: Dictionary) -> float:
+	# jęk: niski, chrapliwy ton z formantem i drżeniem
+	var f := 85.0 + 25.0 * sin(t * 2.3 + st["seed"] * 5.0) + _noise() * 8.0
+	st["ph"] = fmod(st["ph"] + f / RATE, 1.0)
+	var buzz: float = st["ph"] * 2.0 - 1.0
+	var formant := _lp(st, buzz + _noise() * 0.35, 0.18)
+	return formant * sin(PI * t / d) * (0.7 + 0.3 * sin(t * 11.0)) * 1.4
+
+
+func _snarl(t: float, d: float, st: Dictionary) -> float:
+	var f := 140.0 + 90.0 * (1.0 - t / d)
+	st["ph"] = fmod(st["ph"] + f / RATE, 1.0)
+	var rasp: float = (st["ph"] * 2.0 - 1.0) * 0.6 + _noise() * 0.5
+	return _lp(st, rasp, 0.35) * minf(1.0, t / 0.03) * exp(-t * 3.5) * 1.5
+
+
+func _hit_flesh(t: float, _d: float, st: Dictionary) -> float:
+	return _lp(st, _noise(), 0.3) * exp(-t * 35.0) * 1.2 + _sin(75.0, t) * exp(-t * 25.0) * 0.7
+
+
+func _bodyfall(t: float, _d: float, st: Dictionary) -> float:
+	return _lp(st, _noise(), 0.12) * exp(-t * 12.0) * 1.3 + _sin(52.0, t) * exp(-t * 10.0) * 0.8

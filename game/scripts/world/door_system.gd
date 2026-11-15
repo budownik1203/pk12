@@ -40,6 +40,7 @@ var _handle_angle := 0.0
 var _handle_hold := 0.0
 var _relatch_block := 0.0
 var _pry := 0.0
+var _zbang := 0.0
 var _pry_point = null
 var _turn_acc := 0.0
 var _msg_cool := 0.0
@@ -378,6 +379,22 @@ func _detach(name: String) -> void:
 
 
 ## Wyważenie: zatrzask puszcza; zamknięte na klucz drzwi wyłamują zamek i nakładkę.
+## Zombie wali w zatrzaśnięte drzwi: po chwili wyłamuje zatrzask, a z zamkiem
+## (zależnie od tego, jak mocno trzyma) trwa to znacznie dłużej.
+func zombie_bang(delta: float) -> void:
+	if not latched:
+		return
+	_zbang += delta
+	if int(_zbang * 1.5) != int((_zbang - delta) * 1.5):
+		main.noise.emit_noise(door.global_position, 65.0, "NOISE_DOOR_BANG")
+	var need := 8.0
+	if locked:
+		need = 14.0 + 10.0 * (part_strength(parts["zamek"]) + part_strength(parts["nakladka"]))
+	if _zbang >= need:
+		_zbang = 0.0
+		_force_open()
+
+
 func _force_open() -> void:
 	_pry = 0.0
 	if locked:

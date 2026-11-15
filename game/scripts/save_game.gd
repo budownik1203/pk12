@@ -3,7 +3,7 @@ extends RefCounted
 ## Format ma numer wersji od pierwszego builda; każdy nowy system dopisuje
 ## tu swoją sekcję i podbija VERSION, gdy zmienia znaczenie istniejących pól.
 
-const VERSION := 5  # 5: czas i potrzeby (build 6); 2: ekwipunek (build 3); 3: okno z deskami i drzwi z zamkiem (build 4); 4: zdrowie (build 5)
+const VERSION := 6  # 6: zombie (build 7); 5: 5: czas i potrzeby (build 6); 2: ekwipunek (build 3); 3: okno z deskami i drzwi z zamkiem (build 4); 4: zdrowie (build 5)
 const DEFAULT_PATH := "user://zapis_1.json"
 
 enum Result { OK, NO_FILE, BAD_FILE }
@@ -36,6 +36,8 @@ static func save(main: Node, path: String = DEFAULT_PATH) -> bool:
 	data["health"] = main.health.to_dict()
 	data["clock"] = main.clock.to_dict()
 	data["needs"] = main.needs.to_dict()
+	data["zombies"] = main.zombies.to_dict()
+	data["kills"] = main.zombies.kills
 	for body in main.bodies:
 		var q: Quaternion = body.global_transform.basis.get_rotation_quaternion()
 		data["bodies"][body.get_meta("save_id")] = {
@@ -86,6 +88,8 @@ static func load_into(main: Node, path: String = DEFAULT_PATH) -> int:
 	main.health.from_dict(data.get("health", {}))
 	main.clock.from_dict(data.get("clock", {}))
 	main.needs.from_dict(data.get("needs", {}))
+	main.zombies.from_dict(data.get("zombies", []))
+	main.zombies.kills = int(data.get("kills", 0))
 	main.revive_if_needed()
 
 	var sw = data.get("switches", {})

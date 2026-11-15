@@ -7,7 +7,7 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 6, czas i potrzeby
+## Stan: build 7, zombie
 
 Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do komórki na zatrzasku z klamką, w szafce nakładka, zamek i wkręty, na stole klucz.
 
@@ -21,6 +21,7 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | F8 / Shift+F8 | (dev) losowa rana / wyleczenie |
 | F (zlew, materac) | zlew: z butelką w ręce napełnia, z pustymi rękami pijesz z kranu; materac w komórce: sen, gdy jesteś zmęczony (każdy klawisz budzi) |
 | F7 / Shift+F7 | (dev) +1 godzina / zerowanie potrzeb |
+| numpad + / − | (dev) zombie za oknem / usunięcie wszystkich zombie |
 | numpad 0 | paski i liczby postępu pracy (domyślnie wyłączone: postęp widać na gwoździach i wkrętach) |
 | F | użycie: klamka i pchnięcie drzwi, zamek (z kluczem albo od środka), szafka, podniesienie przedmiotu |
 | lewy / prawy przycisk | lewa / prawa ręka: każdy przycisk działa tym, co trzyma jego ręka; trzymany przy łomie i śrubokręcie przełącza mysz z kamery na narzędzie aż do puszczenia |
@@ -54,3 +55,5 @@ tools/test.sh /sciezka/do/godot
 ```
 
 Sprawdza: uspokojenie brył, bezwładność ruchu, sprint i wytrzymałość, kucanie, wychylanie, wspinanie na stół, pchanie, chwyt i niesienie, wleczenie ciężkiej skrzyni, drzwi na zawiasie, włącznik światła, stopy na podłodze, zginanie nóg w kucaniu, dłonie na trzymanym przedmiocie, opóźnienie latarki w dłoni, kształty i obrót w siatce, podnoszenie, plecak i redukcja wagi, stosy, skróty 1–9, wyrzucanie, przeciąganie w oknie, zapis ekwipunku, zrywanie i przybijanie desek, wygięte gwoździe, klamka i zatrzask, nakładka i zamek na wkręty, klucz, wykręcanie i słabe otwory, zużycie końcówki, moneta, wyważanie zamkniętych drzwi, hałas, brak brył wylatujących z pokoju, zapis i odczyt, odrzucenie uszkodzonego zapisu, komplet tłumaczeń.
+
+Ustawienia piaskownicy: `game/data/sandbox.json` (liczba zombie na start, szybkość, wytrzymałość, rodzaje ran, zakażenie, czas do śmierci po zakażeniu).

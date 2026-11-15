@@ -188,6 +188,37 @@ func is_secure(i: int) -> bool:
 	return true
 
 
+## Czy przez okno da się przejść (żadna deska nie wisi w otworze).
+func passable() -> bool:
+	for b in boards:
+		if b["state"] != "none":
+			return false
+	return true
+
+
+## Zombie za oknem szarpie deski: wyrywa gwoździe, aż koniec deski puści.
+## Im więcej wbitych gwoździ, tym dłużej (deska tylko przyłożona puszcza szybko).
+func zombie_pull(delta: float) -> void:
+	for i in boards.size():
+		var b: Dictionary = boards[i]
+		if b["state"] == "none":
+			continue
+		for e in 2:
+			var end: Dictionary = b["ends"][e]
+			if end["free"]:
+				continue
+			var nails := driven(end)
+			end["zpull"] = float(end.get("zpull", 0.0)) + delta / (2.0 + nails * 6.0)
+			if int(end["zpull"] * 3.0) != int((end["zpull"] - delta / (2.0 + nails * 6.0)) * 3.0):
+				main.noise.emit_noise(to_global(_slot_origin(i)), 55.0, "NOISE_PRY")
+			if end["zpull"] >= 1.0:
+				end["zpull"] = 0.0
+				_free_end(i, e)
+			_refresh(i)
+			return
+		return
+
+
 func secure_count() -> int:
 	var n := 0
 	for i in SLOTS:
