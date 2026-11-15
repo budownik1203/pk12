@@ -291,6 +291,7 @@ func mouse(rel: Vector2) -> void:
 				var amount := rel.y * LEVER_RATE * (lvl / 3.0) * arm_factor(it)
 				if main.inventory.hands_two():
 					amount *= TWO_HAND_LEVER  # oburącz łom podważa mocniej
+				amount *= main.health.arm_factor(active_side if active_side != "" else "r")
 				_phase = fmod(_phase + rel.y * 0.006, 1.0)
 				active.owner.work_apply(active, {"type": "lever", "amount": amount, "tool": it})
 		"rotate":
@@ -325,7 +326,7 @@ func cooldown_left() -> float:
 func _strike(p, side: String) -> void:
 	if _cooldown > 0.0:
 		return
-	_cooldown = STRIKE_COOLDOWN
+	_cooldown = STRIKE_COOLDOWN / maxf(0.4, main.health.arm_factor(side))  # ranna ręka bije wolniej
 	_swing = 0.0
 	var it = hand(side)
 	var amount := tool_level(it, p.ability) / 3.0

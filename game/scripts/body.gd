@@ -11,6 +11,7 @@ extends Node3D
 const SEGMENTS := preload("res://models/cialo_segmenty.glb")
 const Tex := preload("res://scripts/textures.gd")
 const WorldItems := preload("res://scripts/world_items.gd")
+const Psx := preload("res://scripts/psx.gd")
 
 # wymiary w metrach
 const HIP_HEIGHT := 0.93          # staw biodrowy w pozycji stojącej (kolana minimalnie ugięte)
@@ -61,6 +62,16 @@ var _hand_visual_uids := {"l": -1, "r": -1}
 
 # punkty z ostatniej klatki (do testów i diagnostyki)
 var joints := {}
+
+## opatrunki widoczne na ciele: segment zdrowia -> [staw od, staw do, promień]
+const DRESSING_LIMBS := {
+	"ramie": ["bark_", "lokiec_", 0.066], "przedramie": ["lokiec_", "nadgarstek_", 0.055],
+	"dlon": ["nadgarstek_", "dlon_", 0.052], "udo": ["biodro_", "kolano_", 0.1],
+	"lydka": ["kolano_", "stopa_", 0.068],
+}
+var _dressings := {}                # segment zdrowia -> {"band": MeshInstance3D, "splint": MeshInstance3D}
+var _band_mat: StandardMaterial3D
+var _splint_mat: StandardMaterial3D
 
 
 func setup(owner_player, cam: Camera3D) -> void:
@@ -248,6 +259,7 @@ func _physics_process(delta: float) -> void:
 		_place("stopa_" + s, Basis(right, up, -fwd), ankle)
 		joints["stopa_" + s] = ankle
 		joints["kolano_" + s] = knee
+		joints["biodro_" + s] = hip
 	joints["miednica"] = pelvis
 
 	# --- ręce
@@ -376,6 +388,8 @@ func _physics_process(delta: float) -> void:
 		var along := (wrist - elbow).normalized()
 		_limb("dlon_" + s, wrist, wrist + along, right)
 		joints["dlon_" + s] = wrist + along * PALM
+		joints["lokiec_" + s] = elbow
+		joints["nadgarstek_" + s] = wrist
 
 	for side in ["l", "r"]:
 		var vis: Node3D = _hand_visuals[side]
@@ -406,3 +420,81 @@ func _physics_process(delta: float) -> void:
 	_parts["latarka"].global_transform = lamp_xf
 	_parts["latarka"].visible = lamp_visible
 	player.lamp.global_transform = lamp_xf.translated_local(Vector3(0, 0, -0.18))
+	update_dressings(player.health)
+
+
+# --- opatrunki na ciele ----------------------------------------------------------
+
+func _dressing_nodes(seg: String, radius: float) -> Dictionary:
+	if _dressings.has(seg):
+		return _dressings[seg]
+	if _band_mat == null:
+		_band_mat = StandardMaterial3D.new()
+		_band_mat.albedo_color = Color(0.9, 0.88, 0.82)
+		_band_mat.roughness = 1.0
+		_splint_mat = StandardMaterial3D.new()
+		_splint_mat.albedo_color = Color(0.6, 0.5, 0.35)
+	var c := CylinderMesh.new()
+	c.top_radius = radius
+	c.bottom_radius = radius
+	c.height = 0.075
+	c.radial_segments = 8
+	c.rings = 1
+	c.material = _band_mat.duplicate()
+	var band := MeshInstance3D.new()
+	band.mesh = c
+	band.top_level = true
+	add_child(band)
+	var b := BoxMesh.new()
+	b.size = Vector3(0.025, 0.3, 0.012)
+	b.material = _splint_mat
+	var splint := MeshInstance3D.new()
+	splint.mesh = b
+	splint.top_level = true
+	add_child(splint)
+	_dressings[seg] = {"band": band, "splint": splint}
+	return _dressings[seg]
+
+
+## Biały opatrunek (brudnieje na brązowo) i drewniana szyna na kończynach.
+func update_dressings(health) -> void:
+	if health == null:
+		return
+	for part in DRESSING_LIMBS:
+		var info: Array = DRESSING_LIMBS[part]
+		for s in ["l", "r"]:
+			var seg: String = part + ("_l" if s == "l" else "_p")
+			var dressed := false
+			var dirt := 0.0
+			var splint := false
+			for w in health.segments[seg]["wounds"]:
+				if w["bandage"] != "":
+					dressed = true
+					dirt = maxf(dirt, float(w["dirt"]))
+				if w["splint"]:
+					splint = true
+			if not dressed and not splint and not _dressings.has(seg):
+				continue
+			var nodes := _dressing_nodes(seg, info[2])
+			var a = joints.get(info[0] + s)
+			var b = joints.get(info[1] + s)
+			var band: MeshInstance3D = nodes["band"]
+			var spl: MeshInstance3D = nodes["splint"]
+			band.visible = dressed and a != null and b != null
+			spl.visible = splint and a != null and b != null
+			if a == null or b == null:
+				continue
+			var axis: Vector3 = (b - a)
+			if axis.length() < 0.001:
+				continue
+			var y := axis.normalized()
+			var x := y.cross(Vector3.FORWARD if absf(y.z) < 0.9 else Vector3.RIGHT).normalized()
+			var basis := Basis(x, y, x.cross(y))
+			var mid: Vector3 = (a + b) * 0.5
+			band.global_transform = Transform3D(basis, mid)
+			var bm := band.mesh.material as StandardMaterial3D
+			var col := Color(0.9, 0.88, 0.82).lerp(Color(0.5, 0.25, 0.18), dirt)
+			if not bm.albedo_color.is_equal_approx(col):
+				bm.albedo_color = col
+				Psx.refresh(bm)
+			spl.global_transform = Transform3D(basis, mid + x * (float(info[2]) + 0.01))

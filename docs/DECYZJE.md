@@ -99,3 +99,16 @@
 - **Trzy tryby rąk:** praca (domyślny, LPM/PPM to ręce), chwytanie (T), walka (kliknięcie kółkiem, 0,3 s na przełożenie chwytu). W walce: LPM cios, PPM garda (3 wytrzymałości/s), PPM+LPM odepchnięcie (15 wytrzymałości, co 0,8 s). Profile w items.json, pole `combat` (obrażenia, zamach, powrót, zasięg, garda, wytrzymałość, siła), pięści w `fists`. Trafienie liczy się w 20% powrotu (gdy narzędzie przechodzi przez cel); trzy promienie na łuku zamachu.
 - **Chwyt oburącz:** slot `oburacz` między rękami; przyjmuje przedmioty z `two_hand: true` (łom) i duże (`bulky`, deski). Zajmuje obie ręce, w kodzie liczy się jako prawa ręka. Klawisz Z przekłada. Oburącz: cios ×1,35, zamach ×1,15 wolniej, garda ×1,3, pchnięcie ×1,3, dźwignia przy podważaniu ×1,3.
 - **Worek treningowy** (40 kg, 500 punktów życia) w pokoju do prób ciosów; zombie od buildu 7.
+
+
+## Build 5 (15.11.2026): zdrowie i rany
+
+- **17 segmentów** (`scripts/health/health.gd`): głowa, szyja, klatka, brzuch, miednica, ramiona, przedramiona, dłonie, uda, łydki, stopy. Stan segmentu = 100 minus obrażenia jego ran (gojenie je zmniejsza). Zdrowie ogólne liczone z segmentów z wagami (głowa 2,5, szyja i klatka 2), utraty krwi i zakażenia.
+- **Rany:** zadrapanie, rana cięta, głęboka rana, ugryzienie, stłuczenie, złamanie. Każda ma obrażenia, krwawienie (% krwi/s), krzepnięcie (zadrapanie po 45 s, rana cięta po 220 s, głęboka nie krzepnie), ból i czas gojenia. Czasy są przyspieszone (minuty), do przeskalowania, gdy dojdzie zegar doby.
+- **Krew:** 100%, odnawia się 0,015%/s bez krwawienia. Poniżej 55% brak sprintu i obraz ciemnieje, poniżej 38% śmierć.
+- **Opatrywanie przeciąganiem** w oknie zdrowia (H, wewnątrz ekwipunku): bandaż i szmata tamują 90% krwawienia, plaster tylko zadrapania, spirytus dezynfekuje (piecze, ma dawki), igła z nicią zszywa głęboką ranę (bez szwów głęboka rana goi się 4× wolniej), szyna usztywnia złamanie (bez szyny zrasta się ponad 3× wolniej), tabletki uśmierzają ból na 4 minuty. Czynność trwa (1,5–6 s), ranne ręce wydłużają ją. PPM zdejmuje opatrunek (bandaż wraca jako brudny) lub szynę.
+- **Zakażenie:** rośnie w ranie niezdezynfekowanej bez opatrunku, pod brudnym opatrunkiem (brud ponad 50%) i pod szmatą; dezynfekcja je cofa. Ponad 30% wstrzymuje gojenie, podnosi ból i obniża zdrowie. Zakażenie zombie (ustawienie piaskownicy) dojdzie z zombie.
+- **Ochrona ubrań:** pole `protection` w items.json (segmenty oraz ochrona przed cięciem, ugryzieniem i uderzeniem). Cięcie i ugryzienie mają szansę nie przebić, uderzenie słabnie. Ubranie przy tym się niszczy i nasiąka krwią z krwawiących ran pod nim. Kurtka, spodnie i kamizelka taktyczna mają ochronę.
+- **Skutki:** złamana noga 0,5 prędkości (z szyną 0,8) i bez sprintu, głęboka rana nogi 0,85; ranne ręce słabiej biją, wolniej podważają i wbijają; ból spowalnia odnawianie wytrzymałości i przy dużym bólu obraz drży; utrata krwi odbarwia i przyciemnia obraz.
+- **Źródła ran w tym buildzie:** upadek (od 6,5 m/s stłuczenia, od 9,5 m/s możliwe złamanie łydek) i pięść w ścianę (stłuczenie dłoni). Zombie od buildu 7.
+- **Widok:** stany jak w PZ w prawym górnym rogu (krwawienie, utrata krwi, ból, złamanie, zakażenie), pasek zdrowia ukryty przy pełnym zdrowiu. Opatrunki i szyny widać na kończynach postaci. Śmierć: ekran z F9 (wczytaj) albo Enter (nowy ocalały). Zapis wersji 4 zawiera zdrowie.

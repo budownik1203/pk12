@@ -317,7 +317,10 @@
 				]
 			},
 			"short_pl": "Bandaż",
-			"short_en": "Bandage"
+			"short_en": "Bandage",
+			"medical": "bandage",
+			"desc_pl": "Opatrunek: przeciągnij na krwawiący segment w oknie zdrowia (H). Zatrzymuje krwawienie; z czasem brudnieje.",
+			"desc_en": "Dressing: drag onto a bleeding body part in the health window (H). Stops bleeding; gets dirty over time."
 		},
 		"puszka_fasoli": {
 			"pl": "Puszka fasoli",
@@ -488,6 +491,15 @@
 					0.24,
 					0.19
 				]
+			},
+			"protection": {
+				"segments": [
+					"klatka",
+					"brzuch"
+				],
+				"cut": 0.55,
+				"bite": 0.45,
+				"blunt": 0.3
 			}
 		},
 		"pas": {
@@ -560,6 +572,19 @@
 					0.26,
 					0.21
 				]
+			},
+			"protection": {
+				"segments": [
+					"klatka",
+					"brzuch",
+					"ramie_l",
+					"ramie_p",
+					"przedramie_l",
+					"przedramie_p"
+				],
+				"cut": 0.25,
+				"bite": 0.2,
+				"blunt": 0.1
 			}
 		},
 		"spodnie": {
@@ -596,6 +621,18 @@
 					0.2,
 					0.27
 				]
+			},
+			"protection": {
+				"segments": [
+					"miednica",
+					"udo_l",
+					"udo_p",
+					"lydka_l",
+					"lydka_p"
+				],
+				"cut": 0.2,
+				"bite": 0.15,
+				"blunt": 0.05
 			}
 		},
 		"moneta": {
@@ -821,6 +858,211 @@
 					0.3
 				],
 				"mesh": "klucz"
+			}
+		},
+		"bandaz_brudny": {
+			"pl": "Brudny bandaż",
+			"en": "Dirty bandage",
+			"short_pl": "Brud. band.",
+			"short_en": "Dirty band.",
+			"mass": 0.05,
+			"material": "tkanina",
+			"category": "medyczne",
+			"shape": [
+				"#"
+			],
+			"stack": 4,
+			"medical": "bandage",
+			"dirt": 0.55,
+			"desc_pl": "Zakrwawiony opatrunek. Zatrzyma krew, ale niesie brud i ryzyko zakażenia. Do wyprania (później).",
+			"desc_en": "A bloodied dressing. Stops blood but carries dirt and infection risk. Can be washed (later).",
+			"model": {
+				"type": "box",
+				"size": [
+					0.08,
+					0.05,
+					0.05
+				],
+				"color": [
+					0.55,
+					0.35,
+					0.3
+				]
+			}
+		},
+		"plaster": {
+			"pl": "Plaster",
+			"en": "Adhesive bandage",
+			"short_pl": "Plaster",
+			"short_en": "Plaster",
+			"mass": 0.005,
+			"material": "tkanina",
+			"category": "medyczne",
+			"shape": [
+				"#"
+			],
+			"stack": 10,
+			"medical": "plaster",
+			"desc_pl": "Na zadrapania. Przeciągnij na segment w oknie zdrowia.",
+			"desc_en": "For scratches. Drag onto a body part in the health window.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.07,
+					0.005,
+					0.02
+				],
+				"color": [
+					0.85,
+					0.7,
+					0.55
+				]
+			}
+		},
+		"szmata": {
+			"pl": "Szmata",
+			"en": "Rag",
+			"short_pl": "Szmata",
+			"short_en": "Rag",
+			"mass": 0.04,
+			"material": "tkanina",
+			"category": "medyczne",
+			"shape": [
+				"#"
+			],
+			"stack": 5,
+			"medical": "bandage",
+			"dirt": 0.35,
+			"desc_pl": "Prowizoryczny opatrunek: tamuje krew, ale łatwo o zakażenie. Później z podartych ubrań.",
+			"desc_en": "Improvised dressing: stops blood but infects easily. Later from torn clothes.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.1,
+					0.02,
+					0.08
+				],
+				"color": [
+					0.45,
+					0.42,
+					0.36
+				]
+			}
+		},
+		"spirytus": {
+			"pl": "Spirytus",
+			"en": "Rubbing alcohol",
+			"short_pl": "Spirytus",
+			"short_en": "Alcohol",
+			"mass": 0.35,
+			"material": "szklo",
+			"category": "medyczne",
+			"shape": [
+				"#",
+				"#"
+			],
+			"stack": 1,
+			"medical": "disinfect",
+			"doses": 8,
+			"desc_pl": "Dezynfekcja rany (piecze). Przeciągnij na segment z raną. Starcza na kilka razy.",
+			"desc_en": "Disinfects a wound (stings). Drag onto a wounded body part. Several uses.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.03,
+				"height": 0.16,
+				"color": [
+					0.75,
+					0.82,
+					0.85
+				]
+			}
+		},
+		"igla_nici": {
+			"pl": "Igła z nicią",
+			"en": "Needle and thread",
+			"short_pl": "Igła",
+			"short_en": "Needle",
+			"mass": 0.01,
+			"material": "metal",
+			"category": "medyczne",
+			"shape": [
+				"#"
+			],
+			"stack": 1,
+			"medical": "stitch",
+			"doses": 6,
+			"desc_pl": "Zszycie głębokiej rany: bez szwów głęboka rana krwawi i prawie się nie goi.",
+			"desc_en": "Stitches a deep wound: without stitches it keeps bleeding and barely heals.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.05,
+					0.01,
+					0.03
+				],
+				"color": [
+					0.7,
+					0.7,
+					0.72
+				]
+			}
+		},
+		"szyna": {
+			"pl": "Szyna",
+			"en": "Splint",
+			"short_pl": "Szyna",
+			"short_en": "Splint",
+			"mass": 0.3,
+			"material": "drewno",
+			"category": "medyczne",
+			"shape": [
+				"#",
+				"#",
+				"#"
+			],
+			"stack": 1,
+			"medical": "splint",
+			"desc_pl": "Usztywnienie złamania: bez szyny złamanie boli i zrasta się bardzo wolno.",
+			"desc_en": "Splints a fracture: without it a fracture hurts and mends very slowly.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.4,
+					0.015,
+					0.06
+				],
+				"color": [
+					0.6,
+					0.5,
+					0.35
+				]
+			}
+		},
+		"tabletki": {
+			"pl": "Tabletki przeciwbólowe",
+			"en": "Painkillers",
+			"short_pl": "Tabletki",
+			"short_en": "Pills",
+			"mass": 0.05,
+			"material": "plastik",
+			"category": "medyczne",
+			"shape": [
+				"#"
+			],
+			"stack": 1,
+			"medical": "pills",
+			"doses": 10,
+			"desc_pl": "Uśmierzają ból na kilka minut. Przeciągnij na postać w oknie zdrowia.",
+			"desc_en": "Dull the pain for a few minutes. Drag onto the body in the health window.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.018,
+				"height": 0.06,
+				"color": [
+					0.9,
+					0.9,
+					0.85
+				]
 			}
 		}
 	},

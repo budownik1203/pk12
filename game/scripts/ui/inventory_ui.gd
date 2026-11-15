@@ -10,6 +10,7 @@ extends Control
 ## przedmiotem w kamizelce albo pasie przypisuje skrót.
 
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
+const HealthPanel := preload("res://scripts/ui/health_panel.gd")
 
 const CELL := 44
 const TOP := 64
@@ -44,7 +45,9 @@ const CATEGORY_COLORS := {
 }
 
 var inv                         # inventory.gd
-var main                        # main.gd (dźwięk przekładania)
+var main                        # main.gd (dźwięk przekładania, zdrowie)
+var health_open := false        # okno zdrowia (H) zamiast otwartych pojemników
+var hp_panel                    # health_panel.gd
 var font: Font
 var blocks: Array = []          # {"grid", "rect": Rect2}
 var headers: Array = []         # {"pos": Vector2, "text": String, "close": Rect2, "item"}
@@ -81,6 +84,8 @@ func is_open() -> bool:
 
 func open(container_id: String = "") -> void:
 	open_container = container_id
+	if container_id != "":
+		health_open = false
 	visible = true
 	_layout()
 	queue_redraw()
@@ -89,6 +94,7 @@ func open(container_id: String = "") -> void:
 func close() -> void:
 	drag_item = null
 	visible = false
+	health_open = false
 	open_items.clear()
 	open_container = ""
 
@@ -176,6 +182,11 @@ func _layout() -> void:
 		y += HEADER_H + block_h + BLOCK_GAP
 	panels.append(Rect2(WORN_X - 12, TOP, maxf(col_right - WORN_X + 14, 300), bottom_limit - TOP))
 
+	if health_open and main != null and main.health != null:
+		if hp_panel == null:
+			hp_panel = HealthPanel.new(self, main.health)
+		panels.append(hp_panel.layout(Vector2(minf(OPEN_X, size.x - HealthPanel.W - 12.0), TOP)).grow(8.0))
+		return
 	var ox := float(OPEN_X)
 	y = TOP + 36
 	if open_container != "" and inv.containers.has(open_container):
@@ -255,6 +266,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		mouse = event.position
 		hover_item = item_at(mouse)
+		if health_open and hp_panel != null:
+			hp_panel.hovered = hp_panel.segment_at(mouse)
 		queue_redraw()
 	elif event is InputEventMouseButton:
 		mouse = event.position
@@ -264,6 +277,8 @@ func _gui_input(event: InputEvent) -> void:
 			if drag_item != null:
 				drop_at(mouse)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			if drag_item == null and health_open and hp_panel != null and hp_panel.segment_at(mouse) != "":
+				main.health.remove_dressing(hp_panel.segment_at(mouse))
 			drag_item = null
 		accept_event()
 		queue_redraw()
@@ -280,6 +295,9 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _press(p: Vector2, ctrl: bool) -> void:
+	if health_open and hp_panel != null and hp_panel.segment_at(p) != "":
+		hp_panel.selected = hp_panel.segment_at(p)
+		return
 	for h in headers:
 		var r: Rect2 = h["close"]
 		if r.size.x > 0 and r.has_point(p):
@@ -318,6 +336,10 @@ func begin_drag(it, split: bool = false) -> void:
 func drop_at(p: Vector2) -> bool:
 	var it = drag_item
 	drag_item = null
+	if health_open and hp_panel != null and hp_panel.segment_at(p) != "":
+		# przedmiot medyczny upuszczony na część ciała: opatrywanie
+		hp_panel.selected = hp_panel.segment_at(p)
+		return main.health.treat(it, hp_panel.selected)
 	if it == null:
 		return false
 	var ok := false
@@ -369,6 +391,8 @@ func _draw() -> void:
 	for b in blocks:
 		_draw_grid(b["grid"], b["rect"])
 
+	if health_open and hp_panel != null:
+		hp_panel.draw(drag_item)
 	_draw_ghost()
 	_draw_footer()
 	if hover_item != null and drag_item == null:

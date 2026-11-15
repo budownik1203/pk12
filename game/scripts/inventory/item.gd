@@ -196,7 +196,7 @@ static func from_dict(d: Dictionary, script: Script):
 		for k in d["props"]:
 			var v = d["props"][k]
 			# JSON zapisuje liczby całkowite jako zmiennoprzecinkowe (np. numer klucza)
-			if typeof(v) == TYPE_FLOAT and k != "condition" and v == floorf(v):
+			if typeof(v) == TYPE_FLOAT and not k in ["condition", "blood"] and v == floorf(v):
 				v = int(v)
 			it.props[k] = v
 	var lists: Array = d.get("grids", d.get("contents", []))

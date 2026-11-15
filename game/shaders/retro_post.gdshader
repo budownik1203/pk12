@@ -8,6 +8,8 @@ uniform bool enabled = true;
 uniform float levels = 32.0;        // liczba poziomów na kanał koloru
 uniform float dither_amount = 0.6;  // siła ditheringu (0..1)
 uniform float vignette = 0.25;      // przyciemnienie rogów
+uniform float hurt = 0.0;           // utrata krwi: obraz ciemnieje i traci kolor
+uniform float pain = 0.0;           // ból: czerwonawa winieta
 
 // macierz Bayera 4x4 z PS1 (wartości -4..3)
 const float PSX_DITHER[16] = float[16](
@@ -27,5 +29,12 @@ void fragment() {
 		vec2 q = UV - 0.5;
 		c.rgb *= 1.0 - vignette * dot(q, q) * 2.0;
 	}
+	// stan zdrowia działa w każdym stylu
+	float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	c.rgb = mix(c.rgb, vec3(g), hurt * 0.8);
+	vec2 v = UV - 0.5;
+	float edge = dot(v, v) * 2.0;
+	c.rgb *= 1.0 - hurt * (0.35 + edge * 0.9);
+	c.rgb = mix(c.rgb, c.rgb * vec3(1.0, 0.55, 0.5), clamp(pain - 0.3, 0.0, 1.0) * edge * 1.2);
 	COLOR = vec4(clamp(c.rgb, 0.0, 1.0), 1.0);
 }

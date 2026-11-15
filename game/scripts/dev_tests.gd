@@ -362,8 +362,8 @@ static func run_tests(main: Node) -> void:
 	if not inv.slots.has("spodnie") or not inv.slots.has("kurtka"):
 		errors.append("na starcie brak spodni albo kurtki")
 	var cab_grid = inv.containers["szafka"]["grids"][0]
-	if cab_grid.items.size() != 14:
-		errors.append("szafka ma %d przedmiotów zamiast 14" % cab_grid.items.size())
+	if cab_grid.items.size() != 16:
+		errors.append("szafka ma %d przedmiotów zamiast 16" % cab_grid.items.size())
 	# 15c. podniesienie puszki ze stołu (F): trwa, potem bryła znika, puszka w kieszeni
 	var can_body := _world_item(main, "puszka_fasoli")
 	_place(main, can_body.global_position + Vector3(0.0, -can_body.global_position.y + 0.02, 0.9), 0.0, -40.0)
@@ -873,6 +873,120 @@ static func run_tests(main: Node) -> void:
 	crow.slot = ""
 	await _wait(tree, 240)  # pchnięty worek i to, w co uderzył, musi się uspokoić
 
+	# 19a. rana krwawi, opatrunek tamuje, ubranie chroni
+	var hp = main.health
+	hp.reset()
+	inv.cancel_all()
+	if hp.protection("klatka", "cut") <= 0.0 or hp.protection("dlon_l", "cut") != 0.0:
+		errors.append("19a: ochrona ubrań: klatka %.2f, dłoń %.2f" % [hp.protection("klatka", "cut"), hp.protection("dlon_l", "cut")])
+	var cut: Dictionary = hp.wound("dlon_l", "rana_cieta", 0.8)
+	var blood0: float = hp.blood
+	await _wait(tree, 120)
+	if cut.is_empty() or hp.blood >= blood0 - 0.1:
+		errors.append("19a: rana cięta nie krwawi (krew %.2f -> %.2f)" % [blood0, hp.blood])
+	var bleed_open: float = hp.wound_bleed(cut)
+	inv.give(ItemScript.new("bandaz", 2))
+	var band = null
+	for it in inv.all_carried():
+		if it.def_id == "bandaz":
+			band = it
+	var band_count: int = band.count if band != null else 0
+	if band == null or not hp.treat(band, "dlon_l"):
+		errors.append("19a: nie da się zacząć opatrywania")
+	await _wait(tree, 260)
+	if cut["bandage"] != "bandaz" or hp.wound_bleed(cut) > bleed_open * 0.2:
+		errors.append("19a: bandaż nie tamuje krwi (%s, %.3f -> %.3f)" % [cut["bandage"], bleed_open, hp.wound_bleed(cut)])
+	if inv.count_of("bandaz") != band_count - 1 + (inv.count_of("bandaz") - inv.count_of("bandaz")):
+		pass
+	# 19b. dezynfekcja, zszycie, szyna, tabletki
+	inv.give(ItemScript.new("spirytus"))
+	inv.give(ItemScript.new("igla_nici"))
+	inv.give(ItemScript.new("szyna"))
+	inv.give(ItemScript.new("tabletki"))
+	var find_it := func(def_id: String):
+		for it in inv.all_carried():
+			if it.def_id == def_id:
+				return it
+		return null
+	var alc = find_it.call("spirytus")
+	hp.treat(alc, "dlon_l")
+	await _wait(tree, 160)
+	if not cut["disinfected"] or int(alc.props.get("doses", 8)) != 7:
+		errors.append("19b: dezynfekcja nie zadziałała albo nie zużyła dawki")
+	var deep: Dictionary = hp.wound("udo_p", "gleboka_rana", 0.7, true)
+	hp.treat(find_it.call("igla_nici"), "udo_p")
+	await _wait(tree, 420)
+	if not deep["stitched"]:
+		errors.append("19b: głęboka rana nie została zszyta")
+	var frac: Dictionary = hp.wound("lydka_l", "zlamanie", 0.8, true)
+	await _wait(tree, 2)
+	if hp.leg_factor() > 0.55 or player.injury_sprint:
+		errors.append("19b: złamana noga nie spowalnia (%.2f) albo pozwala biegać" % hp.leg_factor())
+	hp.treat(find_it.call("szyna"), "lydka_l")
+	await _wait(tree, 340)
+	if not frac["splint"] or absf(hp.leg_factor() - 0.8) > 0.01:
+		errors.append("19b: szyna nie usztywnia (%.2f)" % hp.leg_factor())
+	var pain_before: float = hp.pain
+	hp.treat(find_it.call("tabletki"), "klatka")
+	await _wait(tree, 200)
+	if hp.pain >= pain_before - 5.0:
+		errors.append("19b: tabletki nie uśmierzają bólu (%.0f -> %.0f)" % [pain_before, hp.pain])
+	# 19c. zdjęcie opatrunku daje brudny bandaż; zakażenie nieopatrzonej rany
+	hp.remove_dressing("dlon_l")
+	await _wait(tree, 120)
+	if cut["bandage"] != "" or find_it.call("bandaz_brudny") == null:
+		errors.append("19c: zdjęcie opatrunku nie oddaje brudnego bandaża")
+	var dirty: Dictionary = hp.wound("przedramie_p", "rana_cieta", 0.6, true)
+	hp._infect(dirty, 120.0)
+	if float(dirty["infection"]) <= 0.1:
+		errors.append("19c: brudna rana się nie zakaża")
+	# 19d. ranna ręka bije słabiej; upadek z wysokości rani nogi
+	var arm_ok: float = hp.arm_factor("r")
+	hp.wound("przedramie_p", "zlamanie", 0.8, true)
+	if hp.arm_factor("r") >= arm_ok - 0.3:
+		errors.append("19d: złamane przedramię nie osłabia ręki (%.2f)" % hp.arm_factor("r"))
+	var legs_before := 0
+	for id in hp.LEGS:
+		legs_before += hp.segments[id]["wounds"].size()
+	hp.on_fall(12.0)
+	var legs_after := 0
+	for id in hp.LEGS:
+		legs_after += hp.segments[id]["wounds"].size()
+	if legs_after <= legs_before:
+		errors.append("19d: upadek z 12 m/s nie zranił nóg")
+	# 19e. okno zdrowia: przeciągnięcie bandaża na część ciała zaczyna opatrywanie
+	inv.give(ItemScript.new("bandaz", 1))
+	main.open_inventory("", true)
+	await _wait(tree, 3)
+	var hui = main.inv_ui
+	if not hui.health_open or hui.hp_panel == null:
+		errors.append("19e: H nie otwiera okna zdrowia")
+	else:
+		var hr: Rect2 = hui.hp_panel.seg_rects["przedramie_p"]
+		hui.drag_item = find_it.call("bandaz")
+		hui.drop_at(hr.get_center())
+		if hp.action.is_empty() or hp.action["seg"] != "przedramie_p":
+			errors.append("19e: upuszczenie bandaża na przedramię nie zaczyna opatrywania")
+	await _wait(tree, 260)
+	main.close_inventory()
+	# 19f. zapis zdrowia i śmierć z wykrwawienia
+	var saved: Dictionary = hp.to_dict()
+	var n_wounds: int = hp.wound_count()
+	hp.reset()
+	hp.from_dict(JSON.parse_string(JSON.stringify(saved)))
+	if hp.wound_count() != n_wounds:
+		errors.append("19f: zapis zdrowia gubi rany (%d -> %d)" % [n_wounds, hp.wound_count()])
+	hp.blood = 37.0
+	await _wait(tree, 3)
+	if not hp.dead or not player.controls_locked:
+		errors.append("19f: wykrwawienie nie zabija")
+	hp.reset()
+	main.revive_if_needed()
+	if player.controls_locked:
+		errors.append("19f: po wyleczeniu sterowanie zostało zablokowane")
+	main.set_hurt_effect(0.0, 0.0)
+	await _wait(tree, 30)
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -1115,6 +1229,45 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	await _shot(main, dir + "/walka_piesci.png", 20)
 	cbt.toggle()
 	await _wait(tree, 20)
+	# kadry zdrowia: rany i opatrunki, okno zdrowia, utrata krwi
+	var hpk = main.health
+	hpk.reset()
+	hpk.wound("przedramie_l", "rana_cieta", 0.8, true)["bandage"] = "bandaz"
+	var fr: Dictionary = hpk.wound("przedramie_p", "zlamanie", 0.8, true)
+	fr["splint"] = true
+	hpk.wound("udo_p", "gleboka_rana", 0.7, true)
+	hpk.wound("glowa", "zadrapanie", 0.5, true)
+	var dl: Dictionary = hpk.wound("dlon_l", "ugryzienie", 0.6, true)
+	dl["bandage"] = "szmata"
+	dl["dirt"] = 0.7
+	dl["infection"] = 0.3
+	hpk.wound("lydka_l", "stluczenie", 0.5, true)
+	_hand(main, "mlotek")
+	_hand(main, "gwozdzie", {}, "l", 10)
+	_place(main, Vector3(-1.0, 0.02, 2.0), 0.0, -30.0)
+	await _wait(tree, 40)
+	await _shot(main, dir + "/zdrowie_opatrunki.png")
+	inv.slots.erase("w_reku")
+	inv.slots.erase("w_lewej")
+	var ext2 := Camera3D.new()
+	main.world.add_child(ext2)
+	ext2.global_position = player.global_position + Vector3(0.0, 1.3, -1.6)
+	ext2.look_at(player.global_position + Vector3(0, 0.8, 0))
+	ext2.make_current()
+	await _shot(main, dir + "/zdrowie_postac.png")
+	player.camera.make_current()
+	ext2.queue_free()
+	main.open_inventory("", true)
+	main.inv_ui.hp_panel.selected = "udo_p"
+	await _shot(main, dir + "/zdrowie_okno.png", 12)
+	main.close_inventory()
+	hpk.blood = 62.0
+	await _wait(tree, 5)
+	_place(main, Vector3(-1.0, 0.02, 2.6), -35.0, -8.0)
+	await _shot(main, dir + "/zdrowie_utrata_krwi.png", 15)
+	hpk.reset()
+	main.set_hurt_effect(0.0, 0.0)
+	await _wait(tree, 5)
 	# kadr: styl klasyczny PS1
 	_place(main, Vector3(-1.0, 0.02, 2.6), -35.0, -8.0)
 	main.set_style(1, false)

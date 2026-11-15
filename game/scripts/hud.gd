@@ -46,6 +46,12 @@ var _cursor := ""
 var _message_time := 0.0
 var _work_label: Label
 var _mode_label: Label
+var _hp_back: ColorRect
+var _hp_fill: ColorRect
+var _hp_label: Label
+var _moodles: VBoxContainer
+var _death: ColorRect
+var _treat_label: Label
 var _work_back: ColorRect
 var _work_fill: ColorRect
 
@@ -112,6 +118,51 @@ func _init() -> void:
 	_stamina_fill.position = Vector2(2, 2)
 	_stamina_back.add_child(_stamina_fill)
 	_stamina_back.visible = false
+
+	# zdrowie i stany (jak w PZ): prawy górny róg
+	var top_right := Control.new()
+	top_right.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	top_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(top_right)
+	_hp_label = _label(15)
+	remove_child(_hp_label)
+	top_right.add_child(_hp_label)
+	_hp_label.position = Vector2(-214, 18)
+	_hp_back = ColorRect.new()
+	_hp_back.color = Color(0, 0, 0, 0.55)
+	_hp_back.size = Vector2(190, 10)
+	_hp_back.position = Vector2(-214, 42)
+	top_right.add_child(_hp_back)
+	_hp_fill = ColorRect.new()
+	_hp_fill.color = Color(0.7, 0.2, 0.17, 0.95)
+	_hp_fill.size = Vector2(186, 6)
+	_hp_fill.position = Vector2(2, 2)
+	_hp_back.add_child(_hp_fill)
+	_moodles = VBoxContainer.new()
+	_moodles.position = Vector2(-214, 58)
+	_moodles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_right.add_child(_moodles)
+	_treat_label = _label(16)
+	_treat_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_treat_label.size = Vector2(500, 26)
+	remove_child(_treat_label)
+	center.add_child(_treat_label)
+	_treat_label.position = Vector2(-250, 64)
+	_treat_label.visible = false
+	# śmierć
+	_death = ColorRect.new()
+	_death.color = Color(0.12, 0.0, 0.0, 0.72)
+	_death.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_death.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_death.visible = false
+	add_child(_death)
+	var dl := _label(34)
+	remove_child(dl)
+	dl.name = "Napis"
+	dl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_death.add_child(dl)
 
 	# podpowiedź i postęp pracy narzędziem pod celownikiem
 	_work_label = _label(19)
@@ -202,6 +253,41 @@ func set_work(text: String, ratio: float) -> void:
 	_work_label.visible = text != ""
 	_work_back.visible = ratio >= 0.0
 	_work_fill.size.x = 156.0 * clampf(ratio, 0.0, 1.0)
+
+
+## Zdrowie ogólne i lista stanów [tekst, kolor]; ukryte, gdy w pełni zdrowy.
+func set_health(overall: float, moodles: Array) -> void:
+	var show := overall < 99.5 or not moodles.is_empty()
+	_hp_label.visible = show
+	_hp_back.visible = show
+	_hp_label.text = tr("HP_OVERALL") % overall
+	_hp_fill.size.x = 186.0 * clampf(overall / 100.0, 0.0, 1.0)
+	var have := _moodles.get_child_count()
+	for i in maxi(have, moodles.size()):
+		if i >= moodles.size():
+			_moodles.get_child(i).visible = false
+			continue
+		var l: Label
+		if i < have:
+			l = _moodles.get_child(i)
+		else:
+			l = _label(15)
+			remove_child(l)
+			_moodles.add_child(l)
+		l.visible = true
+		l.text = moodles[i][0]
+		l.modulate = moodles[i][1]
+
+
+## Trwające opatrywanie pod celownikiem (pusty tekst ukrywa).
+func set_treatment(text: String) -> void:
+	_treat_label.text = text
+	_treat_label.visible = text != ""
+
+
+func show_death(on: bool) -> void:
+	_death.visible = on
+	(_death.get_node("Napis") as Label).text = tr("HP_DEATH_SCREEN")
 
 
 func set_mode(text: String) -> void:

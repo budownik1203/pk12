@@ -752,6 +752,17 @@ func consume_hand(side: String, def_id: String, n: int = 1) -> bool:
 	return true
 
 
+## Usuwa przedmiot z miejsca, w którym leży (zużyty opatrunek, pusty spirytus).
+func remove_item(item) -> void:
+	if item.parent_grid != null:
+		item.parent_grid.remove(item)
+	elif item.slot != "":
+		slots.erase(item.slot)
+		item.slot = ""
+	_forget_hotkey(item)
+	changed.emit()
+
+
 func has_key(key_id) -> bool:
 	for it in all_carried():
 		if it.def_id == "klucz" and it.props.get("key_id", -1) == key_id:

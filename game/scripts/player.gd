@@ -54,6 +54,11 @@ var exhausted := false
 var held_body: RigidBody3D = null  # ustawia system chwytu; tej bryły nie pchamy ciałem
 var held_local_point := Vector3.ZERO  # punkt chwytu w układzie trzymanej bryły
 var load_factor := 1.0             # mnożnik prędkości od odczuwanej masy ekwipunku
+var injury_speed := 1.0            # mnożnik prędkości od ran nóg (health.gd)
+var injury_sprint := true          # złamana noga albo duża utrata krwi: bez sprintu
+var pain_regen := 1.0              # ból spowalnia odnawianie wytrzymałości
+var controls_locked := false       # po śmierci
+var health                         # health.gd (opatrunki widoczne na ciele)
 var load_stamina := 1.0            # mnożnik zużycia wytrzymałości od masy
 var strength := 5                  # siła 1–10 (na razie stała; cechy postaci w buildzie 9)
 var hand_items := {"l": null, "r": null, "two": false}    # przedmioty w rękach (z ekwipunku)
@@ -162,6 +167,8 @@ func _physics_process(delta: float) -> void:
 	_update_lean(delta)
 
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	if controls_locked:
+		input = Vector2.ZERO
 	var dir := global_transform.basis * Vector3(input.x, 0.0, input.y)
 	dir.y = 0.0
 	dir = dir.normalized() if dir.length() > 0.01 else Vector3.ZERO
@@ -169,14 +176,14 @@ func _physics_process(delta: float) -> void:
 	var held_mass := 0.0
 	if held_body != null and is_instance_valid(held_body):
 		held_mass = held_body.mass
-	var sprinting := Input.is_action_pressed("sprint") and not crouching and not exhausted \
+	var sprinting := Input.is_action_pressed("sprint") and not crouching and not exhausted and injury_sprint \
 			and input.y < -0.1 and is_on_floor() and held_mass <= CARRY_SPRINT_MAX
 	var speed := WALK_SPEED
 	if crouching:
 		speed = CROUCH_SPEED
 	elif sprinting:
 		speed = SPRINT_SPEED
-	speed *= carry_factor(held_mass) * load_factor
+	speed *= carry_factor(held_mass) * load_factor * injury_speed
 	_update_stamina(delta, sprinting and dir != Vector3.ZERO)
 
 	var target := dir * speed
@@ -246,7 +253,7 @@ func _update_stamina(delta: float, draining: bool) -> void:
 	elif _stamina_pause > 0.0:
 		_stamina_pause -= delta
 	else:
-		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * delta)
+		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * pain_regen * delta)
 	if stamina <= 0.5:
 		exhausted = true
 	elif exhausted and stamina >= EXHAUSTED_UNTIL:

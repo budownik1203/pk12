@@ -41,6 +41,19 @@
 						{
 							"def": "bandaz",
 							"count": 2
+						},
+						{
+							"def": "plaster",
+							"count": 5
+						},
+						{
+							"def": "spirytus"
+						},
+						{
+							"def": "igla_nici"
+						},
+						{
+							"def": "tabletki"
 						}
 					]
 				]
@@ -67,6 +80,13 @@
 			},
 			{
 				"def": "noz"
+			},
+			{
+				"def": "szyna"
+			},
+			{
+				"def": "szmata",
+				"count": 2
 			}
 		]
 	},

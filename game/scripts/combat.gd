@@ -199,7 +199,9 @@ func _hit() -> void:
 		return
 	var col: Object = hit["collider"]
 	var pos: Vector3 = hit["position"]
-	var dmg := float(_prof.get("damage", 5.0))
+	var dmg: float = float(_prof.get("damage", 5.0)) * main.health.arm_factor("r")
+	if bool(_prof.get("fists", false)) and not col is RigidBody3D and main.health.rng.randf() < 0.2:
+		main.health.wound("dlon_p", "stluczenie", 0.35)  # pięść w ścianę boli
 	var record := {"target": col, "damage": dmg, "pos": pos}
 	hits.append(record)
 	if hits.size() > 20:

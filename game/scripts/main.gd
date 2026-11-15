@@ -19,6 +19,7 @@ const WorkScript := preload("res://scripts/work/work_system.gd")
 const NoiseScript := preload("res://scripts/noise.gd")
 const SoundScript := preload("res://scripts/sound.gd")
 const CombatScript := preload("res://scripts/combat.gd")
+const HealthScript := preload("res://scripts/health/health.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -51,6 +52,7 @@ var work: WorkScript
 var noise: NoiseScript
 var sound: SoundScript
 var combat: CombatScript
+var health: HealthScript
 var window_boards: WindowScript
 var door_sys: DoorScript
 var bodies: Array = []
@@ -136,6 +138,13 @@ func _ready() -> void:
 		inventory.register_container(id, [[6, 6]], room["containers"][id])
 	inventory.load_start()
 
+	health = HealthScript.new()
+	health.name = "Zdrowie"
+	add_child(health)
+	health.setup(self)
+	health.died.connect(_on_died)
+	player.health = health
+
 	inv_ui = InventoryUIScript.new()
 	inv_ui.name = "OknoEkwipunku"
 	hud.add_child(inv_ui)
@@ -205,8 +214,9 @@ func use_object(target: Object) -> void:
 			sound.play("pickup", at, -6.0)
 
 
-func open_inventory(container_id: String = "") -> void:
+func open_inventory(container_id: String = "", with_health: bool = false) -> void:
 	interaction.release()
+	inv_ui.health_open = with_health and container_id == ""
 	inv_ui.open(container_id)
 	hud.hints.visible = false
 	hud.dev.visible = false
@@ -243,6 +253,57 @@ func load_game() -> void:
 			hud.show_message(tr("MSG_BAD_SAVE"))
 
 
+func _update_health_hud() -> void:
+	var m: Array = []
+	var bleed := health.bleed_rate()
+	if bleed > 0.15:
+		m.append([tr("MOOD_BLEED_HEAVY"), Color(1.0, 0.3, 0.25)])
+	elif bleed > 0.005:
+		m.append([tr("MOOD_BLEED"), Color(0.95, 0.45, 0.35)])
+	if health.blood < 85.0:
+		m.append([tr("MOOD_BLOOD") % health.blood, Color(0.9, 0.6, 0.55)])
+	if health.pain > 15.0:
+		m.append([tr("MOOD_PAIN_HEAVY" if health.pain > 55.0 else "MOOD_PAIN"), Color(0.95, 0.75, 0.4)])
+	for id in health.LEGS + health.ARM_L + health.ARM_R + ["klatka", "glowa"]:
+		if health.has_wound(id, "zlamanie"):
+			m.append([tr("MOOD_FRACTURE"), Color(0.85, 0.85, 0.9)])
+			break
+	if health.max_infection() > 0.15:
+		m.append([tr("MOOD_INFECTION"), Color(0.6, 0.85, 0.4)])
+	hud.set_health(health.overall(), m)
+	if not health.action.is_empty():
+		hud.set_treatment("%s %d%%" % [tr("HP_ACT_" + str(health.action["kind"]).to_upper()), int(health.action_ratio() * 100.0)])
+	else:
+		hud.set_treatment("")
+
+
+## Ciemnienie i odbarwienie obrazu przy utracie krwi, drżenie przy bólu.
+func set_hurt_effect(dim: float, pain_level: float) -> void:
+	_post.set_shader_parameter("hurt", dim)
+	_post.set_shader_parameter("pain", pain_level)
+	var shake := maxf(0.0, pain_level - 0.45) * 0.006
+	player.camera.h_offset = randf_range(-shake, shake)
+	player.camera.v_offset = randf_range(-shake, shake)
+
+
+func _on_died() -> void:
+	player.controls_locked = true
+	interaction.release()
+	work.end()
+	if combat.active:
+		combat.toggle()
+	if inv_ui.is_open():
+		close_inventory()
+	hud.show_death(true)
+
+
+## Po wczytaniu zapisu z żywą postacią odblokowuje sterowanie.
+func revive_if_needed() -> void:
+	if not health.dead:
+		player.controls_locked = false
+		hud.show_death(false)
+
+
 func awake_body_count() -> int:
 	var n := 0
 	for b in bodies + world_items.bodies:
@@ -252,11 +313,31 @@ func awake_body_count() -> int:
 
 
 func _input(event: InputEvent) -> void:
+	if health != null and health.dead:
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.physical_keycode == KEY_ENTER:
+				get_tree().reload_current_scene()  # nowy ocalały (permadeath: świat zostanie od buildu świata)
+			elif event.physical_keycode == KEY_F9:
+				load_game()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.is_action("inventory"):
 		if inv_ui.is_open():
 			close_inventory()
 		else:
 			open_inventory()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.is_action("health"):
+		# H: okno zdrowia (razem z ekwipunkiem, żeby przeciągać opatrunki na ciało)
+		if inv_ui.is_open() and inv_ui.health_open:
+			close_inventory()
+		elif inv_ui.is_open():
+			inv_ui.health_open = true
+			inv_ui.open_container = ""
+			inv_ui.open()
+		else:
+			open_inventory("", true)
 		get_viewport().set_input_as_handled()
 		return
 	if inv_ui.is_open():
@@ -367,6 +448,13 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_F8:
+			if Input.is_key_pressed(KEY_SHIFT):
+				health.heal_all()
+				hud.show_message(tr("MSG_DEV_HEALED"))
+			else:
+				health.random_wound()
+				hud.show_message(tr("MSG_DEV_WOUND"))
 		KEY_KP_0:
 			work.show_bars = not work.show_bars
 			hud.show_message(tr("MSG_BARS_ON" if work.show_bars else "MSG_BARS_OFF"))
@@ -388,6 +476,7 @@ func _process(_delta: float) -> void:
 	player.load_stamina = inventory.stamina_factor()
 	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r"), "two": inventory.hands_two()}
 	hud.set_stamina(player.stamina, player.STAMINA_MAX, player.exhausted)
+	_update_health_hud()
 	if not dev_visible:
 		return
 	var lines := PackedStringArray()
