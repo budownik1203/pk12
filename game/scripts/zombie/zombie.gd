@@ -111,6 +111,8 @@ func hear(pos: Vector3, loudness: float) -> void:
 	if state in ["dead", "down", "stagger", "attack", "chase"] and _seen_t < MEMORY:
 		return
 	var radius := loudness * 0.25
+	if main.get("weather") != null:
+		radius *= main.weather.hearing_factor()  # deszcz zagłusza
 	if manager.zone_of(pos) != zone:
 		radius *= 0.6  # przez ścianę słychać słabiej
 	if global_position.distance_to(pos) <= radius and state in ["wander", "investigate", "chase"]:

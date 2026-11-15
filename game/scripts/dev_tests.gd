@@ -1237,6 +1237,68 @@ static func run_tests(main: Node) -> void:
 	zm.clear_all()
 	await _wait(tree, 30)
 
+	# 22a. pogoda: deszcz przyciemnia dzień, ochładza, pada za oknem
+	var wt = main.weather
+	var ckw = main.clock
+	ckw.minutes = 12.0 * 60.0
+	wt.set_kind("pogodnie", true)
+	ckw.advance(0.0)
+	var sun_clear: float = ckw.sun.light_energy
+	var t_clear: float = ckw.outside_temp()
+	wt.set_kind("burza", true)
+	ckw.advance(0.0)
+	await _wait(tree, 3)
+	if ckw.sun.light_energy >= sun_clear * 0.8 or ckw.outside_temp() >= t_clear - 2.0:
+		errors.append("22a: burza nie przyciemnia (%.2f -> %.2f) albo nie ochładza (%.1f -> %.1f)" % [sun_clear, ckw.sun.light_energy, t_clear, ckw.outside_temp()])
+	if not wt._particles.emitting:
+		errors.append("22a: w burzy nie pada")
+	var th0: int = wt.thunders
+	wt.thunder()
+	if wt.thunders != th0 + 1 or wt.flash() <= 0.0:
+		errors.append("22a: grzmot bez błysku")
+	# 22b. na dworze ubrania mokną i grzeją słabiej; w środku schną
+	var ins_dry: float = main.needs.insulation()
+	_place(main, Vector3(-2.4, 0.02, 5.2), 0.0)
+	await _wait(tree, 4)
+	ckw.speed = 300.0
+	await _wait(tree, 40)
+	ckw.speed = 1.0
+	var wet_out: float = wt.clothes_wet()
+	if wet_out < 0.3 or main.needs.insulation() >= ins_dry * 0.85:
+		errors.append("22b: deszcz nie moczy ubrań (%.2f) albo nie zmniejsza izolacji (%.2f -> %.2f)" % [wet_out, ins_dry, main.needs.insulation()])
+	# 22c. deszczówka w pustej puszce na dworze
+	var rain_can = main.world_items.spawn(ItemScript.new("puszka_pusta"), Transform3D(Basis(), Vector3(-1.5, 0.1, 5.0)))
+	await _wait(tree, 30)
+	ckw.speed = 300.0
+	await _wait(tree, 30)
+	ckw.speed = 1.0
+	var water: float = float(rain_can.get_meta("item").liquid.get("amount", 0.0))
+	if water <= 0.05:
+		errors.append("22c: puszka na deszczu nie zbiera wody (%.2f l)" % water)
+	main.world_items.remove(rain_can)
+	# 22d. deszcz zagłusza: zombie słyszy z mniejszej odległości
+	if wt.hearing_factor() >= 0.8 or wt.sight_factor() >= 0.9:
+		errors.append("22d: deszcz nie osłabia zmysłów zombie")
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
+	await _wait(tree, 4)
+	ckw.speed = 300.0
+	await _wait(tree, 30)
+	ckw.speed = 1.0
+	if wt.clothes_wet() >= wet_out:
+		errors.append("22d: w środku ubrania nie schną (%.2f -> %.2f)" % [wet_out, wt.clothes_wet()])
+	var wsave: Dictionary = wt.to_dict()
+	wt.set_kind("pogodnie", true)
+	wt.from_dict(JSON.parse_string(JSON.stringify(wsave)))
+	if wt.kind != "burza":
+		errors.append("22d: zapis pogody")
+	wt.set_kind("pogodnie", true)
+	for it in inv.slots.values():
+		it.wet = 0.0
+	main.needs.from_dict({})
+	main.health.reset()
+	main.revive_if_needed()
+	await _wait(tree, 20)
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -1535,6 +1597,30 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	_place(main, Vector3(-3.2, 0.02, -0.6), 90.0, -25.0)
 	main.use_sink()
 	await _shot(main, dir + "/zlew.png", 12)
+	# kadry pogody: deszcz za oknem, burza na dworze z błyskiem, mgła
+	var wtk = main.weather
+	var ckp = main.clock
+	var keep_m: float = ckp.minutes
+	ckp.minutes = 11.0 * 60.0
+	wtk.set_kind("deszcz", true)
+	ckp.advance(0.0)
+	main.set_switch("lampa_sala", false)
+	_place(main, Vector3(-2.4, 0.02, 2.2), 180.0, 2.0)
+	await _shot(main, dir + "/pogoda_deszcz_okno.png", 40)
+	wtk.set_kind("burza", true)
+	_place(main, Vector3(-2.0, 0.02, 6.4), 10.0, -4.0)
+	await _wait(tree, 30)
+	wtk.thunder()
+	ckp.advance(0.0)
+	await _shot(main, dir + "/pogoda_burza.png", 3)
+	wtk.set_kind("mgla", true)
+	ckp.minutes = 7.0 * 60.0
+	ckp.advance(0.0)
+	await _shot(main, dir + "/pogoda_mgla.png", 30)
+	wtk.set_kind("pogodnie", true)
+	ckp.minutes = keep_m
+	ckp.advance(0.0)
+	main.set_switch("lampa_sala", true)
 	# kadry zombie: w pokoju, przy oknie, z bliska, zwłoki
 	var zmk = main.zombies
 	main.set_switch("lampa_sala", true)

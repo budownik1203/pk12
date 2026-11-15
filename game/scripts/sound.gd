@@ -156,6 +156,7 @@ func _build_library() -> void:
 		"impact_metal": [0.4, _impact_metal], "pickup": [0.2, _pickup],
 		"whoosh": [0.3, _whoosh], "inv": [0.11, _inv],
 		"water": [1.3, _water], "eat": [0.5, _eat], "drink": [0.6, _drink],
+		"thunder": [3.2, _thunder],
 		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
 	}
 	for n in gens:
@@ -362,3 +363,43 @@ func _hit_flesh(t: float, _d: float, st: Dictionary) -> float:
 
 func _bodyfall(t: float, _d: float, st: Dictionary) -> float:
 	return _lp(st, _noise(), 0.12) * exp(-t * 12.0) * 1.3 + _sin(52.0, t) * exp(-t * 10.0) * 0.8
+
+
+func _thunder(t: float, d: float, st: Dictionary) -> float:
+	# grzmot: trzask na początku, potem długie niskie dudnienie
+	var crack := _noise() * exp(-t * 18.0) * 0.6
+	var rumble := _lp(st, _noise(), 0.03) * 6.0 * (0.6 + 0.4 * sin(t * 7.0 + st["seed"] * 4.0))
+	return (crack + rumble) * minf(1.0, t / 0.02) * exp(-t * 1.1) * (1.0 - t / d)
+
+
+var _rain_loop: AudioStreamWAV
+
+
+## Zapętlony szum deszczu (2 s, bez szwu).
+func rain_loop() -> AudioStreamWAV:
+	if _rain_loop != null:
+		return _rain_loop
+	var n := RATE * 2
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var lp := 0.0
+	var lp2 := 0.0
+	for i in n:
+		var x := _noise()
+		lp += 0.45 * (x - lp)
+		lp2 += 0.04 * (x - lp2)
+		var drop := 0.0
+		if _rng.randf() < 0.0015:
+			drop = _noise() * 1.5  # pojedyncze krople
+		out[i] = (lp - lp2) * 0.5 + drop * 0.3
+	# płynne przejście końca w początek
+	var blend := int(0.1 * RATE)
+	for i in blend:
+		var a := float(i) / blend
+		out[i] = out[i] * a + out[n - blend + i] * (1.0 - a)
+	out.resize(n - blend)
+	_rain_loop = _wav(out)
+	_rain_loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_rain_loop.loop_begin = 0
+	_rain_loop.loop_end = out.size()
+	return _rain_loop

@@ -383,8 +383,8 @@
 			},
 			"short_pl": "Butelka",
 			"short_en": "Bottle",
-			"desc_pl": "Pij: przeciągnij na postać w oknie zdrowia (H). Napełnisz ją przy zlewie (F z butelką w ręce).",
-			"desc_en": "Drink: drag onto the body in the health window (H). Refill at the sink (F with the bottle in hand)."
+			"desc_pl": "Pij: przeciągnij na postać w oknie zdrowia (H). Napełnisz ją przy zlewie (F z butelką w ręce). Postawiona na dworze w deszczu łapie deszczówkę.",
+			"desc_en": "Drink: drag onto the body in the health window (H). Refill at the sink (F with the bottle in hand). Stood outside in the rain, it catches rainwater."
 		},
 		"apteczka": {
 			"pl": "Apteczka",
@@ -457,7 +457,8 @@
 					0.2
 				]
 			},
-			"insulation": 0.04
+			"insulation": 0.04,
+			"waterproof": 0.6
 		},
 		"kamizelka": {
 			"pl": "Kamizelka taktyczna",
@@ -516,7 +517,8 @@
 				"bite": 0.45,
 				"blunt": 0.3
 			},
-			"insulation": 0.08
+			"insulation": 0.08,
+			"waterproof": 0.2
 		},
 		"pas": {
 			"pl": "Pas z ładownicami",
@@ -602,7 +604,8 @@
 				"bite": 0.2,
 				"blunt": 0.1
 			},
-			"insulation": 0.35
+			"insulation": 0.35,
+			"waterproof": 0.35
 		},
 		"spodnie": {
 			"pl": "Spodnie",
@@ -651,7 +654,8 @@
 				"bite": 0.15,
 				"blunt": 0.05
 			},
-			"insulation": 0.2
+			"insulation": 0.2,
+			"waterproof": 0.1
 		},
 		"moneta": {
 			"pl": "Moneta",
@@ -1127,8 +1131,8 @@
 			"shape": [
 				"#"
 			],
-			"desc_pl": "Złom. Później: zbieranie deszczówki i grzechotka alarmowa na sznurku.",
-			"desc_en": "Scrap. Later: rainwater collecting and a tin-can alarm on a string.",
+			"desc_pl": "Postaw na zewnątrz w deszczu, a zbierze deszczówkę (0,4 l). Później grzechotka alarmowa na sznurku.",
+			"desc_en": "Stand it outside in the rain to collect rainwater (0.4 l). Later a tin-can alarm on a string.",
 			"model": {
 				"type": "cylinder",
 				"radius": 0.037,
@@ -1138,7 +1142,8 @@
 					0.55,
 					0.57
 				]
-			}
+			},
+			"liquid_capacity": 0.4
 		},
 		"chleb": {
 			"pl": "Chleb",

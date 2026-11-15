@@ -81,7 +81,8 @@ func ambient_temp() -> float:
 	var outside: float = main.clock.outside_temp()
 	var inside: bool = main.player.global_position.z < 3.5 + 0.05
 	if not inside:
-		return outside
+		var chill: float = main.weather.wind * 3.0 if main.get("weather") != null else 0.0
+		return outside - chill  # wiatr wychładza
 	var boards: int = main.window_boards.secure_count() if main.window_boards != null else 3
 	var draft := (3.0 - boards) * 1.5  # nieszczelne okno: ciągnie zimnem
 	return outside + 7.0 - draft
@@ -94,7 +95,8 @@ func insulation() -> float:
 		if slot in ["w_reku", "w_lewej", "oburacz"]:
 			continue
 		var it = main.inventory.slots[slot]
-		s += float(it.get_def().get("insulation", 0.0)) * clampf(it.condition() + 0.3, 0.3, 1.0)
+		# mokre ubranie grzeje dużo słabiej
+		s += float(it.get_def().get("insulation", 0.0)) * clampf(it.condition() + 0.3, 0.3, 1.0) * (1.0 - it.wet * 0.7)
 	return s
 
 

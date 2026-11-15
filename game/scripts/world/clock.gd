@@ -14,6 +14,7 @@ var minutes := float(START_MINUTE)    # minuty od północy dnia 1
 var speed := 1.0                      # mnożnik (sen)
 var sun: DirectionalLight3D
 var env: Environment
+var weather                           # weather.gd: chmury przyciemniają, mgła gęstnieje
 
 
 func setup(world: Node3D) -> void:
@@ -65,7 +66,10 @@ func text() -> String:
 ## Temperatura na zewnątrz w °C.
 func outside_temp() -> float:
 	var h := hour()
-	return 9.5 + 5.5 * cos((h - 15.0) / 24.0 * TAU)
+	var t := 9.5 + 5.5 * cos((h - 15.0) / 24.0 * TAU)
+	if weather != null:
+		t += weather.temp_mod
+	return t
 
 
 ## 0 w nocy, 1 w południe (ilość światła dziennego).
@@ -81,6 +85,14 @@ func _update_sky() -> void:
 	if sun == null:
 		return
 	var d := daylight()
+	var cloud := 0.0
+	var fog := 0.0
+	var flash := 0.0
+	if weather != null:
+		cloud = weather.cloud
+		fog = weather.fog
+		flash = weather.flash()
+	d *= 1.0 - cloud * 0.55
 	var h := hour()
 	# słońce idzie ze wschodu (-X) przez południe (+Z) na zachód (+X)
 	var t := clampf((h - SUNRISE) / (SUNSET - SUNRISE), 0.0, 1.0)
@@ -89,13 +101,15 @@ func _update_sky() -> void:
 	# kierunek padania światła: od słońca (południe to +Z za oknem) do wnętrza
 	var dir := Vector3(-sin(azimuth), -sin(elevation), -cos(azimuth)).normalized()
 	sun.global_transform = Transform3D(Basis.looking_at(dir, Vector3.UP), Vector3(0, 10, 0))
-	sun.light_energy = d * 1.6
-	sun.visible = d > 0.01
+	sun.light_energy = d * 1.6 * (1.0 - cloud * 0.5) + flash * 2.5
+	sun.visible = d > 0.01 or flash > 0.0
 	var warm := 1.0 - clampf(elevation / 0.5, 0.0, 1.0)
 	sun.light_color = Color(1.0, 0.95, 0.85).lerp(Color(1.0, 0.62, 0.38), warm)
 	if env != null:
 		env.background_color = Color(0.02, 0.025, 0.04).lerp(Color(0.48, 0.58, 0.68), d).lerp(Color(0.75, 0.5, 0.35), warm * d * 0.6)
-		env.ambient_light_energy = 0.1 + d * 0.28
+		env.background_color = env.background_color.lerp(Color(0.35, 0.37, 0.4) * (0.15 + d), cloud * 0.7).lerp(Color(0.85, 0.88, 1.0), flash * 0.8)
+		env.ambient_light_energy = 0.1 + d * 0.28 + flash * 0.6
+		env.fog_density = 0.035 + fog * 0.09
 		env.fog_light_color = Color(0.06, 0.07, 0.09).lerp(Color(0.3, 0.32, 0.34), d)
 
 

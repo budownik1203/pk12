@@ -1,5 +1,5 @@
 {
-	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab mode (LMB grabs, RMB throws) · wheel click: combat (LMB attack, RMB guard, RMB+LMB shove) · Z two-handed grip\nF use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop right / left · X flashlight · LMB / RMB: left / right hand · O highlights · numpad 0 bars · H health · F7 +1 h (dev) · F8 wound (dev) · numpad +/− zombie (dev) · F5 / F9 save / load",
+	"HINTS": "WASD move · Shift sprint · Ctrl crouch · Q / E lean · Space jump and climb\nT grab mode (LMB grabs, RMB throws) · wheel click: combat (LMB attack, RMB guard, RMB+LMB shove) · Z two-handed grip\nF use and pick up · Tab inventory · 1–9 hotkeys · G / Shift+G drop right / left · X flashlight · LMB / RMB: left / right hand · O highlights · numpad 0 bars · H health · F7 +1 h (dev) · F8 wound (dev) · numpad +/− zombie, / weather (dev) · F5 / F9 save / load",
 	"STYLE_SOFT": "Soft PS1",
 	"STYLE_CLEAR": "Classic PS1",
 	"STYLE_RAW": "Raw PS1",
@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 7 · zombies",
+	"DEV_BUILD": "PSK-12 · build 8 · weather",
 	"DEV_STAMINA": "Stamina: %d",
 	"DEV_HELD": "Holding: %s (%.1f kg)",
 	"INV_TITLE_BODY": "ON BODY",
@@ -228,5 +228,14 @@
 	"MSG_DEV_NO_ZOMBIES": "(dev) zombies removed",
 	"DEV_ZOMBIES": "Zombies: %d alive · %d killed",
 	"NOISE_DOOR_BANG": "banging on the door",
-	"NOISE_STEP": "footsteps"
+	"NOISE_STEP": "footsteps",
+	"WEATHER_pogodnie": "clear",
+	"WEATHER_pochmurno": "overcast",
+	"WEATHER_deszcz": "rain",
+	"WEATHER_burza": "storm",
+	"WEATHER_mgla": "fog",
+	"MOOD_WET": "Wet",
+	"MOOD_SOAKED": "Soaked",
+	"MSG_DEV_WEATHER": "(dev) weather: %s",
+	"NOISE_THUNDER": "thunder"
 }

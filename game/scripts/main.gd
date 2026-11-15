@@ -24,6 +24,7 @@ const NeedsScript := preload("res://scripts/health/needs.gd")
 const ClockScript := preload("res://scripts/world/clock.gd")
 const HandWorkScript := preload("res://scripts/work/hand_work.gd")
 const ZombiesScript := preload("res://scripts/zombie/zombies.gd")
+const WeatherScript := preload("res://scripts/world/weather.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -61,6 +62,7 @@ var needs: NeedsScript
 var clock: ClockScript
 var sink: StaticBody3D
 var zombies: ZombiesScript
+var weather: WeatherScript
 var _flash := 0.0
 var _stream_time := 0.0
 var window_boards: WindowScript
@@ -170,6 +172,11 @@ func _ready() -> void:
 	zombies.name = "Zombie"
 	add_child(zombies)
 	zombies.setup(self)
+	weather = WeatherScript.new()
+	weather.name = "Pogoda"
+	add_child(weather)
+	weather.setup(self)
+	clock.weather = weather
 	var dev_run := false
 	for a in OS.get_cmdline_user_args():
 		if a == "--test" or a.begins_with("--zrzuty"):
@@ -323,6 +330,11 @@ func _update_health_hud() -> void:
 		m.append([tr("MOOD_COLD"), Color(0.65, 0.8, 1.0)])
 	elif needs.body_temp > 37.8:
 		m.append([tr("MOOD_HOT"), Color(1.0, 0.6, 0.4)])
+	var wet: float = weather.clothes_wet()
+	if wet > 0.6:
+		m.append([tr("MOOD_SOAKED"), Color(0.55, 0.7, 0.95)])
+	elif wet > 0.2:
+		m.append([tr("MOOD_WET"), Color(0.65, 0.78, 0.95)])
 	if needs.poison > 0.1:
 		m.append([tr("MOOD_POISON"), Color(0.6, 0.8, 0.3)])
 	match health.knox_stage():
@@ -538,6 +550,10 @@ func _dev_key(key: int) -> void:
 			Lang.toggle()
 			hud.refresh_static()
 			hud.show_message(tr("MSG_LANG"))
+		KEY_KP_DIVIDE:
+			var kinds := weather.KINDS.keys()
+			weather.set_kind(kinds[(kinds.find(weather.kind) + 1) % kinds.size()], true)
+			hud.show_message(tr("MSG_DEV_WEATHER") % weather.text())
 		KEY_KP_ADD:
 			zombies.spawn(zombies.random_point("out", RandomNumberGenerator.new()))
 			hud.show_message(tr("MSG_DEV_ZOMBIE"))
@@ -583,7 +599,7 @@ func _process(_delta: float) -> void:
 	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r"), "two": inventory.hands_two()}
 	hud.set_stamina(player.stamina, player.STAMINA_MAX, player.exhausted)
 	_update_health_hud()
-	hud.set_clock(clock.text())
+	hud.set_clock("%s · %s %.0f °C" % [clock.text(), weather.text(), clock.outside_temp()])
 	if _stream_time > 0.0:
 		_stream_time -= _delta
 	sink.get_node("Strumien").visible = _stream_time > 0.0

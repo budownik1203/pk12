@@ -98,7 +98,10 @@ func sight_range(z) -> float:
 		light *= 0.6  # kucający trudniej zauważyć
 	if zone_of(z.global_position) != pzone:
 		light *= 0.7  # przez okno
-	return lerpf(3.0, 15.0, clampf(light, 0.0, 1.0))
+	var r := lerpf(3.0, 15.0, clampf(light, 0.0, 1.0))
+	if main.get("weather") != null:
+		r *= main.weather.sight_factor()  # deszcz i mgła
+	return r
 
 
 func _on_noise(pos: Vector3, loudness: float) -> void:

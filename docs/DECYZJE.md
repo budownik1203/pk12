@@ -136,3 +136,15 @@
 - **Rany od zombie:** losowa część ciała (najczęściej przedramiona i ramiona, rzadko nogi), rodzaj wg piaskownicy (zadrapanie 50, rana cięta 30, ugryzienie 20). Ubranie może zatrzymać ranę. Czerwony błysk przy trafieniu.
 - **Zakażenie:** szansa wg piaskownicy (jak w PZ: zadrapanie 7%, rana cięta 25%, ugryzienie 100%). Bez objawów przez 35% czasu, potem mdłości, gorączka i agonia z rosnącym bólem i spadkiem zdrowia; po `knox_hours` (48 h gry) śmierć. Lekarstwa brak.
 - **Piaskownica** w `data/sandbox.json`. Na start 2 zombie na gruncie za oknem. Zapis wersji 6 zawiera zombie i liczbę zabitych. Dźwięki: jęk, warknięcie, uderzenie w ciało, upadek, walenie w drzwi.
+
+
+## Build 8 (15.11.2026): pogoda
+
+- **Rodzaje** (`scripts/world/weather.gd`): pogodnie, pochmurno, deszcz, burza, mgła, każdy z zachmurzeniem, deszczem, mgłą, wiatrem i zmianą temperatury (deszcz −3 °C, burza −4 °C). Co 2–6 godzin gry losowany jest następny rodzaj z tabeli przejść (z deszczu łatwo o burzę, z burzy wraca deszcz albo zachmurzenie); parametry dochodzą do nowych wartości w około pół godziny gry.
+- **Światło i niebo:** chmury zabierają do 55% światła dziennego, niebo szarzeje, mgła zagęszcza mgłę otoczenia. Burza: grzmot co 12–40 s z błyskiem rozświetlającym niebo i ściany.
+- **Deszcz:** krople nad gruntem za oknem, widoczne przez okno. Zapętlony szum deszczu: na dworze pełny, przy oknie wyraźny, w głębi pokoju stłumiony.
+- **Przemakanie:** na dworze w deszczu założone rzeczy mokną (pole `waterproof` zmniejsza: plecak 0,6, kurtka 0,35, kamizelka 0,2, spodnie 0,1); plecak przepuszcza 15% do zawartości. W środku schną, szybciej przy wysiłku. Mokre ubranie traci do 70% izolacji. Stany „Mokro” i „Przemoczony”. Wiatr wychładza na dworze (do −3 °C odczuwanej).
+- **Deszczówka:** stojący pionowo na dworze pojemnik z polem `liquid_capacity` łapie do 0,4 l na godzinę gry w pełnym deszczu (pusta puszka ma teraz 0,4 l pojemności, butelka 1 l). Wodę pije się jak z butelki.
+- **Zombie:** deszcz zmniejsza promień słyszenia do 65%, deszcz i mgła skracają zasięg wzroku (mgła do połowy).
+- Zegar pokazuje pogodę i temperaturę na zewnątrz. Zapis w wersji 7 zawiera pogodę.
+- **Ograniczenie:** za oknem jest tylko kawałek gruntu; dalszy świat (budynki, miasto) przyjdzie w buildzie świata.
