@@ -190,7 +190,7 @@ func _layout() -> void:
 	var ox := float(OPEN_X)
 	y = TOP + 36
 	if open_container != "" and inv.containers.has(open_container):
-		headers.append({"pos": Vector2(ox, y + 17), "text": tr("INV_CONTAINER_" + open_container), "item": null,
+		headers.append({"pos": Vector2(ox, y + 17), "text": tr(inv.containers[open_container].get("label", "INV_CONTAINER_" + open_container)), "item": null,
 				"close": Rect2(ox + 610, y, 22, 22), "container": open_container})
 		var gx := ox
 		var gh := 0.0

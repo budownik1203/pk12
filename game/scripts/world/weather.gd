@@ -128,11 +128,21 @@ func _physics_process(delta: float) -> void:
 
 
 func outside() -> bool:
-	return main.zombies.zone_of(main.player.global_position) == "out"
+	return not main.town.indoors(main.player.global_position)
 
 
 func _update_rain_fx(delta: float) -> void:
-	_particles.emitting = rain > 0.05
+	# krople: nad graczem na dworze, za oknem domu startowego, w cudzym domu brak
+	var pp: Vector3 = main.player.global_position
+	var yard := Vector3(OUT_AREA.position.x + OUT_AREA.size.x / 2.0, 4.2, OUT_AREA.position.y + OUT_AREA.size.y / 2.0)
+	var inside_other: bool = main.town.indoors(pp) and not main.town.in_start_house(pp)
+	if main.town.in_start_house(pp):
+		_particles.position = yard
+		_particles.emission_box_extents = Vector3(OUT_AREA.size.x / 2.0, 0.1, OUT_AREA.size.y / 2.0)
+	else:
+		_particles.position = Vector3(pp.x, pp.y + 5.0, pp.z)
+		_particles.emission_box_extents = Vector3(9.0, 0.1, 9.0)
+	_particles.emitting = rain > 0.05 and not inside_other
 	var want := int(round(lerpf(150.0, 900.0, clampf(rain, 0.0, 1.0)) / 150.0)) * 150
 	if want != _particles.amount:
 		_particles.amount = want
@@ -215,7 +225,7 @@ func _collect_rainwater(hours: float) -> void:
 			continue
 		var it = b.get_meta("item")
 		var cap := float(it.get_def().get("liquid_capacity", 0.0))
-		if cap <= 0.0 or main.zombies.zone_of(b.global_position) != "out":
+		if cap <= 0.0 or main.town.indoors(b.global_position):
 			continue
 		if b.global_transform.basis.y.dot(Vector3.UP) < 0.7:
 			continue  # przewrócone naczynie nie łapie wody

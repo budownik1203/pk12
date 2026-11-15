@@ -79,7 +79,9 @@ func _physics_process(delta: float) -> void:
 ## Temperatura otoczenia w miejscu gracza (°C).
 func ambient_temp() -> float:
 	var outside: float = main.clock.outside_temp()
-	var inside: bool = main.player.global_position.z < 3.5 + 0.05
+	var inside: bool = main.town.in_start_house(main.player.global_position)
+	if not inside and main.town.indoors(main.player.global_position):
+		return outside + 4.0  # nieogrzewany dom: tylko trochę cieplej niż na dworze
 	if not inside:
 		var chill: float = main.weather.wind * 3.0 if main.get("weather") != null else 0.0
 		return outside - chill  # wiatr wychładza

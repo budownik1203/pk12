@@ -28,6 +28,7 @@ const WeatherScript := preload("res://scripts/world/weather.gd")
 const CharacterScript := preload("res://scripts/character/character.gd")
 const CharCreateScript := preload("res://scripts/ui/char_create.gd")
 const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
+const TownScript := preload("res://scripts/world/town.gd")
 const WindowScript := preload("res://scripts/world/window_boards.gd")
 const DoorScript := preload("res://scripts/world/door_system.gd")
 const POST_SHADER := preload("res://shaders/retro_post.gdshader")
@@ -68,6 +69,7 @@ var zombies: ZombiesScript
 var weather: WeatherScript
 var character: CharacterScript
 var char_panel: CharPanelScript
+var town: TownScript
 var _flash := 0.0
 var _stream_time := 0.0
 var window_boards: WindowScript
@@ -159,6 +161,17 @@ func _ready() -> void:
 	for id in room["containers"]:
 		inventory.register_container(id, [[6, 6]], room["containers"][id])
 	inventory.load_start()
+
+	# ulica i domy (ziarno świata z piaskownicy: ten sam świat po śmierci i wczytaniu)
+	town = TownScript.new()
+	town.name = "Miasto"
+	add_child(town)
+	var sandbox_seed := 1203
+	var sf := FileAccess.open("res://data/sandbox.json", FileAccess.READ)
+	if sf != null:
+		sandbox_seed = int(JSON.parse_string(sf.get_as_text()).get("world_seed", 1203))
+	town.setup(self, sandbox_seed)
+	town.fill_loot()
 
 	health = HealthScript.new()
 	health.name = "Zdrowie"
@@ -265,6 +278,8 @@ func use_object(target: Object) -> void:
 		sound.play("switch", interaction.focus_point(), -8.0)
 	elif target.has_meta("door_sys"):
 		target.get_meta("door_sys").on_use(interaction.focus_point())
+	elif target.has_meta("glass"):
+		target.get_meta("glass").clear_shards()
 	elif target.has_meta("sink"):
 		use_sink()
 	elif target.has_meta("bed"):
@@ -407,7 +422,9 @@ func _show_char_create() -> void:
 func light_level() -> float:
 	var pp: Vector3 = player.global_position
 	var light := 0.15
-	if zombies.zone_of(pp) == "in":
+	if not town.in_start_house(pp) and town.indoors(pp):
+		light = 0.15 + clock.daylight() * 0.3 * (1.0 - weather.cloud * 0.4)  # cudzy dom: ciemno, tylko okna
+	elif zombies.zone_of(pp) == "in":
 		if pp.x < zombies.door_wall_x and switches.get("lampa_sala", {}).get("on", false):
 			light = 1.0
 		elif pp.x >= zombies.door_wall_x and switches.get("lampa_komorka", {}).get("on", false):

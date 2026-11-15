@@ -1,0 +1,9 @@
+{
+	"_opis": "Łupy w pojemnikach domów: dla każdego rodzaju pojemnika liczba losowań i lista [przedmiot, waga, ilość od, ilość do]. Waga 0 wyłącza wpis.",
+	"lodowka": {"rolls": [1, 3], "items": [["chleb", 4, 1, 1], ["jablko", 5, 1, 3], ["butelka_wody", 4, 1, 1], ["puszka_fasoli", 3, 1, 2], ["batonik", 2, 1, 2]]},
+	"szafka_kuchenna": {"rolls": [1, 4], "items": [["puszka_fasoli", 6, 1, 3], ["otwieracz", 2, 1, 1], ["noz", 2, 1, 1], ["batonik", 3, 1, 3], ["spirytus", 1, 1, 1], ["szmata", 2, 1, 2], ["butelka_wody", 2, 1, 1]]},
+	"apteczka_scienna": {"rolls": [1, 3], "items": [["bandaz", 5, 1, 2], ["plaster", 5, 2, 6], ["tabletki", 3, 1, 1], ["spirytus", 2, 1, 1], ["igla_nici", 1, 1, 1], ["szmata", 2, 1, 1]]},
+	"szafa": {"rolls": [1, 3], "items": [["kurtka", 2, 1, 1], ["spodnie", 2, 1, 1], ["rekawice", 3, 1, 1], ["czapka", 3, 1, 1], ["plecak", 1, 1, 1], ["szmata", 3, 1, 3], ["pas", 1, 1, 1]]},
+	"regal": {"rolls": [1, 3], "items": [["ksiazka_stolarstwo", 1, 1, 1], ["ksiazka_pierwsza_pomoc", 1, 1, 1], ["ksiazka_majsterkowanie", 1, 1, 1], ["moneta", 3, 1, 5], ["batonik", 2, 1, 1], ["klucz", 1, 1, 1]]},
+	"skrzynka_narzedziowa": {"rolls": [2, 4], "items": [["mlotek", 3, 1, 1], ["srubokret", 3, 1, 1], ["lom", 1, 1, 1], ["gwozdzie", 5, 5, 20], ["wkrety", 4, 4, 14], ["nakladka", 1, 1, 1], ["zamek_drzwiowy", 1, 1, 1], ["rekawice", 2, 1, 1]]}
+}

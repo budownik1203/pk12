@@ -109,7 +109,7 @@ func _update_sky() -> void:
 		env.background_color = Color(0.02, 0.025, 0.04).lerp(Color(0.48, 0.58, 0.68), d).lerp(Color(0.75, 0.5, 0.35), warm * d * 0.6)
 		env.background_color = env.background_color.lerp(Color(0.35, 0.37, 0.4) * (0.15 + d), cloud * 0.7).lerp(Color(0.85, 0.88, 1.0), flash * 0.8)
 		env.ambient_light_energy = 0.1 + d * 0.28 + flash * 0.6
-		env.fog_density = 0.035 + fog * 0.09
+		env.fog_density = 0.014 + fog * 0.09  # na otwartej ulicy rzadka mgła, gęsta tylko w pogodzie „mgła”
 		env.fog_light_color = Color(0.06, 0.07, 0.09).lerp(Color(0.3, 0.32, 0.34), d)
 
 

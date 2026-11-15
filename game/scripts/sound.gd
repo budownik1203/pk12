@@ -171,6 +171,7 @@ func _build_library() -> void:
 		"whoosh": [0.3, _whoosh], "inv": [0.11, _inv],
 		"water": [1.3, _water], "eat": [0.5, _eat], "drink": [0.6, _drink],
 		"thunder": [3.2, _thunder],
+		"glass": [0.7, _glass],
 		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
 	}
 	for n in gens:
@@ -417,3 +418,13 @@ func rain_loop() -> AudioStreamWAV:
 	_rain_loop.loop_begin = 0
 	_rain_loop.loop_end = out.size()
 	return _rain_loop
+
+
+func _glass(t: float, _d: float, st: Dictionary) -> float:
+	# tłuczone szkło: trzask i dzwoniące odłamki
+	var crash := (_noise() - _lp(st, _noise(), 0.3)) * exp(-t * 9.0)
+	var tink := 0.0
+	if _rng.randf() < 0.006 * exp(-t * 3.0):
+		st["lp2"] = _rng.randf_range(2500.0, 5200.0)
+	tink = _sin(float(st["lp2"]), t) * exp(-fmod(t, 0.09) * 40.0) * 0.3
+	return crash * 1.1 + tink

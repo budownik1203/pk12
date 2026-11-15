@@ -15,7 +15,7 @@
 	"DEV_BODIES": "Active bodies: %d of %d",
 	"DEV_STYLE": "Style: %s",
 	"DEV_ENGINE": "Godot %s · physics: %s",
-	"DEV_BUILD": "PSK-12 · build 9 · character",
+	"DEV_BUILD": "PSK-12 · build 10 · street and houses",
 	"DEV_STAMINA": "Stamina: %d",
 	"DEV_HELD": "Holding: %s (%.1f kg)",
 	"INV_TITLE_BODY": "ON BODY",
@@ -258,5 +258,15 @@
 	"MSG_WELCOME": "%s. Survive.",
 	"HP_ERR_STITCH_SKILL": "You don't know how to stitch wounds (First aid 2)",
 	"HP_ERR_TOO_DARK": "Too dark to read",
-	"HP_ACT_READ": "Reading"
+	"HP_ACT_READ": "Reading",
+	"INV_CONTAINER_lodowka": "Fridge",
+	"INV_CONTAINER_szafka_kuchenna": "Kitchen cabinet",
+	"INV_CONTAINER_apteczka_scienna": "Medicine cabinet",
+	"INV_CONTAINER_szafa": "Wardrobe",
+	"INV_CONTAINER_regal": "Bookcase",
+	"INV_CONTAINER_skrzynka_narzedziowa": "Toolbox",
+	"MSG_GLASS_CUT": "You cut yourself on the glass shards",
+	"MSG_GLASS_SAFE": "Gloves protected you from the shards",
+	"MSG_SHARDS_CLEARED": "Knocked the remaining glass out of the frame",
+	"NOISE_GLASS": "breaking glass"
 }

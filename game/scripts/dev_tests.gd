@@ -1124,7 +1124,7 @@ static func run_tests(main: Node) -> void:
 	inv.slots.erase("oburacz")
 	_place(main, Vector3(-1.0, 0.02, -1.0), 0.0)
 	await _wait(tree, 4)
-	var zb = zm.spawn(Vector3(-1.0, 0.02, -5.0 + 0.5))
+	var zb = zm.spawn(Vector3(-1.0, 0.02, -3.0))
 	zb.global_position = Vector3(-1.0, 0.02, -4.5 + 1.5)
 	zb._fwd = Vector3(0, 0, 1)
 	var d0: float = zb.global_position.distance_to(player.global_position)
@@ -1140,7 +1140,7 @@ static func run_tests(main: Node) -> void:
 		if zm.hits_on_player > hits0:
 			break
 	if zm.hits_on_player <= hits0:
-		errors.append("21c: zombie przy graczu nie zaatakował (stan %s, odl. %.2f)" % [zb.state, zb.global_position.distance_to(player.global_position)])
+		errors.append("21c: zombie przy graczu nie zaatakował (stan %s, odl. %.2f, z %s, gracz %s, cel %s, nast. %s, koniec %s, seen %.1f)" % [zb.state, zb.global_position.distance_to(player.global_position), zb.global_position, player.global_position, zb.target_pos, zb.nav.get_next_path_position(), zb.nav.is_navigation_finished(), zb._seen_t])
 	# 21d. cios łomem w głowę zabija, w tułów zatacza; odepchnięcie przewraca
 	var wounded: float = zb.hp
 	zb.take_hit(20.0, zb.global_position + Vector3.UP * 1.0, Vector3(0, 0, -1), false)
@@ -1375,6 +1375,78 @@ static func run_tests(main: Node) -> void:
 	main.char_panel.toggle()
 	await _wait(tree, 3)
 	main.char_panel.toggle()
+
+	# 24a. ulica: domy, łupy w pojemnikach, pod dachem / na dworze
+	var tw = main.town
+	if tw.buildings.size() != 5:
+		errors.append("24a: domów %d zamiast 5" % tw.buildings.size())
+	var looted := 0
+	for spot in tw.loot_spots:
+		for g in inv.containers[spot[0]]["grids"]:
+			looted += g.items.size()
+	if tw.loot_spots.size() < 8 or looted < 6:
+		errors.append("24a: pojemników %d, przedmiotów w nich %d" % [tw.loot_spots.size(), looted])
+	var hc: Vector2 = (tw.buildings[0] as Rect2).get_center()
+	if not tw.indoors(Vector3(hc.x, 0, hc.y)) or tw.indoors(Vector3(0, 0, 12.0)):
+		errors.append("24a: rozpoznawanie wnętrz domów")
+	var nmap2: RID = main.world.get_world_3d().navigation_map
+	var to_house: PackedVector3Array = NavigationServer3D.map_get_path(nmap2, Vector3(0, 0, 12.0), Vector3(hc.x, 0, hc.y), true)
+	if to_house.size() < 2 or to_house[to_house.size() - 1].distance_to(Vector3(hc.x, 0, hc.y)) > 1.5:
+		errors.append("24a: zombie nie dojdą z ulicy do domu (droga %d punktów)" % to_house.size())
+	# 24b. drzwi domu: F otwiera, drugie F domyka i zaskakują; zombie je wyważa
+	var dr = tw.doors[0]
+	_place(main, dr.door.global_position + dr.door.global_transform.basis.x * 1.2 - Vector3(0, dr.door.global_position.y, 0), 0.0)
+	await _wait(tree, 4)
+	dr.on_use(dr.door.global_position)
+	await _wait(tree, 60)
+	if dr.latched or dr.door_angle() < 0.2:
+		errors.append("24b: drzwi się nie otworzyły (kąt %.2f)" % dr.door_angle())
+	dr.on_use(dr.door.global_position)
+	for k in 240:
+		await tree.physics_frame
+		if dr.latched:
+			break
+	if not dr.latched:
+		errors.append("24b: drzwi się nie domknęły (kąt %.2f)" % dr.door_angle())
+	dr.zombie_bang(7.0, dr.door.global_position + Vector3(0, 0, 1))
+	if dr.latched:
+		errors.append("24b: zombie nie wyważył drzwi")
+	await _wait(tree, 30)
+	# 24c. szyba: cios tłucze, odłamki kaleczą przełażącego, F je wybija
+	var pane = tw.panes[0]
+	pane.take_hit(10.0, pane.global_position, Vector3.FORWARD, false)
+	if not pane.broken or not pane.shards:
+		errors.append("24c: szyba się nie stłukła")
+	main.health.reset()
+	inv.slots.erase("rekawice")
+	var wounds0: int = main.health.wound_count()
+	pane._on_body(player)
+	if main.health.wound_count() <= wounds0:
+		errors.append("24c: odłamki nie kaleczą bez rękawic")
+	pane.clear_shards()
+	if pane.shards or pane.collision_layer != 0:
+		errors.append("24c: wybicie odłamków nie oczyszcza ramy")
+	main.health.reset()
+	# 24d. zapis ulicy
+	var tsave: Dictionary = tw.to_dict()
+	pane.broken = false
+	pane._apply()
+	tw.from_dict(JSON.parse_string(JSON.stringify(tsave)))
+	if not pane.broken:
+		errors.append("24d: zapis szyb")
+	# 24e. zombie na start rozsiane po ulicy, z dala od gracza
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
+	await _wait(tree, 4)
+	zm.clear_all()
+	zm.start_population()
+	var far_ok := true
+	for z in zm.zombies:
+		if z.global_position.distance_to(player.global_position) < 13.5 or zm.zone_of(z.global_position) != "out":
+			far_ok = false
+	if zm.zombies.size() != 10 or not far_ok:
+		errors.append("24e: zombie na start: %d, z dala od gracza: %s" % [zm.zombies.size(), far_ok])
+	zm.clear_all()
+	await _wait(tree, 20)
 
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
@@ -1674,6 +1746,40 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	_place(main, Vector3(-3.2, 0.02, -0.6), 90.0, -25.0)
 	main.use_sink()
 	await _shot(main, dir + "/zlew.png", 12)
+	# kadry ulicy: z góry, z ulicy na domy, wnętrze z latarką, łupy w szafce
+	var twk = main.town
+	var ckt = main.clock
+	var keep_t: float = ckt.minutes
+	ckt.minutes = 14.0 * 60.0
+	ckt.advance(0.0)
+	main.weather.set_kind("pochmurno", true)
+	var top := Camera3D.new()
+	main.world.add_child(top)
+	top.global_position = Vector3(-2.0, 38.0, 32.0)
+	top.look_at(Vector3(-2.0, 0.0, 8.0))
+	top.make_current()
+	await _shot(main, dir + "/ulica_z_gory.png", 12)
+	player.camera.make_current()
+	top.queue_free()
+	_place(main, Vector3(-2.0, 0.02, 12.0), 180.0, -2.0)
+	await _shot(main, dir + "/ulica.png", 20)
+	var hb: Rect2 = twk.buildings[3]
+	_place(main, Vector3(hb.get_center().x, 0.02, hb.get_center().y), 0.0, -8.0)
+	ckt.minutes = 21.5 * 60.0
+	ckt.advance(0.0)
+	player.lamp.visible = true
+	await _shot(main, dir + "/dom_wnetrze_latarka.png", 20)
+	player.lamp.visible = false
+	ckt.minutes = keep_t
+	ckt.advance(0.0)
+	main.weather.set_kind("pogodnie", true)
+	var box_id: String = twk.loot_spots[0][0]
+	var box_node: Node3D = inv.containers[box_id]["node"]
+	_place(main, box_node.global_position + (Vector3(0, 0, 1.0) if box_node.global_position.z < hb.get_center().y else Vector3(0, 0, -1.0)) - Vector3(0, box_node.global_position.y - 0.02, 0), 0.0)
+	await _wait(tree, 5)
+	main.open_inventory(box_id)
+	await _shot(main, dir + "/dom_lupy.png", 10)
+	main.close_inventory()
 	# kadry postaci: ekran tworzenia postaci i okno umiejętności
 	var cc = load("res://scripts/ui/char_create.gd").new()
 	main.hud.add_child(cc)

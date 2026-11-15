@@ -383,7 +383,7 @@ func _detach(name: String) -> void:
 ## Wyważenie: zatrzask puszcza; zamknięte na klucz drzwi wyłamują zamek i nakładkę.
 ## Zombie wali w zatrzaśnięte drzwi: po chwili wyłamuje zatrzask, a z zamkiem
 ## (zależnie od tego, jak mocno trzyma) trwa to znacznie dłużej.
-func zombie_bang(delta: float) -> void:
+func zombie_bang(delta: float, _from: Vector3 = Vector3.ZERO) -> void:
 	if not latched:
 		return
 	_zbang += delta

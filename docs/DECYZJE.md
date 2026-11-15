@@ -165,3 +165,15 @@
 - **Cechy** jako mnożniki dla systemów: silny, słabowity, wysportowany, otyły, szybki i wolny uczeń, cichy krok, niezdarny (głośniej i wolniejsza praca), szybkie gojenie, hemofilik (krwawienie ×1,6), odporny, chorowity (zakażenia ran), mały apetyt, żarłoczny, śpioch.
 - **Książki** (pole `book`): czytanie przeciągnięciem na postać w oknie zdrowia, 12 s, tylko w świetle; potem nauka danej umiejętności ×2,5 do poziomu 4. Trzy książki leżą na stole.
 - **Okno postaci (C)** z poziomami jak w PZ i paskiem postępu. Komunikat i dźwięk przy awansie. Wspólna funkcja poziomu światła przy graczu (lampy, dzień przy oknie, latarka) służy zombie i czytaniu. Zapis w wersji 8 zawiera postać.
+
+
+## Build 10 (15.11.2026): ulica i domy
+
+- **Teren** (`scripts/world/town.gd`): 84 × 60 m wokół domu startowego: trawa, jezdnia z chodnikami i pasami, drzewa, niewidzialne granice. Kawałek gruntu za oknem zniknął: z okna wychodzi się prosto na podwórko i ulicę.
+- **Domy z ziarna** (`world_seed` w `data/sandbox.json`, ten sam świat po śmierci i wczytaniu): 5 działek po obu stronach ulicy. Dom 8–11 × 7–9 m, dach, ściany z otworami: drzwi wejściowe od ulicy, dwa okna od frontu i jedno z tyłu. 2–3 pokoje przedzielone ścianami z przejściami; każdy dom ma kuchnię, reszta losowo: salon, sypialnia (łóżko: sen lepszy niż na materacu), łazienka, garaż.
+- **Pojemniki z łupami** (`data/loot.json`): lodówka, szafka kuchenna, apteczka ścienna, szafa, regał, skrzynka z narzędziami, każdy z liczbą losowań i wagami. Część jedzenia na starcie już nieświeża. Nowe przedmioty: rękawice robocze (chronią dłonie, także przed szkłem) i czapka.
+- **Drzwi domów** (`simple_door.gd`): zatrzask, F naciska klamkę i pcha skrzydło od gracza, otwarte F domyka (zaskakują). Działa też chwyt za klamkę. Zombie wali w zatrzaśnięte drzwi i wyważa je po 6 s. Zombie wykrywa każde zatrzaśnięte drzwi przed sobą (także te w komórce).
+- **Szyby** (`glass_pane.gd`): cios tłucze szybę (głośno, hałas 75). W ramie zostają odłamki: przełażenie kaleczy przedramiona albo dłonie (rękawice mogą ochronić), F albo drugi cios wybija resztki.
+- **Zombie:** strefa „w środku” to tylko dom startowy (do niego dalej wchodzi się przez okno); na dworze chodzą po całej ulicy i po domach po siatce nawigacji wypiekanej z całego terenu. Na start 10 zombie (piaskownica) losowo po ulicy, co najmniej 14 m od gracza. Strefa zombie liczy się na bieżąco z jego położenia.
+- **Pod dachem:** deszcz nie pada i nie moczy w domach; w cudzym domu jest ciemno (tylko światło z okien) i tylko o 4 °C cieplej niż na dworze. Krople deszczu lecą nad graczem na dworze i za oknem domu startowego. Rzadsza mgła na otwartej ulicy.
+- Zapis w wersji 9 zawiera stan drzwi i szyb; zawartość pojemników zapisuje się razem z ekwipunkiem.

@@ -29,8 +29,15 @@ func setup(main_node) -> void:
 
 
 func start_population() -> void:
-	for i in int(settings.get("start_zombies", 2)):
-		spawn(random_point("out", _rng))
+	var placed := 0
+	var tries := 0
+	while placed < int(settings.get("start_zombies", 10)) and tries < 200:
+		tries += 1
+		var p := random_point("out", _rng)
+		if p.distance_to(main.player.global_position) < 14.0:
+			continue  # nie tuż przy starcie
+		spawn(p)
+		placed += 1
 
 
 func _bake_navigation() -> void:
@@ -53,7 +60,7 @@ func _bake_navigation() -> void:
 # --- przestrzeń ----------------------------------------------------------------------
 
 func zone_of(p: Vector3) -> String:
-	return "out" if p.z > RoomBuilder.ROOM_D / 2.0 + 0.05 else "in"
+	return "in" if main.town.in_start_house(p) else "out"
 
 
 ## Punkt przed oknem po danej stronie (tam zombie wyrywa deski albo przełazi).
@@ -66,6 +73,12 @@ func window_point(zone: String) -> Vector3:
 func random_point(zone: String, rng: RandomNumberGenerator) -> Vector3:
 	var p: Vector3
 	if zone == "out":
+		# losowy punkt po siatce nawigacji poza domem startowym (ulica, podwórka, domy)
+		var m: RID = main.world.get_world_3d().navigation_map
+		for attempt in 12:
+			var q := NavigationServer3D.map_get_random_point(m, 1, false)
+			if zone_of(q) == "out" and q != Vector3.ZERO:
+				return q
 		var z0 := RoomBuilder.ROOM_D / 2.0 + RoomBuilder.WALL
 		p = Vector3(rng.randf_range(-4.1, -0.7), 0.02, rng.randf_range(z0 + 0.4, z0 + 2.6))
 	elif rng.randf() < 0.8:

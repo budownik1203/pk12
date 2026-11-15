@@ -45,6 +45,7 @@ var _climb_to := Vector3.ZERO
 var _stuck_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _fwd := Vector3.FORWARD
+var _door = null                    # drzwi, w które wali (door_system albo simple_door)
 
 
 func setup(main_node, mgr, id: int, pos: Vector3, speed_mult: float) -> void:
@@ -142,6 +143,8 @@ func _physics_process(delta: float) -> void:
 		_sense_t -= delta
 		if _sense_t <= 0.0:
 			_sense_t = 0.25
+			if _climb < 0.0:
+				zone = manager.zone_of(global_position)  # strefa wg miejsca, gdzie naprawdę stoi
 			_sense()
 		_groan_t -= delta
 		if _groan_t <= 0.0:
@@ -183,10 +186,10 @@ func _physics_process(delta: float) -> void:
 		"window":
 			_window_logic(delta)
 		"door":
-			if main.door_sys.latched:
-				_face(main.door_sys.door.global_position, delta * 4.0)
+			if _door != null and _door.latched:
+				_face(_door.door.global_position, delta * 4.0)
 				body.lunge = absf(sin(_state_t * 3.0))
-				main.door_sys.zombie_bang(delta)
+				_door.zombie_bang(delta, global_position)
 			else:
 				body.lunge = 0.0
 				_set_state("chase" if _seen_t < MEMORY else "investigate")
@@ -245,18 +248,32 @@ func _route_to(p: Vector3) -> Vector3:
 			_set_state("window")
 			return Vector3.ZERO
 		p = w
-	# zatrzaśnięte drzwi do komórki na drodze: walenie
-	if zone == "in" and main.door_sys.latched and _crosses_door(p):
-		var dp: Vector3 = main.door_sys.door.global_position
-		if Vector2(global_position.x - dp.x, global_position.z - dp.z).length() < 0.9:
-			_set_state("door")
-			return Vector3.ZERO
+	# zatrzaśnięte drzwi tuż przed nim: walenie
+	var blocking = _door_ahead()
+	if blocking != null:
+		_door = blocking
+		_set_state("door")
+		return Vector3.ZERO
 	nav.target_position = p
 	if nav.is_navigation_finished():
 		return _steer_to(p)
 	var next := nav.get_next_path_position()
 	var dir := _steer_to(next)
 	return dir if dir != Vector3.ZERO else _steer_to(p)
+
+
+## Zatrzaśnięte drzwi na wprost w zasięgu ręki (promień na wysokości klamki).
+func _door_ahead():
+	var from := global_position + Vector3.UP * 1.0
+	var q := PhysicsRayQueryParameters3D.create(from, from + _fwd * 0.75)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return null
+	var c: Object = hit["collider"]
+	if c.has_meta("door_sys") and c.get_meta("door_sys").latched:
+		return c.get_meta("door_sys")
+	return null
 
 
 func _crosses_door(p: Vector3) -> bool:

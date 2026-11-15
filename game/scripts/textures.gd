@@ -66,6 +66,27 @@ static func _pixel(kind: String, x: int, y: int, rng: RandomNumberGenerator) -> 
 			if y % 22 < 3:
 				c = Color(0.33, 0.20, 0.12)
 			return c + Color(n, n * 0.7, n * 0.5) * 0.05
+		"grass":
+			# zdeptana trawa i błoto
+			var c := Color(0.17, 0.2, 0.12)
+			if (x * 7 + y * 13) % 23 < 3:
+				c = Color(0.22, 0.18, 0.12)
+			return c + Color(n, n * 1.2, n * 0.6) * 0.04
+		"asphalt":
+			var c := Color(0.13, 0.13, 0.135)
+			if rng.randf() < 0.03:
+				c = c.lightened(0.15)
+			return c + Color(n, n, n) * 0.025
+		"concrete":
+			var c := Color(0.42, 0.41, 0.38)
+			if x % 32 == 0 or y % 32 == 0:
+				c = c.darkened(0.35)
+			return c + Color(n, n, n) * 0.03
+		"tiles":
+			var c := Color(0.55, 0.55, 0.52)
+			if x % 16 == 0 or y % 16 == 0:
+				c = c.darkened(0.45)
+			return c + Color(n, n, n) * 0.02
 		"can":
 			var c := Color(0.62, 0.62, 0.60)
 			if y > 14 and y < 46:

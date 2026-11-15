@@ -1378,6 +1378,83 @@
 					0.55
 				]
 			}
+		},
+		"rekawice": {
+			"pl": "Rękawice robocze",
+			"en": "Work gloves",
+			"short_pl": "Rękawice",
+			"short_en": "Gloves",
+			"mass": 0.2,
+			"material": "tkanina",
+			"category": "odziez",
+			"slot": "rekawice",
+			"shape": [
+				"##"
+			],
+			"protection": {
+				"segments": [
+					"dlon_l",
+					"dlon_p"
+				],
+				"cut": 0.6,
+				"bite": 0.3,
+				"blunt": 0.1
+			},
+			"insulation": 0.05,
+			"waterproof": 0.2,
+			"desc_pl": "Chronią dłonie, także przed odłamkami szyby przy przełażeniu przez wybite okno.",
+			"desc_en": "Protect the hands, also from glass shards when climbing through a broken window.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.2,
+					0.04,
+					0.12
+				],
+				"color": [
+					0.45,
+					0.38,
+					0.25
+				]
+			}
+		},
+		"czapka": {
+			"pl": "Czapka",
+			"en": "Beanie",
+			"short_pl": "Czapka",
+			"short_en": "Beanie",
+			"mass": 0.1,
+			"material": "tkanina",
+			"category": "odziez",
+			"slot": "glowa",
+			"shape": [
+				"#"
+			],
+			"protection": {
+				"segments": [
+					"glowa"
+				],
+				"cut": 0.05,
+				"bite": 0.05,
+				"blunt": 0.02
+			},
+			"insulation": 0.1,
+			"waterproof": 0.1,
+			"desc_pl": "Grzeje głowę.",
+			"desc_en": "Keeps your head warm.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.18,
+					0.08,
+					0.18
+				],
+				"color": [
+					0.3,
+					0.25,
+					0.35
+				]
+			}
 		}
 	},
 	"liquids": {

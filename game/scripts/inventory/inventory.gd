@@ -74,13 +74,13 @@ func _make(d: Dictionary):
 	return ItemScript.from_dict(d, ItemScript)
 
 
-func register_container(id: String, grid_sizes: Array, node: Node3D) -> void:
+func register_container(id: String, grid_sizes: Array, node: Node3D, label: String = "") -> void:
 	var grids: Array = []
 	for s in grid_sizes:
 		var g: Grid = Grid.new(int(s[0]), int(s[1]), WORLD_ACCESS)
 		g.container_id = id
 		grids.append(g)
-	containers[id] = {"grids": grids, "node": node}
+	containers[id] = {"grids": grids, "node": node, "label": label if label != "" else "INV_CONTAINER_" + id}
 
 
 func _reset() -> void:

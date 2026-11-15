@@ -162,7 +162,7 @@ static func _shell(world: Node3D) -> void:
 	var wx := (WINDOW_X0 + WINDOW_X1) / 2.0
 	_static_box(world, "Parapet", Vector3(wx, WINDOW_SILL / 2.0, wz), Vector3(ww, WINDOW_SILL, WALL), wall_m)
 	_static_box(world, "Nadproze_okno", Vector3(wx, (WINDOW_TOP + ROOM_H) / 2.0, wz), Vector3(ww, ROOM_H - WINDOW_TOP, WALL), wall_m)
-	_exterior(world)
+	# teren za oknem buduje teraz town.gd (ulica i domy)
 	_static_box(world, "ScianaW", Vector3(-hw - WALL / 2, ROOM_H / 2, 0), Vector3(WALL, ROOM_H, ROOM_D), wall_m)
 	_static_box(world, "ScianaE", Vector3(hw + 3.0 + WALL / 2, ROOM_H / 2, 0), Vector3(WALL, ROOM_H, ROOM_D), wall_m)
 	# ścianka działowa z otworem drzwiowym (1 m szerokości, 2.1 m wysokości)
