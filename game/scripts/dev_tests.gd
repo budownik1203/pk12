@@ -407,8 +407,8 @@ static func run_tests(main: Node) -> void:
 	var worlds_before: int = main.world_items.bodies.size()
 	if not inv.pick_up(can_body):
 		errors.append("nie da się podnieść puszki: " + inv.last_error)
-	if main.world_items.bodies.size() != worlds_before:
-		errors.append("puszka zniknęła ze świata bez czasu na podniesienie")
+	if main.world_items.bodies.size() != worlds_before - 1:
+		errors.append("podniesiona puszka nie zniknęła od razu ze świata")
 	await _finish(main)
 	var cans := 0
 	for it in inv.all_carried():
@@ -429,13 +429,10 @@ static func run_tests(main: Node) -> void:
 	_place(main, bag_body.global_position + Vector3(0, -bag_body.global_position.y + 0.02, 1.0), 0.0, -40.0)
 	await _wait(tree, 5)
 	inv.pick_up(bag_body)
-	var bag_time: float = inv.current_action().get("duration", 0.0)
-	await _finish(main)
+	# przekładanie jest natychmiastowe: plecak od razu na plecach
 	var bag = inv.slots.get("plecak")
 	if bag == null:
-		errors.append("plecak nie został założony")
-	elif bag_time < 2.0:
-		errors.append("zakładanie plecaka trwało tylko %.1f s" % bag_time)
+		errors.append("plecak nie został założony od razu")
 	else:
 		# 15f. masa: plecak zmniejsza odczuwaną masę zawartości
 		inv.place_now(ItemScript.new("butelka_wody"), bag.grids[0])
@@ -1751,8 +1748,10 @@ static func run_tests(main: Node) -> void:
 	# 27b. przyrządy celownicze: przybliżenie i mniejszy rozrzut
 	main.combat.press(MOUSE_BUTTON_RIGHT)
 	await _wait(tree, 25)
-	if player.camera.fov > 66.0:
+	if player.camera.fov > 73.0:
 		errors.append("27b: przyrządy nie przybliżają (fov %.0f)" % player.camera.fov)
+	if main.hud._dot.visible or main.hud._icon.visible:
+		errors.append("27b: na ekranie jest celownik")
 	await _wait(tree, 15)
 	main.combat.press(MOUSE_BUTTON_LEFT)
 	await _wait(tree, 3)
@@ -1776,12 +1775,16 @@ static func run_tests(main: Node) -> void:
 	rr = gn.rounds(pistol_t)
 	if rr[0] != 14 or rr[1] != 1:
 		errors.append("27c: po przeładowaniu %d + %d zamiast 14 + 1" % [rr[0], rr[1]])
-	var empty_back := false
-	for x in inv.all_carried():
-		if x.def_id == "magazynek_9mm" and int(x.props.get("rounds", 0)) == 0:
-			empty_back = true
-	if not empty_back:
-		errors.append("27c: pusty magazynek nie wrócił do ekwipunku")
+	# pusty magazynek wypada na ziemię (jak w Iron Blight)
+	var empty_dropped := false
+	for wb in main.world_items.bodies:
+		var wi = wb.get_meta("item")
+		if wi.def_id == "magazynek_9mm" and int(wi.props.get("rounds", 0)) == 0 and wb.global_position.distance_to(player.global_position) < 2.0:
+			empty_dropped = true
+	if not empty_dropped:
+		errors.append("27c: pusty magazynek nie wypadł na ziemię")
+	if gn.casings_total < 4:
+		errors.append("27c: pistolet nie wyrzuca łusek (%d)" % gn.casings_total)
 	# 27d. ładowanie magazynka nabojami (przeciągnięcie) i rozładowanie (PPM)
 	var load_mag = ItemScript.new("magazynek_9mm", 1)
 	var ammo20 = ItemScript.new("naboje_9mm", 20)
@@ -1873,6 +1876,32 @@ static func run_tests(main: Node) -> void:
 	rr = gn.rounds(sg)
 	if rr[0] != 1 or rr[1] != 1:
 		errors.append("27g: pompka nie przeładowała (%d + %d)" % [rr[0], rr[1]])
+	# 27h. dwururka: dwa strzały, R łamie broń, łuski wypadają, naboje po jednym
+	var dbl = _hand(main, "dwururka", {"chamber": true, "tube": 1})
+	inv.toggle_two_hands()
+	inv.give(ItemScript.new("naboje_12", 4))
+	await _wait(tree, 10)
+	_aim(main, target_z.global_position + Vector3(0, 1.1, 0))
+	await _wait(tree, 2)
+	for k in 2:
+		gn._cool = 0.0
+		gn.shoot()
+		await _wait(tree, 3)
+	rr = gn.rounds(dbl)
+	if rr[0] + rr[1] != 0:
+		errors.append("27h: po dwóch strzałach w dwururce zostało %d" % (rr[0] + rr[1]))
+	gn._cool = 0.0
+	if gn.shoot():
+		errors.append("27h: pusta dwururka strzeliła")
+	var cas0: int = gn.casings_total
+	if not gn.reload():
+		errors.append("27h: R nie złamało dwururki")
+	await _wait(tree, 150)
+	rr = gn.rounds(dbl)
+	if rr[0] + rr[1] != 2:
+		errors.append("27h: po przeładowaniu w dwururce %d naboi zamiast 2" % (rr[0] + rr[1]))
+	if gn.casings_total - cas0 != 2:
+		errors.append("27h: przy złamaniu wypadło %d łusek zamiast 2" % (gn.casings_total - cas0))
 	main.combat.toggle()
 	await _wait(tree, 25)
 	inv.slots.erase("oburacz")
@@ -1881,6 +1910,9 @@ static func run_tests(main: Node) -> void:
 	for x in inv.all_carried():
 		if x.def_id in ["magazynek_9mm", "naboje_9mm", "naboje_12"]:
 			inv.remove_item(x)
+	for wb in main.world_items.bodies.duplicate():
+		if wb.get_meta("item").def_id == "magazynek_9mm":
+			main.world_items.remove(wb)
 	inv.changed.emit()
 	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
 	await _wait(tree, 20)
@@ -2359,6 +2391,64 @@ static func run_tests(main: Node) -> void:
 		for e in errors:
 			printerr("TESTY: BŁĄD: " + e)
 		tree.quit(1)
+
+
+## Zrzuty broni (build E1): pistolet i dwururka z biodra, przy oku, przy strzale i przy przeładowaniu.
+static func take_gun_screenshots(main: Node, dir: String) -> void:
+	var tree := main.get_tree()
+	var gn = main.guns
+	var inv = main.inventory
+	await _wait(tree, 90)
+	if not main.combat.active:
+		main.combat.toggle()
+	inv.slots.erase("w_lewej")
+	_place(main, Vector3(-1.0, 0.02, 0.0), -90.0, -4.0)
+	var spare = ItemScript.new("magazynek_9mm", 1)
+	spare.props["rounds"] = 15
+	inv.give(spare)
+	_hand(main, "pistolet", {"mag": {"def": "magazynek_9mm", "count": 1, "props": {"rounds": 8}}, "chamber": true})
+	await _wait(tree, 40)
+	await _shot(main, dir + "/pistolet_biodro.png")
+	gn.press(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 30)
+	await _shot(main, dir + "/pistolet_celowanie.png")
+	gn.shoot()
+	await _wait(tree, 2)
+	await _shot(main, dir + "/pistolet_strzal.png", 1)
+	gn.release(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 30)
+	gn.reload()
+	await _wait(tree, 20)
+	await _shot(main, dir + "/pistolet_przeladowanie_1.png", 1)
+	await _wait(tree, 30)
+	await _shot(main, dir + "/pistolet_przeladowanie_2.png", 1)
+	await _wait(tree, 60)
+	main.player.set_view(main.player.rotation.y, deg_to_rad(-60.0))
+	await _wait(tree, 30)
+	await _shot(main, dir + "/luski_magazynek.png")
+	main.player.set_view(main.player.rotation.y, deg_to_rad(-4.0))
+	var dw = _hand(main, "dwururka", {"chamber": true, "tube": 1})
+	inv.toggle_two_hands()
+	inv.give(ItemScript.new("naboje_12", 6))
+	await _wait(tree, 40)
+	await _shot(main, dir + "/dwururka_biodro.png")
+	gn.press(MOUSE_BUTTON_RIGHT)
+	await _wait(tree, 30)
+	await _shot(main, dir + "/dwururka_celowanie.png")
+	gn.shoot()
+	await _wait(tree, 3)
+	await _shot(main, dir + "/dwururka_strzal.png", 1)
+	gn.release(MOUSE_BUTTON_RIGHT)
+	gn._cool = 0.0
+	await _wait(tree, 20)
+	gn.shoot()
+	await _wait(tree, 30)
+	gn.reload()
+	await _wait(tree, 40)
+	await _shot(main, dir + "/dwururka_zlamana.png", 1)
+	await _wait(tree, 200)
+	await _shot(main, dir + "/dwururka_po.png")
+	tree.quit()
 
 
 static func take_screenshots(main: Node, args: PackedStringArray) -> void:

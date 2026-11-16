@@ -392,5 +392,7 @@
 	"RAD_COMBAT_MODE": "Combat mode",
 	"RAD_FLASHLIGHT": "Flashlight",
 	"RAD_TWO_HANDS": "Both hands",
-	"RAD_GRAB_MODE": "Grabbing"
+	"RAD_GRAB_MODE": "Grabbing",
+	"FOCUS_DOOR": "Door",
+	"FOCUS_GRAB": "Grab"
 }

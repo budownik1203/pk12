@@ -211,8 +211,8 @@
 			}
 		},
 		"pistolet": {
-			"pl": "Pistolet 9 mm",
-			"en": "9mm pistol",
+			"pl": "Pistolet Makarowa",
+			"en": "Makarov pistol",
 			"short_pl": "Pistolet",
 			"short_en": "Pistol",
 			"mass": 0.9,
@@ -241,156 +241,43 @@
 				"noise": 95,
 				"range": 50,
 				"falloff": 0.4,
-				"sight_y": 0.078,
-				"ads_fov": 62,
+				"sight_y": 0.076,
+				"ads_fov": 70,
 				"muzzle": [
 					0.152,
-					0.058,
+					0.06,
 					0.0
 				],
 				"support": [
-					-0.015,
-					-0.03,
-					0.01
+					-0.012,
+					-0.035,
+					0.012
 				],
 				"dirt_per_shot": 0.006,
 				"wear": 0.0012,
 				"sound": "gunshot",
-				"ads_dist": 0.5
+				"ads_dist": 0.3,
+				"slide": 0.03,
+				"casing": "luska_9mm"
 			},
-			"desc_pl": "Tryb walki (kółko myszy): LPM strzał, PPM przyrządy, R przeładowanie. Magazynek ładujesz w ekwipunku: przeciągnij naboje na magazynek. PPM na broni w ekwipunku rozładowuje.",
-			"desc_en": "Combat mode (mouse wheel click): LMB fire, RMB aim down sights, R reload. Load magazines in the inventory: drag rounds onto a magazine. RMB on the gun in the inventory unloads it.",
+			"desc_pl": "LPM strzał (z biodra pocisk leci tam, gdzie lufa), PPM celowanie przez przyrządy, R przeładowanie: pusty magazynek wypada na ziemię. Naboje ładujesz do magazynka w ekwipunku: przeciągnij je na magazynek. PPM na broni w ekwipunku rozładowuje.",
+			"desc_en": "LMB fire (from the hip the bullet goes where the barrel points), RMB aim through the sights, R reload: the empty magazine drops to the ground. Load magazines in the inventory by dragging rounds onto them. RMB on the gun in the inventory unloads it.",
 			"model": {
-				"type": "parts",
+				"mesh": "pistolet",
 				"size": [
-					0.2,
-					0.14,
-					0.032
+					0.168,
+					0.125,
+					0.026
 				],
 				"center": [
-					0.05,
-					0.02,
+					0.068,
+					0.011,
 					0.0
 				],
 				"grip_at": [
 					0.0,
 					0.0,
 					0.0
-				],
-				"parts": [
-					{
-						"type": "box",
-						"size": [
-							0.19,
-							0.032,
-							0.028
-						],
-						"pos": [
-							0.055,
-							0.058,
-							0
-						],
-						"color": [
-							0.11,
-							0.11,
-							0.12
-						]
-					},
-					{
-						"type": "box",
-						"size": [
-							0.15,
-							0.022,
-							0.026
-						],
-						"pos": [
-							0.04,
-							0.032,
-							0
-						],
-						"color": [
-							0.07,
-							0.07,
-							0.075
-						]
-					},
-					{
-						"type": "box",
-						"size": [
-							0.032,
-							0.105,
-							0.03
-						],
-						"pos": [
-							0.0,
-							-0.012,
-							0
-						],
-						"rot": [
-							0,
-							0,
-							-14
-						],
-						"color": [
-							0.07,
-							0.07,
-							0.075
-						]
-					},
-					{
-						"type": "box",
-						"size": [
-							0.045,
-							0.01,
-							0.012
-						],
-						"pos": [
-							0.04,
-							0.0,
-							0
-						],
-						"color": [
-							0.07,
-							0.07,
-							0.075
-						]
-					},
-					{
-						"type": "box",
-						"size": [
-							0.008,
-							0.009,
-							0.006
-						],
-						"pos": [
-							0.142,
-							0.078,
-							0
-						],
-						"color": [
-							0.11,
-							0.11,
-							0.12
-						]
-					},
-					{
-						"type": "box",
-						"size": [
-							0.008,
-							0.009,
-							0.022
-						],
-						"pos": [
-							-0.03,
-							0.078,
-							0
-						],
-						"color": [
-							0.11,
-							0.11,
-							0.12
-						]
-					}
 				]
 			},
 			"combat": {
@@ -2284,171 +2171,43 @@
 				"range": 35,
 				"falloff": 0.6,
 				"two_handed": true,
-				"sight_y": 0.089,
-				"ads_fov": 66,
+				"sight_y": 0.095,
+				"ads_fov": 72,
 				"muzzle": [
-					0.66,
-					0.04,
+					0.855,
+					0.068,
 					0.0
 				],
 				"support": [
 					0.0,
-					0.02,
-					-0.38
+					0.0,
+					-0.5
 				],
 				"dirt_per_shot": 0.01,
 				"wear": 0.002,
 				"sound": "shotgun",
-				"ads_dist": 0.52
+				"ads_dist": 0.4,
+				"casing": "luska_12",
+				"pump_travel": 0.08
 			},
 			"desc_pl": "Oburącz (Z) trzyma się pewnie, w jednej ręce rozrzut i odrzut są dużo większe. R wkłada naboje do rury po jednym (strzał przerywa), po strzale przeładowanie pompką. Naboje możesz też przeciągnąć na strzelbę w ekwipunku.",
 			"desc_en": "Hold it with both hands (Z); one-handed spread and recoil are much worse. R loads shells into the tube one by one (firing interrupts), it pumps after each shot. You can also drag shells onto the shotgun in the inventory.",
 			"model": {
-				"type": "parts",
+				"mesh": "strzelba",
 				"size": [
-					0.98,
-					0.14,
+					1.22,
+					0.24,
 					0.05
 				],
 				"center": [
-					0.17,
-					0.0,
+					0.245,
+					-0.034,
 					0.0
 				],
 				"grip_at": [
-					-0.08,
-					-0.035,
+					0.0,
+					0.0,
 					0.0
-				],
-				"parts": [
-					{
-						"type": "box",
-						"size": [
-							0.3,
-							0.075,
-							0.04
-						],
-						"pos": [
-							-0.3,
-							-0.03,
-							0
-						],
-						"rot": [
-							0,
-							0,
-							8
-						],
-						"color": [
-							0.36,
-							0.21,
-							0.1
-						],
-						"wood": true
-					},
-					{
-						"type": "box",
-						"size": [
-							0.12,
-							0.05,
-							0.038
-						],
-						"pos": [
-							-0.1,
-							-0.01,
-							0
-						],
-						"color": [
-							0.36,
-							0.21,
-							0.1
-						],
-						"wood": true
-					},
-					{
-						"type": "box",
-						"size": [
-							0.2,
-							0.065,
-							0.045
-						],
-						"pos": [
-							0.04,
-							0.02,
-							0
-						],
-						"color": [
-							0.11,
-							0.11,
-							0.12
-						]
-					},
-					{
-						"type": "cylinder",
-						"radius": 0.011,
-						"height": 0.52,
-						"pos": [
-							0.4,
-							0.04,
-							0
-						],
-						"color": [
-							0.07,
-							0.07,
-							0.075
-						]
-					},
-					{
-						"type": "cylinder",
-						"radius": 0.011,
-						"height": 0.4,
-						"pos": [
-							0.33,
-							0.012,
-							0
-						],
-						"color": [
-							0.07,
-							0.07,
-							0.075
-						]
-					},
-					{
-						"type": "box",
-						"size": [
-							0.15,
-							0.035,
-							0.045
-						],
-						"pos": [
-							0.3,
-							0.012,
-							0
-						],
-						"color": [
-							0.36,
-							0.21,
-							0.1
-						],
-						"wood": true
-					},
-					{
-						"type": "box",
-						"size": [
-							0.006,
-							0.006,
-							0.006
-						],
-						"pos": [
-							0.655,
-							0.054,
-							0
-						],
-						"color": [
-							0.8,
-							0.8,
-							0.75
-						]
-					}
 				]
 			}
 		},
@@ -2471,16 +2230,11 @@
 			"desc_pl": "15 naboi. Przeciągnij na niego naboje 9 mm, żeby załadować; PPM rozładowuje. W walce R wkłada najpełniejszy magazynek.",
 			"desc_en": "15 rounds. Drag 9mm rounds onto it to load; RMB unloads. In combat R inserts the fullest magazine.",
 			"model": {
-				"type": "box",
+				"mesh": "magazynek_9mm",
 				"size": [
-					0.03,
-					0.11,
-					0.02
-				],
-				"color": [
-					0.07,
-					0.07,
-					0.075
+					0.1,
+					0.054,
+					0.018
 				]
 			}
 		},
@@ -2941,6 +2695,78 @@
 					0.85,
 					0.85,
 					0.82
+				]
+			}
+		},
+		"dwururka": {
+			"pl": "Dwururka",
+			"en": "Double-barrel shotgun",
+			"short_pl": "Dwururka",
+			"short_en": "Double barrel",
+			"mass": 3.2,
+			"material": "metal",
+			"category": "bron",
+			"shape": [
+				"#####"
+			],
+			"grip": "gun",
+			"clean": {
+				"ability": "czyszczenie",
+				"strokes": 3.5
+			},
+			"two_hand": true,
+			"gun": {
+				"caliber": "12",
+				"feed": "tube",
+				"capacity": 1,
+				"ammo": "naboje_12",
+				"action": "break",
+				"pellets": 8,
+				"damage": 17,
+				"spread_hip": 5.0,
+				"spread_ads": 2.0,
+				"recoil": 8.0,
+				"rof": 0.22,
+				"noise": 130,
+				"range": 35,
+				"falloff": 0.6,
+				"two_handed": true,
+				"sight_y": 0.062,
+				"ads_fov": 72,
+				"muzzle": [
+					0.722,
+					0.022,
+					0.0
+				],
+				"support": [
+					0.0,
+					0.0,
+					-0.24
+				],
+				"dirt_per_shot": 0.008,
+				"wear": 0.0015,
+				"sound": "shotgun",
+				"ads_dist": 0.4,
+				"casing": "luska_12"
+			},
+			"desc_pl": "Dwa strzały, potem R: łamiesz broń, puste łuski wypadają, wkładasz naboje po jednym i zatrzaskujesz. Oburącz (Z) trzyma się pewnie.",
+			"desc_en": "Two shots, then R: break it open, the spent shells fall out, load shells one by one and snap it shut. Hold with both hands (Z).",
+			"model": {
+				"mesh": "dwururka",
+				"size": [
+					1.17,
+					0.18,
+					0.05
+				],
+				"center": [
+					0.137,
+					-0.036,
+					0.0
+				],
+				"grip_at": [
+					0.0,
+					0.0,
+					0.0
 				]
 			}
 		}

@@ -392,5 +392,7 @@
 	"RAD_COMBAT_MODE": "Tryb walki",
 	"RAD_FLASHLIGHT": "Latarka",
 	"RAD_TWO_HANDS": "Oburącz",
-	"RAD_GRAB_MODE": "Chwytanie"
+	"RAD_GRAB_MODE": "Chwytanie",
+	"FOCUS_DOOR": "Drzwi",
+	"FOCUS_GRAB": "Chwyć"
 }

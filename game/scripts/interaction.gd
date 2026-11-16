@@ -138,6 +138,7 @@ func _update_focus() -> void:
 	var from := cam.global_position
 	var q := PhysicsRayQueryParameters3D.create(from, from - cam.global_transform.basis.z * REACH)
 	q.exclude = [player.get_rid()]
+	q.collision_mask = 0xFFFFFFFF & ~(1 << 10)  # łuski nie przesłaniają rzeczy
 	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
 	if hit.is_empty():
 		return
@@ -155,6 +156,33 @@ func _update_focus() -> void:
 		return
 	focus = collider
 	_focus_point = hit["position"]
+
+
+## Nazwa tego, na co patrzy gracz: do napisu w miejscu celownika.
+func focus_name() -> String:
+	if focus == null or not is_instance_valid(focus) or held != null:
+		return ""
+	var c: Object = focus
+	if c.has_meta("item"):
+		return c.get_meta("item").display_name()
+	if c.has_meta("container_id"):
+		var cid: String = str(c.get_meta("container_id"))
+		if main.inventory.containers.has(cid):
+			return tr(str(main.inventory.containers[cid].get("label", "")))
+		return tr("RAD_OPEN")
+	if c.has_meta("switch_id") or c.has_meta("house_switch"):
+		return tr("RAD_SWITCH")
+	if c.has_meta("sink"):
+		return tr("RAD_TAP")
+	if c.has_meta("bed"):
+		return tr("RAD_SLEEP")
+	if c.has_meta("fire"):
+		return tr("RAD_ADD_FUEL")
+	if c.has_meta("door_sys"):
+		return tr("FOCUS_DOOR")
+	if focus_kind == "grab":
+		return tr("FOCUS_GRAB")
+	return ""
 
 
 func focus_point() -> Vector3:
@@ -190,6 +218,7 @@ func _drive_held() -> void:
 
 
 func _update_cursor() -> void:
+	hud.set_focus_name(focus_name())
 	if grab_mode:
 		hud.set_cursor("fist" if held != null else ("hand" if focus_kind == "grab" or focus_kind == "item" else "hand_idle"))
 		return

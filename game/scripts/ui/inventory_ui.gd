@@ -13,6 +13,7 @@ const ItemDB := preload("res://scripts/inventory/item_db.gd")
 const IconsScript := preload("res://scripts/ui/item_icons.gd")
 const GunsScript := preload("res://scripts/combat/guns.gd")
 const HealthPanel := preload("res://scripts/ui/health_panel.gd")
+const SkinScript := preload("res://scripts/ui/inv_skin.gd")
 
 const CELL := 44
 const TOP := 64
@@ -70,6 +71,11 @@ var _message_time := 0.0
 var _last_click_item = null
 var _last_click_time := 0.0
 var icons                       # item_icons.gd: modele 3D przedmiotów jako ikony
+var skin = SkinScript.new()
+var flights: Array = []         # animacje lotu: {"item", "from": Vector2, "rot", "t", "world": bool}
+var pops: Array = []            # błysk po wylądowaniu: {"item", "t"}
+const FLIGHT_TIME := 0.14
+const POP_TIME := 0.22
 
 
 func setup(inventory) -> void:
@@ -126,7 +132,19 @@ func _on_changed() -> void:
 
 func _process(delta: float) -> void:
 	if not visible:
+		flights.clear()
+		pops.clear()
 		return
+	for f in flights.duplicate():
+		f["t"] += delta / FLIGHT_TIME
+		if f["t"] >= 1.0:
+			flights.erase(f)
+			if not f["world"]:
+				pops.append({"item": f["item"], "t": 0.0})
+	for p in pops.duplicate():
+		p["t"] += delta / POP_TIME
+		if p["t"] >= 1.0:
+			pops.erase(p)
 	if _message_time > 0.0:
 		_message_time -= delta
 	if open_container != "" and inv.containers.has(open_container):
@@ -185,7 +203,7 @@ func _layout() -> void:
 		headers.append({"pos": Vector2(col_x, y + 17), "text": title, "item": it, "close": Rect2()})
 		var gx := col_x
 		for g in it.grids:
-			blocks.append({"grid": g, "rect": Rect2(gx, y + HEADER_H, g.w * CELL, g.h * CELL)})
+			blocks.append({"grid": g, "rect": Rect2(gx, y + HEADER_H, g.w * CELL, g.h * CELL), "mat": SkinScript.material_for_item(it.def_id)})
 			gx += g.w * CELL + 10
 		col_right = maxf(col_right, col_x + block_w)
 		y += HEADER_H + block_h + BLOCK_GAP
@@ -203,8 +221,9 @@ func _layout() -> void:
 				"close": Rect2(ox + 610, y, 22, 22), "container": open_container})
 		var gx := ox
 		var gh := 0.0
+		var cmat := SkinScript.material_for_container(str(inv.containers[open_container].get("label", "")))
 		for g in inv.containers[open_container]["grids"]:
-			blocks.append({"grid": g, "rect": Rect2(gx, y + HEADER_H, g.w * CELL, g.h * CELL)})
+			blocks.append({"grid": g, "rect": Rect2(gx, y + HEADER_H, g.w * CELL, g.h * CELL), "mat": cmat})
 			gx += g.w * CELL + 10
 			gh = maxf(gh, g.h * CELL)
 		y += HEADER_H + gh + BLOCK_GAP
@@ -214,7 +233,7 @@ func _layout() -> void:
 		var gx := ox
 		var gh := 0.0
 		for g in it.grids:
-			blocks.append({"grid": g, "rect": Rect2(gx, y + HEADER_H, g.w * CELL, g.h * CELL)})
+			blocks.append({"grid": g, "rect": Rect2(gx, y + HEADER_H, g.w * CELL, g.h * CELL), "mat": SkinScript.material_for_item(it.def_id)})
 			gx += g.w * CELL + 10
 			gh = maxf(gh, g.h * CELL)
 		y += HEADER_H + gh + BLOCK_GAP
@@ -346,7 +365,25 @@ func begin_drag(it, split: bool = false) -> void:
 ## Upuszczenie przeciąganego przedmiotu w punkcie ekranu.
 func drop_at(p: Vector2) -> bool:
 	var it = drag_item
+	var ghost_from := p - Vector2(drag_grab) * CELL - Vector2(CELL, CELL) * 0.5
+	var ghost_rot := drag_rot
 	drag_item = null
+	var ok := _drop(it, p)
+	if ok and it != null:
+		_start_flight(it, ghost_from, ghost_rot)
+	return ok
+
+
+## Animacja: przedmiot leci z miejsca upuszczenia na swoje nowe miejsce.
+func _start_flight(it, from: Vector2, rot: int) -> void:
+	for f in flights.duplicate():
+		if f["item"] == it:
+			flights.erase(f)
+	var world: bool = it.parent_grid == null and it.slot == ""
+	flights.append({"item": it, "from": from, "rot": rot, "t": 0.0, "world": world})
+
+
+func _drop(it, p: Vector2) -> bool:
 	if health_open and hp_panel != null and hp_panel.segment_at(p) != "":
 		# przedmiot medyczny upuszczony na część ciała: opatrywanie
 		hp_panel.selected = hp_panel.segment_at(p)
@@ -388,7 +425,7 @@ func drop_at(p: Vector2) -> bool:
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), C_BG)
 	for r in panels:
-		draw_rect(r, C_PANEL)
+		draw_rect(r, Color(0.05, 0.05, 0.045, 0.55))
 	_text(Vector2(SLOT_X, TOP + 22), tr("INV_TITLE_BODY"), 17, C_ACCENT)
 	_text(Vector2(WORN_X, TOP + 22), tr("INV_TITLE_WORN"), 17, C_ACCENT)
 	if open_container != "" or not open_items.is_empty():
@@ -396,8 +433,10 @@ func _draw() -> void:
 
 	for s in slot_rects:
 		_draw_slot(s, slot_rects[s])
+	for b in blocks:
+		skin.draw_backing(self, b["rect"], str(b.get("mat", "cloth")))
 	for h in headers:
-		_text(h["pos"], h["text"], 15, C_DIM)
+		skin.draw_tag(self, font, h["pos"] - Vector2(0, 2), h["text"], 14)
 		var cr: Rect2 = h["close"]
 		if cr.size.x > 0:
 			draw_rect(cr, C_LINE, false, 1.0)
@@ -407,6 +446,7 @@ func _draw() -> void:
 
 	if health_open and hp_panel != null:
 		hp_panel.draw(drag_item)
+	_draw_flights()
 	_draw_ghost()
 	_draw_footer()
 	if hover_item != null and drag_item == null:
@@ -425,11 +465,11 @@ func _text(p: Vector2, t: String, sz: int, col: Color, width: float = -1.0) -> v
 func _draw_slot(s: String, r: Rect2) -> void:
 	var it = inv.slots.get(s)
 	var reserved: bool = inv.slot_reserved.has(s)
-	var bg := C_CELL
+	draw_texture_rect(skin.tex("cloth"), r, true, Color(0.75, 0.75, 0.75))
+	draw_rect(r, Color(0, 0, 0, 0.35))
 	if drag_item != null and r.has_point(mouse):
-		bg = C_OK if inv.slot_accepts(drag_item, s) and not inv.slots.has(s) else C_BAD
-	draw_rect(r, bg)
-	draw_rect(r, C_LINE, false, 1.0)
+		draw_rect(r, C_OK if inv.slot_accepts(drag_item, s) and not inv.slots.has(s) else C_BAD)
+	skin._stitch(self, r.grow(-3.0), Color(0.7, 0.65, 0.5, 0.35))
 	_text(r.position + Vector2(8, 17), ItemDB.slot_name(s), 13, C_DIM)
 	if it != null:
 		var col: Color = C_TEXT if not it.pending else C_DIM
@@ -460,15 +500,71 @@ func _draw_grid(g, r: Rect2) -> void:
 	for y in g.h:
 		for x in g.w:
 			var cr := Rect2(r.position + Vector2(x, y) * CELL, Vector2(CELL, CELL))
-			draw_rect(cr.grow(-1), C_CELL)
+			draw_rect(cr.grow(-1), Color(0, 0, 0, 0.32))
+			draw_line(cr.position + Vector2(1, CELL - 1), cr.end - Vector2(1, 1), Color(1, 1, 1, 0.06), 1.0)
 	for res in g.reserved:
 		for c in res["item"].cells_for(res["rot"]):
 			var cr := Rect2(r.position + Vector2(res["pos"] + c) * CELL, Vector2(CELL, CELL))
 			draw_rect(cr.grow(-3), C_ACCENT, false, 1.0)
 	for it in g.items:
-		if it == drag_item:
+		if it == drag_item or _in_flight(it):
 			continue
 		_draw_item(it, r.position + Vector2(it.pos) * CELL, it.rot, 0.35 if it.pending else 1.0)
+		_draw_pop(it, r.position + Vector2(it.pos) * CELL, it.rot)
+
+
+func _in_flight(it) -> bool:
+	for f in flights:
+		if f["item"] == it:
+			return true
+	return false
+
+
+## Krótki błysk obrysu po wylądowaniu przedmiotu.
+func _draw_pop(it, origin: Vector2, rot: int) -> void:
+	for p in pops:
+		if p["item"] != it:
+			continue
+		var a: float = 1.0 - float(p["t"])
+		var grow: float = 2.0 + 4.0 * float(p["t"])
+		for c in it.cells_for(rot):
+			var cr := Rect2(origin + Vector2(c) * CELL, Vector2(CELL, CELL)).grow(grow - 2.0)
+			draw_rect(cr, Color(C_ACCENT, 0.7 * a), false, 2.0)
+
+
+## Miejsce przedmiotu na ekranie po przełożeniu (siatka albo slot).
+func _item_screen_origin(it) -> Vector2:
+	if it.parent_grid != null:
+		for b in blocks:
+			if b["grid"] == it.parent_grid:
+				return (b["rect"] as Rect2).position + Vector2(it.pos) * CELL
+	if it.slot != "" and slot_rects.has(it.slot):
+		var r: Rect2 = slot_rects[it.slot]
+		var bb := ItemDB.bounds(it.cells_for(it.rot))
+		return r.get_center() - Vector2(bb) * CELL * 0.5
+	return Vector2(-9999, -9999)
+
+
+func _draw_flights() -> void:
+	for f in flights:
+		var it = f["item"]
+		var t: float = clampf(float(f["t"]), 0.0, 1.0)
+		var e := 1.0 - pow(1.0 - t, 3.0)
+		if f["world"]:
+			# upuszczenie na ziemię: spada i znika
+			var o: Vector2 = f["from"] + Vector2(0, 90.0 * t * t)
+			_draw_item(it, o, f["rot"], 0.8 * (1.0 - t))
+			continue
+		var to := _item_screen_origin(it)
+		if to.x < -9000:
+			continue
+		var rot: int = it.rot if it.parent_grid != null else f["rot"]
+		var o2: Vector2 = (f["from"] as Vector2).lerp(to, e)
+		# lekki łuk w górę w połowie lotu
+		o2.y -= sin(t * PI) * 14.0
+		var bb := ItemDB.bounds(it.cells_for(rot))
+		draw_rect(Rect2(o2 + Vector2(5, 7), Vector2(bb) * CELL), Color(0, 0, 0, 0.25 * (1.0 - t)))
+		_draw_item(it, o2, rot, 1.0 if it.slot == "" else 1.0 - t * 0.6)
 
 
 func _draw_item(it, origin: Vector2, r: int, alpha: float) -> void:
@@ -540,7 +636,9 @@ func _draw_item(it, origin: Vector2, r: int, alpha: float) -> void:
 func _draw_ghost() -> void:
 	if drag_item == null:
 		return
-	_draw_item(drag_item, mouse - Vector2(drag_grab) * CELL - Vector2(CELL, CELL) * 0.5, drag_rot, 0.5)
+	var go := mouse - Vector2(drag_grab) * CELL - Vector2(CELL, CELL) * 0.5
+	var gb := ItemDB.bounds(drag_item.cells_for(drag_rot))
+	draw_rect(Rect2(go + Vector2(8, 10), Vector2(gb) * CELL), Color(0, 0, 0, 0.3))  # cień uniesionego przedmiotu
 	var hit := cell_at(mouse)
 	if not hit.is_empty():
 		var g = hit["grid"]
@@ -560,6 +658,7 @@ func _draw_ghost() -> void:
 			var cr := Rect2(origin + Vector2(cell) * CELL, Vector2(CELL, CELL)).grow(-2)
 			draw_rect(cr, C_OK if ok else C_BAD)
 			draw_rect(cr, (C_OK if ok else C_BAD).lightened(0.4), false, 2.0)
+	_draw_item(drag_item, go + Vector2(-2, -3), drag_rot, 0.9)
 	if drag_split:
 		_text(mouse + Vector2(16, -14), "½", 16, C_ACCENT)
 	if hit.is_empty() and slot_at(mouse) == "" and not over_panel(mouse):
@@ -582,15 +681,6 @@ func _draw_footer() -> void:
 	if felt > inv.COMFORT_MASS:
 		_text(Vector2(x + w + 16, y + 10), tr("INV_SLOWED") % int(round(inv.speed_factor() * 100.0)), 15, col)
 
-	var a: Dictionary = inv.current_action()
-	if not a.is_empty():
-		var ax := float(OPEN_X)
-		var t: String = tr("INV_ACTION") % [a["item"].display_name(), maxf(0.0, a["duration"] - a["time"])]
-		if inv.actions.size() > 1:
-			t += "  (+%d)" % (inv.actions.size() - 1)
-		_text(Vector2(ax, y - 10), t, 16, C_TEXT)
-		draw_rect(Rect2(ax, y, 400, 10), Color(0, 0, 0, 0.6))
-		draw_rect(Rect2(ax, y, 400 * clampf(a["time"] / a["duration"], 0.0, 1.0), 10), C_ACCENT)
 	_text(Vector2(SLOT_X, size.y - 24), tr("INV_HINTS"), 14, C_DIM)
 
 
@@ -649,14 +739,11 @@ func _draw_tooltip(it) -> void:
 		lines.append(tr("INV_TIP_HOTKEY") % hk)
 	var w := 0.0
 	for l in lines:
-		w = maxf(w, font.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x)
-	var h := lines.size() * 20 + 10
-	var p := mouse + Vector2(18, 18)
-	if p.x + w + 20 > size.x:
-		p.x = mouse.x - w - 30
+		w = maxf(w, font.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x)
+	var h := lines.size() * 20 + 26
+	var p := mouse + Vector2(22, 18)
+	if p.x + w + 40 > size.x:
+		p.x = mouse.x - w - 50
 	if p.y + h > size.y:
 		p.y = mouse.y - h - 10
-	draw_rect(Rect2(p, Vector2(w + 20, h)), Color(0.05, 0.05, 0.05, 0.95))
-	draw_rect(Rect2(p, Vector2(w + 20, h)), C_LINE, false, 1.0)
-	for i in lines.size():
-		_text(p + Vector2(10, 22 + i * 20), lines[i], 15, C_ACCENT if i == 0 else C_TEXT)
+	skin.draw_card(self, font, p, lines)

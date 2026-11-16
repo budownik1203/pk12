@@ -98,8 +98,12 @@ func _init() -> void:
 	_icon.visible = false
 	center.add_child(_icon)
 
-	_key = _label(22)
-	_key.position = Vector2(26, 6)
+	# bez celownika: tylko napis z nazwą rzeczy, na którą patrzysz (jak w Iron Blight)
+	_key = _label(17)
+	_key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_key.size = Vector2(600, 26)
+	_key.position = Vector2(-300, 22)
+	_key.modulate = Color(1, 1, 1, 0.85)
 	_key.visible = false
 	remove_child(_key)
 	center.add_child(_key)
@@ -246,18 +250,34 @@ func set_cursor(state: String) -> void:
 	if state == _cursor:
 		return
 	_cursor = state
-	_dot.visible = state == "dot" or state == "use"
-	_icon.visible = state == "hand" or state == "fist" or state == "item" or state == "hand_idle"
-	if _icon.visible:
-		_icon.texture = _textures["hand" if state == "item" or state == "hand_idle" else state]
-		_icon.modulate.a = 0.35 if state == "hand_idle" else 1.0
-	_key.visible = state == "hand" or state == "use" or state == "item"
-	if state == "hand":
-		_key.text = tr("KEY_GRAB")
-	elif state == "item":
-		_key.text = "T · F"
-	elif state == "use":
-		_key.text = "F"
+	# celownika nie ma: ani kropki, ani ikon dłoni na środku ekranu
+	_dot.visible = false
+	_icon.visible = false
+	_refresh_prompt()
+
+
+var _focus_name := ""
+
+
+## Nazwa rzeczy, na którą patrzy gracz (pusty tekst: nic).
+func set_focus_name(text: String) -> void:
+	if text == _focus_name:
+		return
+	_focus_name = text
+	_refresh_prompt()
+
+
+func _refresh_prompt() -> void:
+	var keys := ""
+	match _cursor:
+		"hand": keys = tr("KEY_GRAB")
+		"item": keys = "F · T"
+		"use": keys = "F"
+	if _focus_name == "" or keys == "":
+		_key.visible = false
+		return
+	_key.text = "%s   [%s]" % [_focus_name, keys]
+	_key.visible = true
 
 
 ## Podpowiedź pracy (pusty tekst ukrywa) i postęp 0..1 (ujemny: bez paska).

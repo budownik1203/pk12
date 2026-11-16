@@ -174,7 +174,7 @@ func _build_library() -> void:
 		"glass": [0.7, _glass],
 		"gunshot": [0.9, _gunshot], "shotgun": [1.2, _shotgun], "gun_click": [0.08, _gun_click],
 		"gun_rack": [0.35, _gun_rack], "gun_pump": [0.4, _gun_pump], "mag_out": [0.2, _mag_out],
-		"mag_in": [0.22, _mag_in], "shell_in": [0.18, _shell_in],
+		"mag_in": [0.22, _mag_in], "shell_in": [0.18, _shell_in], "casing": [0.35, _casing],
 		"crank": [1.0, _crank], "beep": [0.25, _beep], "ring": [0.9, _ring],
 		"saw": [0.42, _saw], "rip": [0.45, _rip], "chop": [0.12, _chop], "sizzle": [1.0, _sizzle],
 		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
@@ -409,6 +409,14 @@ func _shotgun(t: float, _d: float, st: Dictionary) -> float:
 
 func _gun_click(t: float, _d: float, _st: Dictionary) -> float:
 	return (_noise() * 0.6 + _sin(3200.0, t) * 0.4) * exp(-t * 160.0)
+
+
+func _casing(t: float, _d: float, _st: Dictionary) -> float:
+	# łuska dzwoni o podłogę: dwa krótkie podskoki
+	var a := (_sin(5200.0, t) * 0.6 + _sin(7900.0, t) * 0.3 + _noise() * 0.1) * exp(-t * 45.0)
+	var t2 := t - 0.12
+	var b := 0.0 if t2 < 0.0 else (_sin(5600.0, t2) * 0.5 + _sin(8300.0, t2) * 0.2) * exp(-t2 * 60.0) * 0.5
+	return a + b
 
 
 func _gun_rack(t: float, _d: float, _st: Dictionary) -> float:

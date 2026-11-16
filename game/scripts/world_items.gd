@@ -4,6 +4,8 @@ extends Node
 ## podniesiony wraca do siatki z tym samym stanem.
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
+const GunMats := preload("res://scripts/gun_materials.gd")
+const LIBRARIES := ["res://models/przedmioty.glb", "res://models/bron.glb", "res://models/bron_cc0.glb"]  # późniejszy plik nadpisuje wcześniejszy
 
 var world: Node3D
 var bodies: Array = []
@@ -15,15 +17,20 @@ func setup(world_node: Node3D) -> void:
 
 
 static var _library := {}
+static var _library_xf := {}      # nazwa -> położenie obiektu w pliku (części ruchome broni)
 
 
 ## Siatka modelu z game/models/przedmioty.glb (Blender: assets_src/blender/przedmioty.py).
 static func library_mesh(mesh_name: String) -> Mesh:
 	if _library.is_empty():
-		var scene: Node = load("res://models/przedmioty.glb").instantiate()
-		for child in scene.find_children("*", "MeshInstance3D", true, false):
-			_library[str(child.name)] = (child as MeshInstance3D).mesh
-		scene.free()
+		for path in LIBRARIES:
+			if not ResourceLoader.exists(path):
+				continue
+			var scene: Node = load(path).instantiate()
+			for child in scene.find_children("*", "MeshInstance3D", true, false):
+				_library[str(child.name)] = (child as MeshInstance3D).mesh
+				_library_xf[str(child.name)] = (child as Node3D).transform
+			scene.free()
 		_library["_loaded"] = null
 	return _library.get(mesh_name)
 
@@ -31,8 +38,21 @@ static func library_mesh(mesh_name: String) -> Mesh:
 static func make_visual(item) -> MeshInstance3D:
 	var model: Dictionary = item.get_def().get("model", {})
 	if model.has("mesh") and library_mesh(str(model["mesh"])) != null:
+		var mesh_name := str(model["mesh"])
 		var lm := MeshInstance3D.new()
-		lm.mesh = library_mesh(str(model["mesh"]))
+		lm.mesh = library_mesh(mesh_name)
+		_swap_gun_materials(lm)
+		# części ruchome (zamek, magazynek, lufy, czółenko): osobne węzły pod modelem
+		for key in _library.keys():
+			var k := str(key)
+			if k.begins_with(mesh_name + "__"):
+				var part := MeshInstance3D.new()
+				part.name = k.substr(mesh_name.length() + 2)
+				part.mesh = _library[k]
+				part.transform = _library_xf.get(k, Transform3D.IDENTITY)
+				part.set_meta("rest", part.transform)
+				_swap_gun_materials(part)
+				lm.add_child(part)
 		return lm
 	var c: Array = model.get("color", [0.5, 0.5, 0.5])
 	var mat := StandardMaterial3D.new()
@@ -61,6 +81,17 @@ static func make_visual(item) -> MeshInstance3D:
 		box.material = mat
 		mi.mesh = box
 	return mi
+
+
+## Materiały broni z Blendera podmieniamy na teksturowane (po nazwie materiału).
+static func _swap_gun_materials(mi: MeshInstance3D) -> void:
+	for i in mi.mesh.get_surface_count():
+		var src: Material = mi.mesh.surface_get_material(i)
+		if src == null:
+			continue
+		var m := GunMats.for_name(src.resource_name)
+		if m != null:
+			mi.set_surface_override_material(i, m)
 
 
 ## Model złożony z kilku brył (broń): każda część to osobna powierzchnia z własnym

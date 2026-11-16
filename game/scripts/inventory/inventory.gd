@@ -1,10 +1,11 @@
 extends Node
-## Ekwipunek postaci: sloty na ciele, pojemniki świata, kolejka czynności.
-## Każde przełożenie trwa (sięgnięcie do źródła i celu plus masa), czynności
-## wykonują się po kolei, a gra się przy tym nie zatrzymuje. Cel jest
-## rezerwowany od razu, żeby nic innego nie zajęło tego miejsca.
+## Ekwipunek postaci: sloty na ciele, pojemniki świata.
+## Przełożenie jest natychmiastowe; interfejs dostaje sygnał moved i pokazuje
+## animację lotu przedmiotu. Kolejka zostaje jako mechanizm wewnętrzny
+## (rezerwacja celu, kolejność), ale opróżnia się od razu.
 
 signal changed
+signal moved(item, src: Dictionary, dst: Dictionary)
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
 const Grid := preload("res://scripts/inventory/grid.gd")
@@ -421,8 +422,8 @@ func merge_into(item, target) -> bool:
 	if not _can_move(item) or target.pending:
 		return _fail("INV_ERR_BUSY")
 	var src := _location(item)
-	_queue(item, src, {"kind": "merge", "target": target})
 	target.pending = true
+	_queue(item, src, {"kind": "merge", "target": target})
 	return true
 
 
@@ -538,7 +539,18 @@ func _queue(item, src: Dictionary, dst: Dictionary) -> void:
 	actions.append({"item": item, "src": src, "dst": dst, "time": 0.0,
 			"duration": _duration(src, dst, item)})
 	last_error = ""
+	_flush()
 	changed.emit()
+
+
+## Wykonuje od razu wszystkie czynności z kolejki (przekładanie bez czekania).
+func _flush() -> void:
+	while not actions.is_empty():
+		var a: Dictionary = actions.pop_front()
+		var err := last_error
+		_complete(a)
+		if last_error == err:
+			moved.emit(a["item"], a["src"], a["dst"])
 
 
 func current_action() -> Dictionary:

@@ -14,15 +14,27 @@ extends Node
 ##   - każdy strzał brudzi broń; brud, zużycie i brak smaru zwiększają szansę zacięcia.
 ##     Czyszczenie: broń w lewej ręce, szmata / wycior / WD-40 w prawej, ruchy myszą
 ##     (praca w dłoni). WD-40 smaruje: przez kilkadziesiąt strzałów zacięć prawie nie ma.
-## Strzał to bardzo głośny hałas (zombie z daleka), błysk z lufy, odrzut kamery.
+## Strzał to bardzo głośny hałas (zombie z daleka), błysk i dym z lufy, łuska.
+## Bez celownika na ekranie (jak w Iron Blight): pocisk wylatuje z lufy w kierunku,
+## w który lufa faktycznie wskazuje. Z biodra broń buja się w rękach, więc strzał
+## idzie mniej więcej tam, gdzie patrzysz; przy celowaniu muszka i szczerbinka są na osi wzroku.
+## Odrzut podrzuca dłonie i broń (kamera tylko lekko), zamek odskakuje, łuska wylatuje.
+## Przeładowanie pistoletu: obrót broni, pusty magazynek wypada na ziemię, nowy od dołu,
+## zamek. Dwururka: łamanie, puste łuski wypadają, naboje po jednym, zatrzaśnięcie.
 ## Pole "gun" w items.json: kaliber, sposób zasilania, obrażenia, rozrzut, odrzut...
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
+const WorldItems := preload("res://scripts/world_items.gd")
 
-const ADS_TIME := 0.18
+const ADS_TIME := 0.2
 const HIP_POS := Vector3(0.16, -0.19, -0.42)
+const HIP_PISTOL := Vector3(0.11, -0.2, -0.34)
+const HIP_LONG := Vector3(0.15, -0.2, -0.3)
 const ADS_DIST := 0.34
 const DECALS_MAX := 40
+const CASINGS_MAX := 80
+const CASING_LAYER := 1 << 10     # łuski: nie blokują promieni strzału ani chwytu
+const SHOT_MASK := 0xFFFFFFFF & ~CASING_LAYER
 
 var main
 var ads := false
@@ -39,6 +51,12 @@ var _flash_t := 0.0
 var _decals: Array = []
 var _label: Label
 var _rng := RandomNumberGenerator.new()
+var casings: Array = []          # łuski na podłodze (najstarsze znikają)
+var casings_total := 0           # wszystkie wyrzucone (testy)
+var _slide := 0.0                # odskok zamka po strzale 0..1
+var _bob_t := 0.0
+var _time := 0.0
+var _flash_mesh: MeshInstance3D
 
 
 func setup(main_node) -> void:
@@ -49,6 +67,8 @@ func setup(main_node) -> void:
 	_flash.omni_range = 6.0
 	_flash.light_energy = 0.0
 	main.world.add_child(_flash)
+	_flash_mesh = _make_flash_mesh()
+	main.world.add_child(_flash_mesh)
 	var layer := CanvasLayer.new()
 	layer.layer = 5
 	add_child(layer)
@@ -173,17 +193,26 @@ func _fire(gun, g: Dictionary) -> void:
 	var pellets := int(g.get("pellets", 1))
 	var dmg := float(g.get("damage", 40.0))
 	var rng_max := float(g.get("range", 60.0))
-	var origin := cam.global_position
-	var basis := cam.global_transform.basis
-	var record := {"gun": gun.def_id, "hits": [], "spread": spread, "ads": is_ads()}
+	# pocisk wylatuje z lufy w kierunku lufy (bez celownika: z biodra „na pałę”)
+	var origin := _muzzle()
+	var barrel := _barrel_basis()
+	var record := {"gun": gun.def_id, "hits": [], "spread": spread, "ads": is_ads(), "origin": origin, "dir": -barrel.z}
 	var space: PhysicsDirectSpaceState3D = main.player.get_world_3d().direct_space_state
+	# lufa wsadzona w ścianę: pocisk trafia w przeszkodę między okiem a wylotem
+	var q0 := PhysicsRayQueryParameters3D.create(cam.global_position, origin)
+	q0.exclude = [main.player.get_rid()]
+	q0.collision_mask = SHOT_MASK
+	var blocked: Dictionary = space.intersect_ray(q0)
 	for k in pellets:
 		var a := _rng.randf() * TAU
 		var r := sqrt(_rng.randf()) * deg_to_rad(spread)
-		var dir := (basis * Vector3(cos(a) * sin(r), sin(a) * sin(r), -cos(r))).normalized()
-		var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * rng_max)
-		q.exclude = [main.player.get_rid()]
-		var h: Dictionary = space.intersect_ray(q)
+		var dir := (barrel * Vector3(cos(a) * sin(r), sin(a) * sin(r), -cos(r))).normalized()
+		var h: Dictionary = blocked
+		if h.is_empty():
+			var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * rng_max)
+			q.exclude = [main.player.get_rid()]
+			q.collision_mask = SHOT_MASK
+			h = space.intersect_ray(q)
 		if h.is_empty():
 			continue
 		var dist: float = origin.distance_to(h["position"])
@@ -205,12 +234,19 @@ func _fire(gun, g: Dictionary) -> void:
 	jam *= 1.0 - skill * 0.06
 	# ponowne zasilenie komory: półautomat od razu, pompka po chwili
 	var jammed: bool = _rng.randf() < jam
-	if str(g.get("action", "semi")) == "semi":
+	var action := str(g.get("action", "semi"))
+	if action == "semi":
+		_eject(gun, 1)
 		if _feed_take(gun):
 			gun.props["chamber"] = true
 			if jammed:
 				gun.props["jammed"] = true
+	elif action == "break":
+		# druga lufa: następny strzał od razu, łuski zostają w lufach do złamania
+		if _feed_take(gun):
+			gun.props["chamber"] = true
 	else:
+		gun.props["spent"] = true
 		if jammed:
 			gun.props["jammed"] = true
 		else:
@@ -223,12 +259,16 @@ func _fire(gun, g: Dictionary) -> void:
 	_flash.global_position = _muzzle()
 	_flash.light_energy = 3.5
 	_flash_t = 0.05
+	_show_flash(float(g.get("pellets", 1)) > 1.0)
+	_smoke(_muzzle(), -barrel.z, 14 if int(g.get("pellets", 1)) > 1 else 6)
+	# odrzut: głównie dłonie i broń (poza), kamera tylko lekko
 	var kick := float(g.get("recoil", 2.5)) * (1.0 - skill * 0.06) * (1.6 if one_handed else 1.0)
 	kick *= lerpf(1.0, 0.8, _blend)
 	var yaw := _rng.randf_range(-0.35, 0.35) * kick
-	main.player.add_recoil(deg_to_rad(kick), deg_to_rad(yaw))
-	_recover = Vector2(deg_to_rad(kick), deg_to_rad(yaw)) * 0.55
+	main.player.add_recoil(deg_to_rad(kick * 0.35), deg_to_rad(yaw * 0.35))
+	_recover = Vector2(deg_to_rad(kick), deg_to_rad(yaw)) * 0.35 * 0.55
 	_kick = 1.0
+	_slide = 1.0
 	main.character.add_xp("bron_palna", 2.0)
 
 
@@ -292,6 +332,20 @@ func reload() -> bool:
 	if bool(gun.props.get("jammed", false)):
 		_begin([[0.7 * speed, "clear"]], "rack")
 		return true
+	if str(g.get("action", "")) == "break":
+		var missing: int = int(g.get("capacity", 1)) + 1 - int(gun.props.get("tube", 0)) - (1 if bool(gun.props.get("chamber", false)) else 0)
+		if missing <= 0:
+			return false
+		var have: int = main.inventory.count_of(str(g.get("ammo", "")))
+		if have <= 0:
+			main.hud.show_message(tr("MSG_NO_AMMO"))
+			return false
+		var bsteps: Array = [[0.45 * speed, "open"]]
+		for k in mini(missing, have):
+			bsteps.append([0.42 * speed, "bshell"])
+		bsteps.append([0.35 * speed, "close"])
+		_begin(bsteps, "break")
+		return true
 	if str(g.get("feed", "mag")) == "tube":
 		if int(gun.props.get("tube", 0)) >= int(g.get("capacity", 5)):
 			return _rack_if_empty(gun, speed)
@@ -351,7 +405,7 @@ func _step_done(name: String) -> void:
 		"mag_out":
 			var old = ItemScript.from_dict(gun.props["mag"], ItemScript)
 			gun.props.erase("mag")
-			main.inventory.give(old)
+			_drop_mag(old)
 			main.sound.play("mag_out", _muzzle(), -4.0)
 		"mag_in":
 			var best = _best_mag(gun)
@@ -359,10 +413,28 @@ func _step_done(name: String) -> void:
 				main.inventory.remove_item(best)
 				gun.props["mag"] = best.to_dict()
 				main.sound.play("mag_in", _muzzle(), -2.0)
+		"open":
+			# złamanie: puste łuski wypadają z luf
+			var loaded: int = int(gun.props.get("tube", 0)) + (1 if bool(gun.props.get("chamber", false)) else 0)
+			_eject(gun, int(g.get("capacity", 1)) + 1 - loaded)
+			main.sound.play("mag_out", _muzzle(), -2.0, 0.7)
+		"bshell":
+			if main.inventory.consume(str(g.get("ammo", "")), 1):
+				if not bool(gun.props.get("chamber", false)):
+					gun.props["chamber"] = true
+				else:
+					gun.props["tube"] = int(gun.props.get("tube", 0)) + 1
+				main.sound.play("shell_in", _muzzle(), -4.0)
+		"close":
+			main.sound.play("gun_rack", _muzzle(), -1.0, 0.8)
 		"rack", "pump", "clear":
 			if name == "clear":
 				gun.props["jammed"] = false
 				gun.props["chamber"] = false  # zacięty nabój wylatuje
+				_eject(gun, 1)
+			elif bool(gun.props.get("spent", false)):
+				gun.props.erase("spent")
+				_eject(gun, 1)  # pompka wyrzuca pustą łuskę
 			if not bool(gun.props.get("chamber", false)) and _feed_take(gun):
 				gun.props["chamber"] = true
 			main.sound.play("gun_rack" if name != "pump" else "gun_pump", _muzzle(), -2.0)
@@ -448,11 +520,16 @@ func _physics_process(delta: float) -> void:
 	if main == null or main.player == null:
 		return
 	_cool = maxf(0.0, _cool - delta)
-	_kick = move_toward(_kick, 0.0, delta * 7.0)
+	_kick = move_toward(_kick, 0.0, delta * 6.0)
+	_slide = move_toward(_slide, 0.0, delta * 14.0)
+	_time += delta
+	var hspeed := Vector2(main.player.velocity.x, main.player.velocity.z).length()
+	_bob_t += delta * hspeed * 2.2
 	if _flash_t > 0.0:
 		_flash_t -= delta
 		if _flash_t <= 0.0:
 			_flash.light_energy = 0.0
+			_flash_mesh.visible = false
 	# oddawanie części odrzutu kamery (ręce wracają na cel)
 	if _recover.length() > 0.0001:
 		var step := _recover * minf(1.0, delta * 6.0)
@@ -511,7 +588,9 @@ func _muzzle() -> Vector3:
 	return cam.global_position - cam.global_transform.basis.z * 0.6
 
 
-## Poza rąk z bronią (w układzie kamery): z biodra albo przy oku, odrzut, przeładowanie.
+## Poza rąk z bronią (w układzie kamery): z biodra albo przy oku, kołysanie w marszu,
+## odrzut (podrzut dłoni), przeładowanie krok po kroku. Ruchome części modelu
+## (zamek, magazynek, lufy, czółenko) ustawia _apply_parts.
 func update_pose() -> void:
 	var gun = current()
 	if gun == null:
@@ -519,40 +598,307 @@ func update_pose() -> void:
 	var g := gun_def(gun)
 	var player = main.player
 	var cam: Transform3D = player.camera.global_transform
+	var long_gun: bool = bool(g.get("two_handed", false))
+	var hip: Vector3 = HIP_LONG if long_gun else HIP_PISTOL
 	var sight := float(g.get("sight_y", 0.07))
 	var ads_pos := Vector3(0.0, -sight, -float(g.get("ads_dist", ADS_DIST)))
 	var k := _blend * _blend * (3.0 - 2.0 * _blend)
-	var p := HIP_POS.lerp(ads_pos, k)
-	var dir := Vector3(0, 0, -1)
-	p.z += _kick * 0.05
-	dir = (dir + Vector3(0, _kick * 0.25, 0)).normalized()
+	var p := hip.lerp(ads_pos, k)
+	# kołysanie: krok i oddech (przy celowaniu dużo mniejsze)
+	var sway := 1.0 - 0.75 * k
+	p += Vector3(sin(_bob_t) * 0.008, -absf(cos(_bob_t)) * 0.01 + sin(_time * 1.4) * 0.0025, 0.0) * sway
+	var yaw_in := 0.0 if not long_gun else -0.06 * (1.0 - k)   # długa broń z biodra lekko skośnie
+	var pitch := 0.0
+	var roll := 0.0
+	# odrzut: szybki podrzut lufy i cofnięcie dłoni
+	var kick_up := pow(_kick, 0.7)
+	pitch += kick_up * deg_to_rad(22.0 if long_gun else 15.0)
+	p.z += kick_up * (0.06 if long_gun else 0.035)
+	p.y += kick_up * 0.012
 	var sup: Array = g.get("support", [0.0, -0.03, 0.0])
 	var left_off := Vector3(float(sup[0]), float(sup[1]), float(sup[2]))
-	var left_dir := dir
+	var step := _cur_step()
+	var u := _step_u()
+	var e := sin(clampf(u, 0.0, 1.0) * PI)
 	match state:
 		"reload":
-			# broń przechylona do środka, lewa dłoń przy gnieździe magazynka
-			p = HIP_POS + Vector3(-0.08, 0.04, 0.06)
-			dir = Vector3(-0.35, 0.35, -0.85).normalized()
-			var u := _t / maxf(0.01, float(_steps[0][0])) if not _steps.is_empty() else 1.0
-			left_off = Vector3(0.0, -0.1 - 0.12 * sin(u * PI), 0.03)
+			# pistolet: obrót bokiem, lewa dłoń po magazynek i z powrotem, zamek
+			p = hip + Vector3(-0.07, 0.05, 0.06)
+			pitch = deg_to_rad(12.0)
+			match step:
+				"mag_out":
+					roll = deg_to_rad(-60.0) * smoothstep(0.0, 0.35, u)
+					left_off = Vector3(-0.05, -0.1 - 0.06 * u, 0.06)
+				"mag_in":
+					roll = deg_to_rad(-60.0)
+					left_off = Vector3(-0.01, -0.17 + 0.13 * smoothstep(0.0, 0.9, u), 0.03)
+				"rack":
+					roll = deg_to_rad(-60.0) * (1.0 - smoothstep(0.0, 0.4, u)) - deg_to_rad(10.0)
+					left_off = Vector3(0.0, 0.07, 0.03 + 0.04 * e)
 		"rack", "pump":
-			var u := _t / maxf(0.01, float(_steps[0][0])) if not _steps.is_empty() else 1.0
 			if str(g.get("action", "semi")) == "pump":
-				left_off.z += 0.1 * sin(u * PI)  # pompka do siebie i z powrotem
+				left_off.z += float(g.get("pump_travel", 0.07)) * e  # pompka do siebie i z powrotem
 			else:
-				dir = Vector3(-0.2, 0.2, -0.95).normalized()
-				left_off = Vector3(0.0, 0.05, 0.12 - 0.12 * sin(u * PI))
+				p += Vector3(-0.04, 0.03, 0.04)
+				roll = deg_to_rad(-20.0)
+				left_off = Vector3(0.0, 0.07, 0.03 + 0.04 * e)
 		"load":
-			p = HIP_POS + Vector3(-0.05, 0.03, 0.04)
-			dir = Vector3(-0.3, 0.1, -0.95).normalized()
-			left_off = Vector3(0.0, -0.08, -0.15)
-	var hb: Basis = cam.basis * main.combat._hand_basis(dir, false)
+			# rura od spodu: broń obrócona, lewa dłoń z nabojem pod komorę
+			p = hip + Vector3(-0.05, 0.04, 0.05)
+			roll = deg_to_rad(70.0)
+			left_off = Vector3(0.0, -0.1 + 0.06 * e, -0.12)
+		"break":
+			# dwururka: złamana, lufy w dół; naboje do komór; zatrzaśnięcie podrzutem
+			p = hip + Vector3(-0.06, 0.05, 0.08)
+			match step:
+				"open":
+					pitch = deg_to_rad(-25.0) * smoothstep(0.0, 0.5, u)
+					left_off = Vector3(0.0, 0.0, -0.22)
+				"bshell":
+					pitch = deg_to_rad(-25.0)
+					left_off = Vector3(-0.02, 0.02 - 0.14 * e, -0.06 - 0.06 * e)
+				"close":
+					pitch = deg_to_rad(-25.0) + deg_to_rad(45.0) * e
+					left_off = Vector3(0.0, 0.0, -0.22)
+	var dir := Vector3(sin(yaw_in) * cos(pitch), sin(pitch), -cos(yaw_in) * cos(pitch)).normalized()
+	var base: Basis = main.combat._hand_basis(dir, false)
+	var hb_local: Basis = Basis(dir, roll) * base if absf(roll) > 0.0001 else base
+	var hb: Basis = cam.basis * hb_local
 	player.work_targets = {"r": cam * p, "l": null}
 	player.work_rots = {"r": hb.get_rotation_quaternion(), "l": null}
 	if main.inventory.hand("l") == null or main.inventory.hands_two():
 		# druga dłoń podtrzymuje: chwyt pistoletu albo łoże / pompka strzelby
-		var lp: Vector3 = p + main.combat._hand_basis(dir, false) * left_off
+		var lp: Vector3 = p + hb_local * left_off
 		player.work_targets["l"] = cam * lp
-		player.work_rots["l"] = (cam.basis * main.combat._hand_basis(left_dir if state == "idle" else dir, false)).get_rotation_quaternion()
+		player.work_rots["l"] = (cam.basis * (base if state == "idle" else hb_local)).get_rotation_quaternion()
 	player.work_roll = 0.0
+	_apply_parts(gun, g)
+
+
+func _cur_step() -> String:
+	return str(_steps[0][1]) if not _steps.is_empty() else ""
+
+
+func _step_u() -> float:
+	return _t / maxf(0.01, float(_steps[0][0])) if not _steps.is_empty() else 1.0
+
+
+## Ruchome części modelu w dłoni: zamek, magazynek, lufy dwururki, czółenko pompki.
+func _apply_parts(gun, g: Dictionary) -> void:
+	var vis = _vis()
+	if vis == null:
+		return
+	var u := _step_u()
+	var e := sin(clampf(u, 0.0, 1.0) * PI)
+	var step := _cur_step()
+	var zamek: Node3D = vis.get_node_or_null("zamek")
+	if zamek != null:
+		var back := _slide
+		if state in ["reload", "rack"] and step == "rack":
+			back = maxf(back, e)
+		# pusty pistolet: zamek zostaje w tylnym położeniu
+		if not bool(gun.props.get("chamber", false)) and rounds(gun)[0] == 0 and state == "idle":
+			back = 1.0
+		zamek.transform = (zamek.get_meta("rest") as Transform3D).translated(Vector3(-float(g.get("slide", 0.028)) * back, 0, 0))
+	var mag: Node3D = vis.get_node_or_null("magazynek")
+	if mag != null:
+		var has_mag: bool = gun.props.get("mag") is Dictionary
+		mag.visible = has_mag or (state == "reload" and step == "mag_in")
+		var drop := 0.0
+		if state == "reload" and step == "mag_in":
+			drop = 0.12 * (1.0 - smoothstep(0.0, 0.9, u))  # nowy magazynek wsuwany od dołu
+		mag.transform = (mag.get_meta("rest") as Transform3D).translated(Vector3(0, -drop, 0))
+	var lufy: Node3D = vis.get_node_or_null("lufy")
+	if lufy != null:
+		var ang := 0.0
+		if state == "break":
+			match step:
+				"open": ang = smoothstep(0.0, 0.6, u)
+				"bshell": ang = 1.0
+				"close": ang = 1.0 - smoothstep(0.3, 0.7, u)
+		lufy.transform = (lufy.get_meta("rest") as Transform3D) * Transform3D(Basis(Vector3.BACK, -deg_to_rad(32.0) * ang), Vector3.ZERO)
+	var czol: Node3D = vis.get_node_or_null("czolenko")
+	if czol != null:
+		var tr_back := 0.0
+		if state in ["pump", "rack"]:
+			tr_back = float(g.get("pump_travel", 0.07)) * e
+		czol.transform = (czol.get_meta("rest") as Transform3D).translated(Vector3(-tr_back, 0, 0))
+
+
+func _vis():
+	if main.player == null or main.player.body == null:
+		return null
+	return main.player.body.hand_visual("r")
+
+
+## Kierunek lufy: oś +X modelu w dłoni (bez modelu: kamera). Zwraca bazę, której -Z to lufa.
+func _barrel_basis() -> Basis:
+	var cam: Camera3D = main.player.camera
+	var vis = _vis()
+	if vis == null or current() == null:
+		return cam.global_transform.basis
+	var fwd: Vector3 = (vis.global_transform.basis.x as Vector3).normalized()
+	var up := Vector3.UP if absf(fwd.y) < 0.95 else Vector3.BACK
+	return Basis.looking_at(fwd, up)
+
+
+## Łuski: wylatują w prawo i do góry, odbijają się i zostają na podłodze.
+func _eject(gun, n: int) -> void:
+	if n <= 0:
+		return
+	var g := gun_def(gun)
+	var kind := str(g.get("casing", "luska_9mm"))
+	var vis = _vis()
+	var xf: Transform3D = vis.global_transform if vis != null else main.player.camera.global_transform
+	var mesh: Mesh = WorldItems.library_mesh(kind)
+	for k in n:
+		var b := RigidBody3D.new()
+		b.collision_layer = CASING_LAYER
+		b.collision_mask = 1
+		b.mass = 0.02
+		b.set_meta("casing", true)
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		if mesh != null:
+			WorldItems._swap_gun_materials(mi)
+		b.add_child(mi)
+		var col := CollisionShape3D.new()
+		var sh := BoxShape3D.new()
+		sh.size = Vector3(0.07, 0.022, 0.022) if kind == "luska_12" else Vector3(0.02, 0.01, 0.01)
+		col.shape = sh
+		b.add_child(col)
+		main.world.add_child(b)
+		b.add_collision_exception_with(main.player)  # wylatuje z wnętrza bryły gracza
+		var at: Vector3 = xf * (Vector3(0.03, 0.068, 0.0) if kind == "luska_9mm" else Vector3(0.09, 0.025, 0.0))
+		b.global_transform = Transform3D(xf.basis.orthonormalized() * Basis(Vector3.UP, _rng.randf_range(-0.4, 0.4)), at + Vector3(0, 0.01 * k, 0))
+		var right: Vector3 = xf.basis.z.normalized()   # bok modelu (+Z) to prawa strona broni
+		var up: Vector3 = xf.basis.y.normalized()
+		var back: Vector3 = -xf.basis.x.normalized()
+		var v: Vector3 = right * _rng.randf_range(1.2, 2.0) + up * _rng.randf_range(1.3, 2.0) + back * _rng.randf_range(0.0, 0.5)
+		if kind == "luska_12" and str(g.get("action", "")) == "break":
+			v = back * _rng.randf_range(0.8, 1.4) + up * _rng.randf_range(0.6, 1.0)  # wypadają z komór do tyłu
+		b.linear_velocity = v + main.player.velocity
+		b.angular_velocity = Vector3(_rng.randf_range(-20, 20), _rng.randf_range(-20, 20), _rng.randf_range(-20, 20))
+		casings.append(b)
+		casings_total += 1
+		var snd_at := at
+		get_tree().create_timer(0.45 + 0.1 * k).timeout.connect(func(): if is_instance_valid(main): main.sound.play("casing", snd_at + Vector3(0, -1.2, 0), -10.0, _rng.randf_range(0.9, 1.15)))
+	while casings.size() > CASINGS_MAX:
+		var old = casings.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
+
+
+## Pusty magazynek wypada z broni na ziemię (można go podnieść i załadować).
+func _drop_mag(old) -> void:
+	var vis = _vis()
+	if main.world_items == null:
+		main.inventory.give(old)
+		return
+	var cam: Camera3D = main.player.camera
+	var at: Vector3 = cam.global_position - cam.global_transform.basis.z * 0.35 + Vector3(0, -0.3, 0)
+	if vis != null:
+		var mag: Node3D = vis.get_node_or_null("magazynek")
+		at = mag.global_position if mag != null else (vis.global_position as Vector3)
+	var body: RigidBody3D = main.world_items.spawn(old, Transform3D(Basis(Vector3.BACK, PI / 2.0) * Basis(), at - Vector3(0, 0.03, 0)))
+	# wypada z dłoni wewnątrz bryły gracza: bez zderzeń z nim, inaczej fizyka wystrzeliłaby go daleko
+	body.add_collision_exception_with(main.player)
+	var pl = main.player
+	get_tree().create_timer(1.5).timeout.connect(func(): if is_instance_valid(body) and is_instance_valid(pl): body.remove_collision_exception_with(pl))
+	body.linear_velocity = main.player.velocity + Vector3(0, -0.6, 0)
+	body.angular_velocity = Vector3(_rng.randf_range(-4, 4), 0, _rng.randf_range(-4, 4))
+
+
+func _make_flash_mesh() -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.12, 0.12)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.albedo_texture = _flash_texture()
+	m.albedo_color = Color(1.0, 0.8, 0.45)
+	q.material = m
+	mi.mesh = q
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.set_meta("psx_skip", true)
+	mi.visible = false
+	return mi
+
+
+static func _flash_texture() -> ImageTexture:
+	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	for y in 32:
+		for x in 32:
+			var d := Vector2(x - 15.5, y - 15.5)
+			var r := d.length() / 16.0
+			var star := absf(sin(atan2(d.y, d.x) * 4.0))
+			var a := clampf(1.0 - r * (1.4 - 0.7 * star), 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a * a))
+	return ImageTexture.create_from_image(img)
+
+
+func _show_flash(big: bool) -> void:
+	_flash_mesh.global_position = _muzzle() + (-_barrel_basis().z) * 0.03
+	_flash_mesh.scale = Vector3.ONE * (1.8 if big else 1.0) * _rng.randf_range(0.8, 1.2)
+	_flash_mesh.visible = true
+
+
+## Dym z lufy: kilka szarych kłębów, które unoszą się i rozwiewają.
+func _smoke(at: Vector3, dir: Vector3, amount: int) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.amount = amount
+	p.lifetime = 1.6
+	p.explosiveness = 0.85
+	p.direction = dir
+	p.spread = 18.0
+	p.initial_velocity_min = 0.25
+	p.initial_velocity_max = 0.8
+	p.gravity = Vector3(0, 0.12, 0)
+	p.damping_min = 1.2
+	p.damping_max = 2.0
+	p.scale_amount_min = 0.05
+	p.scale_amount_max = 0.09
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 0.6))
+	curve.add_point(Vector2(1, 3.2))
+	p.scale_amount_curve = curve
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.75, 0.74, 0.7, 0.45))
+	grad.set_color(1, Color(0.6, 0.6, 0.6, 0.0))
+	p.color_ramp = grad
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _smoke_texture()
+	q.material = m
+	p.mesh = q
+	main.world.add_child(p)
+	p.global_position = at
+	p.emitting = true
+	get_tree().create_timer(2.2).timeout.connect(p.queue_free)
+
+
+static var _smoke_tex: ImageTexture
+
+
+static func _smoke_texture() -> ImageTexture:
+	if _smoke_tex != null:
+		return _smoke_tex
+	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	for y in 32:
+		for x in 32:
+			var r := Vector2(x - 15.5, y - 15.5).length() / 16.0
+			var a := clampf(1.0 - r, 0.0, 1.0) * rng.randf_range(0.7, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a * a))
+	_smoke_tex = ImageTexture.create_from_image(img)
+	return _smoke_tex

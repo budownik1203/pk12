@@ -97,6 +97,9 @@ func _stage(def_id: String) -> void:
 	var mi: MeshInstance3D = WorldItems.make_visual(item)
 	mi.set_meta("psx_skip", true)  # bez drgań wierzchołków PS1 w małym kadrze
 	var aabb: AABB = mi.get_aabb()
+	for ch in mi.get_children():
+		if ch is MeshInstance3D:
+			aabb = aabb.merge((ch as MeshInstance3D).transform * (ch as MeshInstance3D).get_aabb())
 	mi.position = -aabb.get_center()
 	var holder := Node3D.new()
 	holder.add_child(mi)

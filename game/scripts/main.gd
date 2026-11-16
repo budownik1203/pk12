@@ -296,8 +296,14 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--zrzuty="):
 			shots = true
+	var gun_shots := ""
+	for a in args:
+		if a.begins_with("--zrzuty-bron="):
+			gun_shots = a.trim_prefix("--zrzuty-bron=")
 	if "--test" in args:
 		DevTests.run_tests(self)
+	elif gun_shots != "":
+		DevTests.take_gun_screenshots(self, gun_shots)
 	elif shots:
 		DevTests.take_screenshots(self, args)
 	elif not creating_character:

@@ -7,3 +7,4 @@ export_presets.cfg
 Thumbs.db
 # nagrania sesji (F12) i logi błędów
 nagrania/
+__pycache__/

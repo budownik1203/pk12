@@ -102,9 +102,57 @@ func _build() -> void:
 		_part("ramie_" + s, meshes["ramie"], jacket)
 		_part("przedramie_" + s, meshes["przedramie"], jacket)
 		_part("dlon_" + s, meshes["dlon"], skin)
+	_build_watch()
 	var head := _part("glowa", meshes["glowa"], skin)
 	head.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	_part("latarka", meshes["latarka"], metal)
+
+
+## Zegarek na lewym nadgarstku (jak w Iron Blight): pasek i tarcza z zielonymi wskazówkami.
+func _build_watch() -> void:
+	var band := CylinderMesh.new()
+	band.top_radius = 0.033
+	band.bottom_radius = 0.033
+	band.height = 0.02
+	band.radial_segments = 10
+	band.rings = 1
+	_part("zegarek", band, _mat(Color(0.12, 0.1, 0.08)))
+	var face := CylinderMesh.new()
+	face.top_radius = 0.019
+	face.bottom_radius = 0.02
+	face.height = 0.008
+	face.radial_segments = 14
+	face.rings = 1
+	var fm := StandardMaterial3D.new()
+	fm.albedo_texture = _dial_texture()
+	fm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	fm.uv1_triplanar = true
+	fm.uv1_scale = Vector3.ONE * 25.0
+	fm.uv1_offset = Vector3(0.5, 0.5, 0.5)
+	fm.roughness = 0.4
+	_part("tarcza", face, fm)
+
+
+static func _dial_texture() -> ImageTexture:
+	var img := Image.create(32, 32, false, Image.FORMAT_RGB8)
+	for y in 32:
+		for x in 32:
+			var d := Vector2(x - 15.5, y - 15.5)
+			var r := d.length()
+			var c := Color(0.82, 0.82, 0.78)
+			if r > 14.0:
+				c = Color(0.45, 0.45, 0.45)  # koperta
+			elif r > 12.5 and int(round(atan2(d.y, d.x) / TAU * 12.0 + 12.0)) % 1 == 0 and fmod(atan2(d.y, d.x) + TAU, TAU / 12.0) < 0.12:
+				c = Color(0.1, 0.1, 0.1)  # znaczniki godzin
+			# trzy zielone wskazówki (jak na zegarku z Iron Blight)
+			for ang in [-PI / 2.0, PI / 6.0, PI * 5.0 / 6.0]:
+				var dir := Vector2(cos(ang), sin(ang))
+				var along := d.dot(dir)
+				var off := absf(d.dot(Vector2(-dir.y, dir.x)))
+				if along > 0.0 and along < 11.0 and off < 1.2:
+					c = Color(0.15, 0.85, 0.25)
+			img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
 
 
 func _mat(color: Color) -> StandardMaterial3D:
@@ -182,6 +230,23 @@ func _limb(id: String, p0: Vector3, p1: Vector3, side: Vector3) -> void:
 	x = x.normalized() if x.length() > 0.0001 else yn.cross(Vector3.FORWARD).normalized()
 	var z := x.cross(yn)
 	_parts[id].global_transform = Transform3D(Basis(x, yn * length, z), p0)
+
+
+func _place_watch() -> void:
+	if not joints.has("nadgarstek_l") or not joints.has("lokiec_l"):
+		return
+	var wrist: Vector3 = joints["nadgarstek_l"]
+	var along: Vector3 = (wrist - joints["lokiec_l"]).normalized()
+	var at := wrist - along * 0.035
+	var hb := Basis(hand_rot["l"])
+	# tarcza na zewnętrznej stronie nadgarstka (tam, gdzie widać ją z oczu)
+	var outward: Vector3 = (-hb.x + hb.y * 0.6)
+	outward = (outward - along * outward.dot(along)).normalized()
+	if outward.length() < 0.01:
+		outward = Vector3.UP
+	var side := along.cross(outward).normalized()
+	_parts["zegarek"].global_transform = Transform3D(Basis(side, along, outward), at)
+	_parts["tarcza"].global_transform = Transform3D(Basis(side, outward, -along), at + outward * 0.031)
 
 
 func _place(id: String, basis: Basis, origin: Vector3) -> void:
@@ -396,6 +461,7 @@ func _physics_process(delta: float) -> void:
 		joints["lokiec_" + s] = elbow
 		joints["nadgarstek_" + s] = wrist
 
+	_place_watch()
 	for side in ["l", "r"]:
 		var vis: Node3D = _hand_visuals[side]
 		if vis == null:

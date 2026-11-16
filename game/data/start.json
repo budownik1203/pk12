@@ -402,6 +402,18 @@
 			}
 		},
 		{
+			"def": "dwururka",
+			"position": [
+				5.4,
+				0.04,
+				-1.0
+			],
+			"props": {
+				"chamber": true,
+				"tube": 1
+			}
+		},
+		{
 			"def": "naboje_12",
 			"count": 8,
 			"position": [
