@@ -8,6 +8,7 @@ const SaveGame := preload("res://scripts/save_game.gd")
 const ItemScript := preload("res://scripts/inventory/item.gd")
 const Grid := preload("res://scripts/inventory/grid.gd")
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
+const WorldItemsScript := preload("res://scripts/world_items.gd")
 const TEST_PATH := "user://test_zapisu.json"
 
 
@@ -2084,8 +2085,9 @@ static func run_tests(main: Node) -> void:
 	await _wait(tree, 30)
 	if tn.house_nodes[far_i].process_mode == Node.PROCESS_MODE_DISABLED or far_item.freeze or far_z.process_mode == Node.PROCESS_MODE_DISABLED:
 		errors.append("28g: po powrocie dom, rzecz albo zombie się nie obudziły")
-	if absf(far_item.global_position.y - rest_y) > 0.05:
-		errors.append("28g: przedmiot w dalekim domu przesunął się (%.2f -> %.2f)" % [rest_y, far_item.global_position.y])
+	# sprawdzamy, czy nic nie przeleciało przez podłogę (obudzony zombie może puszkę potrącić)
+	if far_item.global_position.y < rest_y - 0.05:
+		errors.append("28g: przedmiot w dalekim domu spadł (%.2f -> %.2f)" % [rest_y, far_item.global_position.y])
 	if cont_id != "" and inv.containers[cont_id]["grids"][0].items.size() != cont_before:
 		errors.append("28g: zawartość mebla zmieniła się po doczytaniu")
 	stm.enabled = false
@@ -2264,6 +2266,38 @@ static func run_tests(main: Node) -> void:
 	ut_29.house_lights[0]["on"] = false
 	main.clock.minutes = keep_min_29
 	ut_29._apply_lights()
+
+	# 31. warsztat broni: dwururka z pliku, części ruchome, zapis i odczyt, scena warsztatu
+	var Gsm = load("res://scripts/gunsmith/gunsmith.gd")
+	var dwd: Dictionary = ItemDB.get_def("dwururka")
+	if str(dwd.get("model", {}).get("gunsmith", "")) != "dwururka":
+		errors.append("31: dwururka nie jest wczytana z warsztatu")
+	var dvis = WorldItemsScript.make_visual(ItemScript.new("dwururka"))
+	if dvis.get_node_or_null("lufy") == null:
+		errors.append("31: dwururka z warsztatu nie ma ruchomych luf")
+	var dmz: Array = dwd.get("gun", {}).get("muzzle", [0, 0, 0])
+	if float(dmz[0]) < 0.6:
+		errors.append("31: wylot lufy dwururki policzony źle (%s)" % str(dmz))
+	dvis.free()
+	var ws_scene: Node = load("res://scenes/warsztat_broni.tscn").instantiate()
+	tree.root.add_child(ws_scene)
+	await _wait(tree, 3)
+	ws_scene.new_gun("pump")
+	ws_scene.add_module("kurek")
+	ws_scene.set_param(0, "dlugosc", 0.3)
+	ws_scene._id_edit.text = "test_warsztatu"
+	ws_scene._name_edit.text = "Strzelba testowa"
+	if not ws_scene.save("user://test_warsztatu.json"):
+		errors.append("31: warsztat nie zapisał broni")
+	else:
+		var back = JSON.parse_string(FileAccess.get_file_as_string("user://test_warsztatu.json"))
+		if typeof(back) != TYPE_DICTIONARY or (back["modules"] as Array).size() != 7 or absf(float(back["modules"][0]["params"]["dlugosc"]) - 0.3) > 0.0001:
+			errors.append("31: zapis warsztatu nie odpowiada modułom")
+		elif str(back["item"].get("gun", {}).get("action", "")) != "pump":
+			errors.append("31: zapisana broń nie ma działania z szablonu")
+	ws_scene.queue_free()
+	await _wait(tree, 2)
+	player.camera.current = true
 
 	# 30. kółko pod F: opcje urządzenia (budzik na 15 minut) i przełączanie trybu
 	var bud30 = main.world_items.spawn(ItemScript.new("budzik", 1), Transform3D(Basis(), Vector3(-1.5, 0.1, 0.8)))

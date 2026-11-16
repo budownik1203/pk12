@@ -1,0 +1,215 @@
+{
+	"id": "dwururka",
+	"pl": "Dwururka (TOZ)",
+	"en": "Over-under shotgun (TOZ)",
+	"anchors": {
+		"hinge": [
+			0.08,
+			-0.004
+		]
+	},
+	"modules": [
+		{
+			"type": "kolba",
+			"params": {
+				"dlugosc": 0.44,
+				"stopka": 0.124,
+				"szyjka": 0.04,
+				"opad": 0.03,
+				"szerokosc": 0.041,
+				"garb": 0.006,
+				"gumowa": 1.0
+			},
+			"pos": [
+				0,
+				0,
+				0
+			],
+			"rot": 0,
+			"mat": "drewno",
+			"part": ""
+		},
+		{
+			"type": "komora",
+			"params": {
+				"dlugosc": 0.075,
+				"wysokosc": 0.056,
+				"szerokosc": 0.042,
+				"zaokraglenie": 7.0
+			},
+			"pos": [
+				0.0075,
+				0.018,
+				0
+			],
+			"rot": 0,
+			"mat": "stal_grawer",
+			"part": ""
+		},
+		{
+			"type": "plytka",
+			"params": {
+				"dlugosc": 0.012,
+				"wysokosc": 0.018,
+				"szerokosc": 0.044,
+				"zaokraglenie": 2.0
+			},
+			"pos": [
+				0.08,
+				-0.004,
+				0
+			],
+			"rot": 0,
+			"mat": "stal_jasna",
+			"part": ""
+		},
+		{
+			"type": "plytka",
+			"params": {
+				"dlugosc": 0.03,
+				"wysokosc": 0.006,
+				"szerokosc": 0.014,
+				"zaokraglenie": 6.0
+			},
+			"pos": [
+				0.0,
+				0.042,
+				0
+			],
+			"rot": -6,
+			"mat": "stal",
+			"part": ""
+		},
+		{
+			"type": "kablak",
+			"params": {
+				"dlugosc": 0.05,
+				"glebokosc": 0.024,
+				"spusty": 2.0
+			},
+			"pos": [
+				-0.005,
+				-0.006,
+				0
+			],
+			"rot": 0,
+			"mat": "stal",
+			"part": ""
+		},
+		{
+			"type": "lufy",
+			"params": {
+				"dlugosc": 0.637,
+				"srednica": 0.0236,
+				"liczba": 2.0,
+				"uklad": 0.0,
+				"zwezenie": 0.92,
+				"szyna": 1.0
+			},
+			"pos": [
+				0.083,
+				0.022,
+				0
+			],
+			"rot": 0,
+			"mat": "stal",
+			"part": "lufy"
+		},
+		{
+			"type": "czolenko",
+			"params": {
+				"dlugosc": 0.26,
+				"wysokosc": 0.026,
+				"szerokosc": 0.044,
+				"rowki": 0.0
+			},
+			"pos": [
+				0.1,
+				-0.012,
+				0
+			],
+			"rot": 0,
+			"mat": "drewno",
+			"part": "lufy"
+		},
+		{
+			"type": "muszka",
+			"params": {
+				"wysokosc": 0.004,
+				"szerokosc": 0.0035
+			},
+			"pos": [
+				0.712,
+				0.0485,
+				0
+			],
+			"rot": 0,
+			"mat": "mosiadz",
+			"part": "lufy"
+		},
+		{
+			"type": "plytka",
+			"params": {
+				"dlugosc": 0.007,
+				"wysokosc": 0.046,
+				"szerokosc": 0.036,
+				"zaokraglenie": 6.0
+			},
+			"pos": [
+				0.086,
+				0.022,
+				0
+			],
+			"rot": 0,
+			"mat": "stal_jasna",
+			"part": "lufy"
+		}
+	],
+	"item": {
+		"short_pl": "Dwururka",
+		"short_en": "Double barrel",
+		"mass": 3.2,
+		"material": "metal",
+		"category": "bron",
+		"shape": [
+			"#####"
+		],
+		"grip": "gun",
+		"clean": {
+			"ability": "czyszczenie",
+			"strokes": 3.5
+		},
+		"two_hand": true,
+		"gun": {
+			"caliber": "12",
+			"feed": "tube",
+			"capacity": 1,
+			"ammo": "naboje_12",
+			"action": "break",
+			"pellets": 8,
+			"damage": 17,
+			"spread_hip": 5.0,
+			"spread_ads": 2.0,
+			"recoil": 8.0,
+			"rof": 0.22,
+			"noise": 130,
+			"range": 35,
+			"falloff": 0.6,
+			"two_handed": true,
+			"ads_fov": 72,
+			"support": [
+				0.0,
+				0.0,
+				-0.24
+			],
+			"dirt_per_shot": 0.008,
+			"wear": 0.0015,
+			"sound": "shotgun",
+			"ads_dist": 0.4,
+			"casing": "luska_12",
+			"ads_drop": 0.012
+		},
+		"desc_pl": "Dwa strzały, potem R: łamiesz broń, puste łuski wypadają, wkładasz naboje po jednym i zatrzaskujesz. Oburącz (Z) trzyma się pewnie.",
+		"desc_en": "Two shots, then R: break it open, the spent shells fall out, load shells one by one and snap it shut. Hold with both hands (Z)."
+	}
+}

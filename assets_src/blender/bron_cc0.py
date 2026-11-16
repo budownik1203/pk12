@@ -12,8 +12,7 @@ prawej dłoni. W pliku źródłowym lufa jest wzdłuż +Y Blendera, góra to +Z.
 
 Obiekty:
     pistolet (szkielet, lufa, kurek, bezpiecznik, spust), pistolet__zamek, pistolet__magazynek,
-    magazynek_9mm (luźny magazynek, leży wzdłuż X), strzelba, strzelba__czolenko,
-    dwururka__kolba (kolba strzelby dla dwururki z bron.py).
+    magazynek_9mm (luźny magazynek, leży wzdłuż X), strzelba, strzelba__czolenko.
 """
 
 import math
@@ -29,7 +28,6 @@ TEX_SIZE = 1024
 PISTOL_GRIP = mathutils.Vector((0.0045, -0.022, -0.015))
 PISTOL_MAG_SHIFT = mathutils.Vector((0.0, 0.081, 0.0))
 SHOTGUN_GRIP = mathutils.Vector((0.0, -0.45, -0.035))
-STOCK_CUT = 0.02   # x gry: kolba dwururki kończy się tuż przed szyjką
 
 
 def to_game(grip):
@@ -143,21 +141,6 @@ def shotgun(root):
     M = to_game(SHOTGUN_GRIP)
     body = join("strzelba", [meshes[k] for k in ("Shotgun", "Ejection_Port", "Trigger") if k in meshes])
     place(body, M, mat)
-    # kolba do dwururki: tylna część strzelby (do przodu szyjki), obcięta płaszczyzną
-    stock = body.copy()
-    stock.data = body.data.copy()
-    stock.name = "dwururka__kolba"
-    bpy.context.scene.collection.objects.link(stock)
-    import bmesh
-    bm = bmesh.new()
-    bm.from_mesh(stock.data)
-    res = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(STOCK_CUT, 0, 0),
-                                 plane_no=(1, 0, 0), clear_outer=True)
-    edges = [e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge)]
-    if edges:
-        bmesh.ops.holes_fill(bm, edges=edges)
-    bm.to_mesh(stock.data)
-    bm.free()
     fore = meshes["Fore_Stock"]
     fore.name = "strzelba__czolenko"
     place(fore, M, mat, pivot=mathutils.Vector((0, 0, 0)))

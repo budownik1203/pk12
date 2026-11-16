@@ -512,7 +512,6 @@ def build():
     }
     pistol(M)
     loose_mag(M)
-    double_barrel(M)
     pump_shotgun(M)
     casings(M)
 

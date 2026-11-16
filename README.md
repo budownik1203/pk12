@@ -60,6 +60,19 @@ Gotowanie: patelnia albo garnek postawione na ognisku lub włączonej kuchence g
 
 Zrzuty: `docs/build1/` do `docs/build4/`.
 
+## Warsztat broni
+
+Otwórz w Godocie scenę `scenes/warsztat_broni.tscn` i wciśnij F6.
+
+- Lewa kolumna: id pliku i nazwa broni, wczytywanie, „Nowa” i „Zapisz”, szablon działania
+  (półautomat, pompka, łamana), lista modułów, dodawanie, usuwanie i duplikowanie.
+- Prawa kolumna: suwaki wybranego modułu (kształt), materiał, rola w animacji
+  (zamek, magazynek, lufy, czółenko) i położenie.
+- Podgląd: prawy przycisk myszy obraca, kółko przybliża, środkowy przycisk przesuwa.
+  Czerwony punkt to chwyt prawej dłoni, żółty to wylot lufy, niebieski to zawias.
+- „Zapisz” tworzy `data/bronie/<id>.json`. Gra wczytuje te pliki sama: broń jest dostępna
+  pod tym id (np. w `data/start.json` albo w łupie).
+
 ## Układ repozytorium
 
 - `game/` projekt Godota (`scripts/`, `scenes/`, `shaders/`, `data/`); przedmioty i sloty w `game/data/items.json`, stan początkowy w `game/data/start.json`
