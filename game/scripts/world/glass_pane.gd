@@ -59,6 +59,8 @@ func shatter(at: Vector3) -> void:
 	_apply()
 	main.sound.play("glass", at, 2.0)
 	main.noise.emit_noise(at, 75.0, "NOISE_GLASS")
+	if main.get("utilities") != null and main.utilities != null:
+		main.utilities.on_break_in(pane_id)  # wybita szyba domu z alarmem: syrena
 
 
 func clear_shards() -> void:

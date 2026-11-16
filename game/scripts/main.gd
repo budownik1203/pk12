@@ -30,6 +30,9 @@ const SawScript := preload("res://scripts/craft/saw.gd")
 const RecorderScript := preload("res://scripts/recorder.gd")
 const GunsScript := preload("res://scripts/combat/guns.gd")
 const MapViewScript := preload("res://scripts/ui/map_view.gd")
+const StreamingScript := preload("res://scripts/world/streaming.gd")
+const UtilitiesScript := preload("res://scripts/world/utilities.gd")
+const DevicesScript := preload("res://scripts/world/devices.gd")
 const CharacterScript := preload("res://scripts/character/character.gd")
 const CharCreateScript := preload("res://scripts/ui/char_create.gd")
 const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
@@ -78,6 +81,9 @@ var saw: SawScript
 var recorder: RecorderScript
 var guns: GunsScript
 var map_view: MapViewScript
+var streaming: StreamingScript
+var utilities: UtilitiesScript
+var devices: DevicesScript
 var character: CharacterScript
 var char_panel: CharPanelScript
 var town: TownScript
@@ -182,6 +188,15 @@ func _ready() -> void:
 	var sf := FileAccess.open("res://data/sandbox.json", FileAccess.READ)
 	if sf != null:
 		sandbox_seed = int(JSON.parse_string(sf.get_as_text()).get("world_seed", 1203))
+	# sieć i urządzenia przed domami: domy dostają lampy, telewizory i alarmy
+	utilities = UtilitiesScript.new()
+	utilities.name = "Siec"
+	add_child(utilities)
+	utilities.setup(self, sandbox_seed)
+	devices = DevicesScript.new()
+	devices.name = "Urzadzenia"
+	add_child(devices)
+	devices.setup(self)
 	town.setup(self, sandbox_seed)
 	town.fill_loot()
 	town.fill_residents_loot()
@@ -221,6 +236,10 @@ func _ready() -> void:
 	guns.name = "BronPalna"
 	add_child(guns)
 	guns.setup(self)
+	streaming = StreamingScript.new()
+	streaming.name = "Doczytywanie"
+	add_child(streaming)
+	streaming.setup(self)
 	recorder = RecorderScript.new()
 	recorder.name = "Nagrywanie"
 	recorder.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -237,6 +256,7 @@ func _ready() -> void:
 	if not dev_run:
 		_show_char_create()  # zombie pojawią się po rozpoczęciu (mapa nawigacji stoi w pauzie)
 	else:
+		streaming.enabled = false  # testy przenoszą gracza po całym świecie; doczytywanie ma własny test
 		# testy i zrzuty: postać umiejąca to, czego wymagają sprawdzane czynności
 		character.create("Test", "bezrobotny", [])
 		character.levels["majsterkowanie"] = 3
@@ -315,11 +335,15 @@ func use_object(target: Object) -> void:
 	elif target.has_meta("glass"):
 		target.get_meta("glass").clear_shards()
 	elif target.has_meta("sink"):
-		use_sink()
+		use_sink(target)
 	elif target.has_meta("bed"):
 		needs.try_sleep(float(target.get_meta("bed")))
 	elif target.has_meta("container_id"):
 		open_inventory(target.get_meta("container_id"))
+	elif target.has_meta("house_switch"):
+		utilities.toggle_house(int(target.get_meta("house_switch")))
+	elif target.has_meta("tv"):
+		devices.use_tv(int(target.get_meta("tv")))
 	elif target.has_meta("fire"):
 		_feed_fire(target.get_meta("fire"))
 	elif target.has_meta("item") and _use_world_item(target):
@@ -349,6 +373,8 @@ func _use_world_item(body) -> bool:
 		return true
 	if d.has("fuel") and heat.has_lighter() != null:
 		return heat.try_ignite(body)
+	if d.has("device"):
+		return devices.use(body)
 	return false
 
 
@@ -481,22 +507,39 @@ func _update_health_hud() -> void:
 
 
 ## Zlew: napełnia pojemnik z ręki, a z pustymi rękami pije się z kranu.
-func use_sink() -> void:
+## Kran: woda z sieci (pełne naczynie), przy słabym ciśnieniu połowa, po odcięciu
+## resztka z rur budynku. Zlew domu startowego albo kuchnie domów osiedla.
+func use_sink(node: Node3D = null) -> void:
+	if node == null:
+		node = sink
+	var building = "start"
+	if node.has_meta("sink") and typeof(node.get_meta("sink")) == TYPE_INT:
+		building = int(node.get_meta("sink"))
 	var it = inventory.hand("r")
 	if it == null or not it.get_def().has("liquid_capacity"):
 		it = inventory.hand("l")
-	_stream_time = 1.4
-	sound.play("water", sink.global_position + Vector3(0, 0.6, 0), -6.0)
+	var want := 0.3
 	if it != null and it.get_def().has("liquid_capacity"):
-		var cap := float(it.get_def()["liquid_capacity"])
-		it.liquid = {"type": "woda", "amount": cap}
-		inventory.changed.emit()
-		hud.show_message(tr("MSG_FILLED") % it.display_name())
-	elif needs.thirst > 3.0:
-		needs.drink_water(0.3)
-		hud.show_message(tr("MSG_DRANK_TAP"))
-	else:
+		var have := float(it.liquid.get("amount", 0.0)) if str(it.liquid.get("type", "woda")) == "woda" else 0.0
+		want = float(it.get_def()["liquid_capacity"]) - have
+	elif needs.thirst <= 3.0:
 		hud.show_message(tr("MSG_NOT_THIRSTY"))
+		return
+	var got: float = utilities.take_water(building, want)
+	if got <= 0.01:
+		sound.play("handle", node.global_position + Vector3(0, 0.6, 0), -10.0, 1.4)
+		hud.show_message(tr("MSG_TAP_EMPTY"))
+		return
+	_stream_time = 1.4 * clampf(got / maxf(want, 0.01), 0.3, 1.0)
+	sound.play("water", node.global_position + Vector3(0, 0.6, 0), -6.0 if utilities.water_state() == "on" else -12.0)
+	if it != null and it.get_def().has("liquid_capacity"):
+		var have2 := float(it.liquid.get("amount", 0.0)) if str(it.liquid.get("type", "woda")) == "woda" else 0.0
+		it.liquid = {"type": "woda", "amount": have2 + got}
+		inventory.changed.emit()
+		hud.show_message(tr("MSG_FILLED") % it.display_name() if utilities.water_state() == "on" else tr("MSG_TAP_WEAK"))
+	else:
+		needs.drink_water(got)
+		hud.show_message(tr("MSG_DRANK_TAP"))
 
 
 ## Ekran tworzenia postaci: świat stoi, dopóki gracz nie kliknie „Rozpocznij”.
@@ -790,6 +833,7 @@ func _process(_delta: float) -> void:
 	lines.append(tr("DEV_MASS") % [inventory.carried_mass(), inventory.felt_mass(), int(round(inventory.speed_factor() * 100.0))])
 	lines.append(tr("DEV_RATTLE") % inventory.rattle_count())
 	lines.append(tr("DEV_ZOMBIES") % [zombies.alive_count(), zombies.kills])
+	lines.append(tr("HUD_POWER") % [tr("STATE_" + utilities.power_state()), tr("STATE_" + utilities.water_state())] + " (%d/%d)" % [utilities.power_off_day, utilities.water_off_day])
 	lines.append(tr("DEV_NEEDS") % [needs.hunger, needs.thirst, needs.fatigue, needs.body_temp, needs.felt_temp()])
 	var act: Dictionary = inventory.current_action()
 	if not act.is_empty():

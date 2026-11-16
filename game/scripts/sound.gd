@@ -175,6 +175,7 @@ func _build_library() -> void:
 		"gunshot": [0.9, _gunshot], "shotgun": [1.2, _shotgun], "gun_click": [0.08, _gun_click],
 		"gun_rack": [0.35, _gun_rack], "gun_pump": [0.4, _gun_pump], "mag_out": [0.2, _mag_out],
 		"mag_in": [0.22, _mag_in], "shell_in": [0.18, _shell_in],
+		"crank": [1.0, _crank], "beep": [0.25, _beep], "ring": [0.9, _ring],
 		"saw": [0.42, _saw], "rip": [0.45, _rip], "chop": [0.12, _chop], "sizzle": [1.0, _sizzle],
 		"groan": [1.4, _groan], "snarl": [0.6, _snarl], "hit_flesh": [0.25, _hit_flesh], "bodyfall": [0.5, _bodyfall],
 	}
@@ -440,6 +441,23 @@ func _shell_in(t: float, _d: float, st: Dictionary) -> float:
 	return (_lp(st, _noise(), 0.5) * 0.5 + _sin(1700.0, t) * 0.3) * exp(-t * 45.0)
 
 
+func _crank(t: float, _d: float, st: Dictionary) -> float:
+	# szarpnięcie linki rozrusznika i zapłon silnika
+	var pull := _lp(st, _noise(), 0.3) * (0.6 if t < 0.35 else 0.0)
+	var fire := 0.0 if t < 0.35 else (_sin(48.0, t) * 0.5 + _lp(st, _noise(), 0.15, "lp2") * 0.6) * minf(1.0, (t - 0.35) * 6.0)
+	return pull + fire * (1.0 - t * 0.3)
+
+
+func _beep(t: float, _d: float, _st: Dictionary) -> float:
+	return _sin(2600.0, t) * 0.45 * (1.0 if fmod(t, 0.12) < 0.07 else 0.0)
+
+
+func _ring(t: float, _d: float, _st: Dictionary) -> float:
+	# dzwonek budzika: młoteczek o dwa dzwonki
+	var hit := 1.0 if fmod(t, 0.05) < 0.025 else -1.0
+	return (_sin(2200.0, t) * 0.4 + _sin(3100.0, t) * 0.25) * (0.6 + 0.4 * hit)
+
+
 func _saw(t: float, d: float, st: Dictionary) -> float:
 	# piła: szorstki szum z pulsowaniem zębów, rośnie i opada z ruchem ręki
 	var teeth := 0.5 + 0.5 * sin(TAU * 38.0 * t)
@@ -462,6 +480,52 @@ func _sizzle(t: float, d: float, st: Dictionary) -> float:
 	var x := _noise() - _lp(st, _noise(), 0.2)
 	var pop := _noise() * 1.2 if _rng.randf() < 0.004 else 0.0
 	return (x * 0.35 + pop) * minf(1.0, t / 0.05) * (1.0 - t / d)
+
+
+var _loops := {}
+
+
+## Zapętlony dźwięk z funkcji próbki (generator, szum radia, syrena alarmu).
+func _make_loop(key: String, seconds: float, f: Callable) -> AudioStreamWAV:
+	if _loops.has(key):
+		return _loops[key]
+	var n := int(RATE * seconds)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var st := {"lp": 0.0, "lp2": 0.0, "seed": 0.3}
+	for i in n:
+		out[i] = f.call(float(i) / RATE, st)
+	var peak := 0.001
+	for v in out:
+		peak = maxf(peak, absf(v))
+	for i in n:
+		out[i] = out[i] / peak * 0.8
+	var w := _wav(out)
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	w.loop_begin = 0
+	w.loop_end = n
+	_loops[key] = w
+	return w
+
+
+func engine_loop() -> AudioStreamWAV:
+	# warkot silnika spalinowego: 25 zapłonów na sekundę (całkowita liczba w pętli)
+	return _make_loop("engine", 1.0, func(t: float, st: Dictionary) -> float:
+		var pulse := maxf(0.0, sin(TAU * 25.0 * t)) ** 3
+		return pulse * 0.8 + _lp(st, _noise(), 0.2) * 0.4 + sin(TAU * 50.0 * t) * 0.2)
+
+
+func static_loop() -> AudioStreamWAV:
+	return _make_loop("static", 1.0, func(_t: float, st: Dictionary) -> float:
+		return _noise() * 0.6 - _lp(st, _noise(), 0.05) * 0.3)
+
+
+func siren_loop() -> AudioStreamWAV:
+	# syrena alarmu: ton wznoszący i opadający co sekundę (pełny okres w pętli)
+	return _make_loop("siren", 2.0, func(t: float, st: Dictionary) -> float:
+		var f := 700.0 + 500.0 * (0.5 - 0.5 * cos(PI * t))
+		st["ph"] = float(st.get("ph", 0.0)) + TAU * f / RATE
+		return sign(sin(float(st["ph"]))) * 0.5)
 
 
 var _crackle_loop: AudioStreamWAV

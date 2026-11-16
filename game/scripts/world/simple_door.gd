@@ -133,6 +133,8 @@ func zombie_bang(delta: float, from: Vector3 = Vector3.ZERO) -> void:
 		_bang = 0.0
 		locked = false  # wyważone: zamek puścił
 		_set_latched(false)
+		if main.get("utilities") != null and main.utilities != null:
+			main.utilities.on_break_in(door_id)
 		_relatch = 1.5
 		main.noise.emit_noise(door.global_position, 80.0, "NOISE_DOOR_BREAK")
 		_push_from(from if from != Vector3.ZERO else door.global_position + door.global_transform.basis.x, 30.0)

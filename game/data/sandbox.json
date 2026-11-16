@@ -14,5 +14,13 @@
 		"ugryzienie": 1.0
 	},
 	"knox_hours": 48,
-	"world_seed": 1203
+	"world_seed": 1203,
+	"power_off_days": [
+		4,
+		7
+	],
+	"water_off_days": [
+		5,
+		9
+	]
 }

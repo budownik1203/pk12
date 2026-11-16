@@ -604,6 +604,13 @@ func _draw_tooltip(it) -> void:
 	if not it.liquid.is_empty():
 		lines.append(tr("INV_TIP_LIQUID") % [ItemDB.liquid_name(str(it.liquid.get("type", ""))),
 				float(it.liquid.get("amount", 0.0)), float(it.get_def().get("liquid_capacity", 1.0))])
+	var dv: Dictionary = it.get_def().get("device", {})
+	if dv.has("battery"):
+		lines.append(tr("INV_TIP_BATTERY") % int(float(it.props.get("battery", float(dv["battery"])))))
+	if dv.has("tank"):
+		lines.append(tr("INV_TIP_FUEL_TANK") % [float(it.props.get("fuel", 0.0)), float(dv["tank"])])
+	if int(it.props.get("set", 0)) > 0:
+		lines.append(tr("INV_TIP_ALARM") % int(it.props["set"]))
 	if it.props.has("label"):
 		lines.append(tr("INV_TIP_KEY_FOR") % str(it.props["label"]))
 	var mg: Dictionary = it.get_def().get("magazine", {})

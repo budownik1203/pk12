@@ -7,7 +7,7 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 13, osiedle
+## Stan: build 14, infrastruktura
 
 Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do komórki na zatrzasku z klamką, w szafce nakładka, zamek i wkręty, na stole klucz.
 
@@ -50,6 +50,10 @@ Praca narzędziem:
 Broń palna (tryb walki, klik kółkiem): LPM strzał, PPM przytrzymany przyrządy celownicze (przybliżenie, mniejszy rozrzut), R przeładowanie. Magazynki ładuje się w ekwipunku: przeciągnij naboje na magazynek (albo na strzelbę), PPM na magazynku lub broni rozładowuje. Każdy strzał brudzi broń, a brud, zużycie i brak smaru grożą zacięciem. Czyszczenie: broń w lewej ręce, w prawej szmata (z grubsza), WD-40 (czyści i smaruje na 60 strzałów) albo wycior (do zera), PPM i ruchy w dół. Strzał słychać z daleka.
 
 Osiedle: 16 domów przy ulicach Lipowej, Polnej i Krótkiej, każdy z adresem i tabliczką z nazwiskiem. Część domów ma piętro (schody przy ścianie), część piwnicę z regałem zapasów. Mieszkańcy mają zawody, od których zależy, co jest w domu (u policjanta broń, u mechanika narzędzia, u kucharza garnki). Ci, którzy zmienili się w zombie, noszą przy sobie klucz do domu i swoje rzeczy, a ich zwłoki da się przeszukać (F). Domy, z których uciekli, bywają zamknięte na klucz, a zapasowy leży czasem pod wycieraczką (F na wycieraczce). Łupy losują się raz i nic się nie odnawia. Mapy osiedla i kompasu nie ma na start: trzeba je znaleźć. Trzymane w ręce pokazują plan ulic i kierunek, a mapa z kompasem w drugiej ręce obraca się zgodnie z kierunkiem patrzenia.
+
+Sieć: prąd i woda działają przez pierwsze dni. Dzień przed awarią światło migocze, a woda leci cienko. Potem sieć pada (dzień losowany przy nowej grze, widać go na ekranie deweloperskim), a w rurach każdego domu zostaje kilka litrów. Domy osiedla mają lampy (włącznik przy drzwiach wejściowych), zlew w kuchni, lodówki, które z prądem spowalniają psucie jedzenia, i telewizory w salonach. Część domów ma alarm: wybita szyba albo wyważone drzwi przy prądzie włączają syrenę, która ściąga zombie z całej okolicy. Po awarii prąd daje generator: postaw go przy domu, dolej benzyny z kanistra (F z kanistrem w ręce) i włącz (F). Warczy, więc zombie go słyszą. Radio na baterie podaje komunikaty, póki stacje nadają. Budzik nastawiony na kilka minut to wabik, a czujnik ruchu piszczy, gdy coś przejdzie obok. Shift+F podnosi urządzenie.
+
+Doczytywanie: domy, zombie i przedmioty daleko od gracza przestają się rysować i liczyć, ale ich stan zostaje i wraca, gdy się zbliżysz.
 
 Gotowanie: patelnia albo garnek postawione na ognisku lub włączonej kuchence gotują zawartość. Ziemniak na patelni piecze się w 40 minut gry, zostawiony dłużej robi się spalenizną. Garnek ze zlewu z wodą i pokrojonymi warzywami daje zupę, którą je się porcjami (przeciągnij garnek na postać w oknie zdrowia, H).
 

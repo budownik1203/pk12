@@ -2625,6 +2625,324 @@
 					0.35
 				]
 			}
+		},
+		"generator": {
+			"pl": "Generator prądu",
+			"en": "Power generator",
+			"short_pl": "Generator",
+			"short_en": "Generator",
+			"mass": 38.0,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"###",
+				"###"
+			],
+			"bulky": {
+				"per_strength": 0.12
+			},
+			"device": {
+				"kind": "generator",
+				"tank": 10.0,
+				"burn": 0.8,
+				"noise": 55
+			},
+			"desc_pl": "Ciężki: niesiesz go oburącz. Postaw przy domu (do 6 m od ściany), wlej benzynę z kanistra (F z kanistrem w ręce) i włącz (F). Zasila lampy, lodówki i telewizor tego domu. Warczy: zombie słyszą go z daleka. Shift+F podnosi.",
+			"desc_en": "Heavy: carried with both hands. Put it next to a house (within 6 m of a wall), pour petrol from a can (F with the can in hand) and start it (F). Powers that house's lamps, fridges and TV. It roars: zombies hear it from afar. Shift+F picks it up.",
+			"model": {
+				"type": "parts",
+				"size": [
+					0.6,
+					0.45,
+					0.42
+				],
+				"center": [
+					0,
+					0.0,
+					0
+				],
+				"parts": [
+					{
+						"type": "box",
+						"size": [
+							0.6,
+							0.04,
+							0.42
+						],
+						"pos": [
+							0,
+							-0.2,
+							0
+						],
+						"color": [
+							0.15,
+							0.15,
+							0.15
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.42,
+							0.3,
+							0.32
+						],
+						"pos": [
+							0,
+							-0.03,
+							0
+						],
+						"color": [
+							0.7,
+							0.5,
+							0.1
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.3,
+							0.12,
+							0.26
+						],
+						"pos": [
+							0.05,
+							0.17,
+							0
+						],
+						"color": [
+							0.65,
+							0.12,
+							0.08
+						]
+					},
+					{
+						"type": "cylinder",
+						"radius": 0.05,
+						"height": 0.12,
+						"pos": [
+							-0.22,
+							0.0,
+							0.1
+						],
+						"rot": [
+							90,
+							0,
+							0
+						],
+						"color": [
+							0.2,
+							0.22,
+							0.2
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.04,
+							0.4,
+							0.04
+						],
+						"pos": [
+							-0.28,
+							0.0,
+							0.19
+						],
+						"color": [
+							0.1,
+							0.1,
+							0.1
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.04,
+							0.4,
+							0.04
+						],
+						"pos": [
+							0.28,
+							0.0,
+							0.19
+						],
+						"color": [
+							0.1,
+							0.1,
+							0.1
+						]
+					}
+				]
+			}
+		},
+		"kanister": {
+			"pl": "Kanister",
+			"en": "Jerrycan",
+			"mass": 1.0,
+			"material": "plastik",
+			"category": "narzedzie",
+			"shape": [
+				"##",
+				"##",
+				"##"
+			],
+			"liquid_capacity": 10.0,
+			"desc_pl": "Na benzynę do generatora. Pełny waży ponad 8 kg.",
+			"desc_en": "Holds petrol for the generator. Weighs over 8 kg when full.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.18,
+					0.32,
+					0.26
+				],
+				"color": [
+					0.7,
+					0.1,
+					0.06
+				]
+			}
+		},
+		"radio": {
+			"pl": "Radio na baterie",
+			"en": "Battery radio",
+			"short_pl": "Radio",
+			"short_en": "Radio",
+			"mass": 0.9,
+			"material": "plastik",
+			"category": "narzedzie",
+			"shape": [
+				"##",
+				"##"
+			],
+			"device": {
+				"kind": "radio",
+				"battery": 12.0
+			},
+			"desc_pl": "Postaw je gdzieś i włącz (F). Póki stacje nadają, podaje komunikaty; baterie starczają na kilkanaście godzin gry.",
+			"desc_en": "Put it down and switch it on (F). While stations broadcast it relays announcements; the batteries last a dozen or so game hours.",
+			"model": {
+				"type": "parts",
+				"size": [
+					0.26,
+					0.15,
+					0.08
+				],
+				"parts": [
+					{
+						"type": "box",
+						"size": [
+							0.26,
+							0.15,
+							0.08
+						],
+						"pos": [
+							0,
+							0,
+							0
+						],
+						"color": [
+							0.2,
+							0.2,
+							0.22
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.1,
+							0.1,
+							0.01
+						],
+						"pos": [
+							-0.06,
+							0,
+							0.041
+						],
+						"color": [
+							0.4,
+							0.4,
+							0.42
+						]
+					},
+					{
+						"type": "box",
+						"size": [
+							0.004,
+							0.24,
+							0.004
+						],
+						"pos": [
+							0.1,
+							0.19,
+							0
+						],
+						"color": [
+							0.6,
+							0.6,
+							0.62
+						]
+					}
+				]
+			}
+		},
+		"budzik": {
+			"pl": "Budzik nakręcany",
+			"en": "Wind-up alarm clock",
+			"short_pl": "Budzik",
+			"short_en": "Alarm clock",
+			"mass": 0.35,
+			"material": "metal",
+			"category": "narzedzie",
+			"shape": [
+				"#"
+			],
+			"device": {
+				"kind": "alarm_clock"
+			},
+			"desc_pl": "Wabik: postaw albo rzuć daleko od siebie i nastaw (F: 5, 15, 30, 60 minut gry). Dzwoni długo i głośno, ściągając zombie.",
+			"desc_en": "A lure: put or throw it far away and set it (F: 5, 15, 30, 60 game minutes). It rings long and loud, drawing zombies in.",
+			"model": {
+				"type": "cylinder",
+				"radius": 0.05,
+				"height": 0.04,
+				"color": [
+					0.75,
+					0.7,
+					0.6
+				]
+			}
+		},
+		"czujnik_ruchu": {
+			"pl": "Czujnik ruchu",
+			"en": "Motion sensor",
+			"short_pl": "Czujnik",
+			"short_en": "Sensor",
+			"mass": 0.25,
+			"material": "plastik",
+			"category": "narzedzie",
+			"shape": [
+				"#"
+			],
+			"device": {
+				"kind": "sensor",
+				"battery": 72.0
+			},
+			"desc_pl": "Postaw przy wejściu i włącz (F). Piszczy, gdy coś przejdzie w promieniu 6 m, i daje znać, jeśli jesteś w pobliżu.",
+			"desc_en": "Put it by an entrance and switch it on (F). It beeps when something passes within 6 m and lets you know if you are nearby.",
+			"model": {
+				"type": "box",
+				"size": [
+					0.08,
+					0.1,
+					0.06
+				],
+				"color": [
+					0.85,
+					0.85,
+					0.82
+				]
+			}
 		}
 	},
 	"liquids": {
@@ -2637,6 +2955,11 @@
 			"pl": "Zupa",
 			"en": "Soup",
 			"density": 1.05
+		},
+		"benzyna": {
+			"pl": "Benzyna",
+			"en": "Petrol",
+			"density": 0.75
 		}
 	},
 	"fists": {

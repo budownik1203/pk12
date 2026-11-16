@@ -236,3 +236,18 @@
 - **Mapa i kompas** (nie ma ich na start, trafiają się na regałach, w szafach i u listonosza czy harcerza): kartka z planem ulic i numerami domów w lewym dolnym rogu ekranu, bez kropki gracza, i tarcza kompasu. Mapa z kompasem obraca się zgodnie z kierunkiem patrzenia. Kod: `scripts/ui/map_view.gd`.
 - **Na start:** 8 włóczęgów (co najmniej 14 m od gracza) plus mieszkańcy-zombie (co najmniej 8 m).
 - **Pominięte:** doczytywanie obszarów z planu. Całe osiedle mieści się w jednej scenie, a stan i tak się zapisuje, więc wróci przy regionie (build 17).
+
+### Dokończenie buildu 13: doczytywanie obszarów
+
+- Każdy dom osiedla to osobny węzeł (`Dom_N`), który `scripts/world/streaming.gd` wyłącza w całości, gdy gracz jest dalej niż 58 m (nie rysuje się, bryły wypadają z fizyki), i włącza poniżej 48 m. Przedmioty w świecie i zombie zasypiają już powyżej 52 m, a budzą się poniżej 44 m, czyli zasypiają przed wyłączeniem domu i budzą się po jego włączeniu, więc nic nie spada przez wyłączoną podłogę. Stan (meble, drzwi, szyby, zwłoki, rzeczy) zostaje nietknięty. Odczyt zapisu najpierw budzi cały świat. Testy i zrzuty mają doczytywanie wyłączone, a test 28g sprawdza je osobno.
+
+## Build 14 (16.11.2026): infrastruktura
+
+- **Sieć** (`scripts/world/utilities.gd`): dzień awarii prądu (4–7) i wody (5–9) losowany przy nowej grze (`data/sandbox.json`). Dzień przed awarią prąd migocze (krótkie zgaśnięcia, coraz częstsze), a woda leci cienko (pół naczynia). Po awarii w rurach każdego budynku zostają 4 litry. Komunikaty o migotaniu i awarii pojawiają się na ekranie.
+- **Prąd potrzebny do:** lamp (dom startowy i po lampie w każdym pokoju domów osiedla, włącznik przy drzwiach wejściowych), lodówek (z prądem jedzenie psuje się 4 razy wolniej), telewizorów i alarmów.
+- **Generator** (przedmiot duży, oburącz): stoi przy budynku (do 6 m od ściany), bak na 10 l, pali 0,8 l na godzinę gry, warczy (hałas słyszalny dla zombie) i zasila ten budynek. Benzynę dolewa się F z kanistrem w ręce. Generatory i kanistry z resztką benzyny stoją za co czwartym domem. Kod urządzeń: `scripts/world/devices.gd`.
+- **Radio i telewizja:** komunikaty z `data/broadcasts.json` zależne od dnia (kwarantanna, zamknięte drogi, potem nadawanie z generatora, wreszcie szum). Telewizja milknie po 5. dniu, radio po 9. Radio działa na bateriach (12 h gry), telewizor na prąd.
+- **Alarmy:** co trzeci dom. Wybicie szyby albo wyważenie drzwi przy prądzie włącza syrenę na 90 s z hałasem co 1,5 s (zasięg 120). Wyje raz.
+- **Elektronika:** budzik (wabik, nastawiany na 5, 15, 30 albo 60 minut gry, potem dzwoni głośno przez 20 s) i czujnik ruchu (bateria na 72 h, piszczy, gdy zombie przejdzie w promieniu 6 m, i daje znać graczowi w promieniu 40 m).
+- Zapis w wersji 11: dni awarii, resztki wody, włączniki, alarmy, telewizory. Stan generatorów, radia i budzików zapisuje się w przedmiotach.
+- Testy 29a–k.

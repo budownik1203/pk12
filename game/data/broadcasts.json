@@ -1,0 +1,47 @@
+{
+	"_opis": "Komunikaty radia i telewizji. Każdy wpis: od którego dnia, do którego dnia (włącznie), linie po polsku i angielsku. Po ostatnim dniu stacje milkną (sam szum, w telewizji brak sygnału).",
+	"tv_until": 5,
+	"radio_until": 9,
+	"entries": [
+		{"from": 1, "to": 2, "pl": [
+			"Komunikat Rządowego Centrum Bezpieczeństwa: w powiecie ogłoszono strefę kwarantanny. Prosimy pozostać w domach.",
+			"Nie zbliżajcie się do osób agresywnych ani wyglądających na chore. Zamknijcie drzwi i okna.",
+			"Służby medyczne pracują w trybie alarmowym. Nie dzwońcie na numer alarmowy bez potrzeby.",
+			"Zróbcie zapas wody pitnej. Nie wiadomo, jak długo będą działać wodociągi."
+		], "en": [
+			"Government Security Centre announcement: a quarantine zone has been declared in the county. Please stay indoors.",
+			"Do not approach aggressive people or anyone who looks ill. Lock your doors and windows.",
+			"Medical services are on emergency footing. Do not call the emergency number unless necessary.",
+			"Store drinking water. It is unknown how long the waterworks will keep running."
+		]},
+		{"from": 3, "to": 4, "pl": [
+			"Drogi wyjazdowe ze strefy są zamknięte. Wojsko nie przepuszcza nikogo.",
+			"Punkt zbiórki przy szkole podstawowej jest nieczynny. Powtarzam: punkt zbiórki jest nieczynny.",
+			"Energetyka ostrzega przed przerwami w dostawach prądu. Przygotujcie latarki i świece.",
+			"Ugryzienie oznacza zakażenie. Nie ma znanego leczenia."
+		], "en": [
+			"Roads out of the zone are closed. The army is letting no one through.",
+			"The assembly point at the primary school is closed. I repeat: the assembly point is closed.",
+			"The power company warns of supply interruptions. Prepare torches and candles.",
+			"A bite means infection. There is no known treatment."
+		]},
+		{"from": 5, "to": 7, "pl": [
+			"...nadajemy z generatora. Jeśli nas słyszycie, nie wychodźcie nocą...",
+			"...hałas je przyciąga. Strzały słychać na kilometry...",
+			"...nie mamy łączności z Warszawą od dwóch dni...",
+			"...powtarzamy co godzinę, dopóki starczy paliwa..."
+		], "en": [
+			"...broadcasting on a generator. If you can hear us, don't go out at night...",
+			"...noise draws them in. Gunshots carry for miles...",
+			"...we have had no contact with Warsaw for two days...",
+			"...we'll repeat every hour for as long as the fuel lasts..."
+		]},
+		{"from": 8, "to": 9, "pl": [
+			"...ktokolwiek... odbiór...",
+			"...(szum)... zostańcie... (szum)..."
+		], "en": [
+			"...anyone... over...",
+			"...(static)... stay... (static)..."
+		]}
+	]
+}

@@ -57,6 +57,8 @@ var ground_holes: Array = []        # Rect2 otworów w gruncie (zejścia do piwn
 var doormats: Array = []            # [id pojemnika wycieraczki, numer domu]
 var _res := {}
 var _families: Array = []
+var _parent: Node3D = null          # węzeł bieżącego domu (doczytywanie: dom włącza się i wyłącza w całości)
+var house_nodes: Array = []         # Node3D domów w kolejności LOTS
 var doors: Array = []
 var panes: Array = []
 var loot_spots: Array = []          # [id pojemnika, rodzaj łupu]
@@ -88,7 +90,7 @@ func _mat(key: String, color: Color) -> StandardMaterial3D:
 
 
 func _box(node_name: String, center: Vector3, size: Vector3, mat: Material) -> StaticBody3D:
-	return RoomBuilder._static_box(world, node_name, center, size, mat)
+	return RoomBuilder._static_box(_parent if _parent != null else world, node_name, center, size, mat)
 
 
 # --- teren -----------------------------------------------------------------------
@@ -207,6 +209,15 @@ func _wall_piece(n: String, a: Vector3, dir: Vector3, t0: float, t1: float, y0: 
 # --- dom -------------------------------------------------------------------------
 
 func _house(i: int, x0: float, z0: float, door_side: String) -> void:
+	_parent = Node3D.new()
+	_parent.name = "Dom_%d" % i
+	world.add_child(_parent)
+	house_nodes.append(_parent)
+	_build_house(i, x0, z0, door_side)
+	_parent = null
+
+
+func _build_house(i: int, x0: float, z0: float, door_side: String) -> void:
 	var lot: Array = LOTS[i]
 	var w := rng.randf_range(8.0, 11.0)
 	var d := rng.randf_range(7.0, 9.0)
@@ -290,6 +301,15 @@ func _house(i: int, x0: float, z0: float, door_side: String) -> void:
 		var skip_w := STAIR_W + 0.3 if r == 0 and two_floors else 0.0
 		var skip_e := STAIR_W + 1.3 if cellar and room_r == cellar_room else 0.0  # metr dojścia do zejścia
 		_furnish(i, r, room_r, kinds[r % kinds.size()], back_z, 0.0, skip_w, skip_e, x0 + door_off + 0.5)
+	# prąd: lampa w każdym pokoju, jeden włącznik przy drzwiach wejściowych, czasem alarm
+	if main.utilities != null:
+		for r in rooms:
+			var rr := r as Rect2
+			main.utilities.add_house_lamp(i, _parent, Vector3(rr.get_center().x, H - 0.15, rr.get_center().y))
+		var sw := _box("Wlacznik_dom%d" % i, Vector3(x0 + door_off + 1.25, 1.2, front_z - back_dir * (WALL / 2.0 + 0.02)), Vector3(0.08, 0.12, 0.03), _mat("wlacznik", Color(0.78, 0.76, 0.68)))
+		sw.set_meta("house_switch", i)
+		if rng.randf() < 0.3:
+			main.utilities.add_alarm(i)
 	var info := {"index": i, "street": str(lot[3]), "number": int(lot[4]), "rect": Rect2(x0, z0, w, d),
 			"floors": 2 if two_floors else 1, "cellar": cellar, "door": door_ctl, "front_z": front_z,
 			"door_x": x0 + door_off + 0.5, "rooms": rooms, "key_id": 100 + i}
@@ -389,6 +409,9 @@ func _upper_floor(i: int, x0: float, z0: float, w: float, d: float, front_z: flo
 	var west := Rect2(x0, z0, split_x - x0, d)
 	var east := Rect2(split_x, z0, x1 - split_x, d)
 	_furnish(i, 10, west, "sypialnia", back_z, y0, STAIR_W + 1.3, 0.0)  # metr przejścia przy wyjściu ze schodów
+	if main.utilities != null:
+		for rr in [west, east]:
+			main.utilities.add_house_lamp(i, _parent, Vector3(rr.get_center().x, y0 + H - 0.15, rr.get_center().y))
 	_furnish(i, 11, east, "sypialnia" if rng.randf() < 0.5 else "lazienka", back_z, y0, 0.0, 0.0)
 
 
@@ -418,6 +441,18 @@ func _furnish(house: int, room: int, rect: Rect2, kind: String, back_z: float, y
 		main.inventory.register_container(id, [f[1]], body, "INV_CONTAINER_" + str(f[0]))
 		loot_spots.append([id, str(f[0])])
 		x += size.x + 0.3
+	if kind == "kuchnia" and x + 0.6 < x_end - 0.3:
+		var zs := rect.position.y + WALL / 2.0 + 0.32 if at_z0 else rect.end.y - WALL / 2.0 - 0.32
+		var sink := _box("Zlew_%d_%d" % [house, room], Vector3(x + 0.3, y0 + 0.45, zs), Vector3(0.6, 0.9, 0.6), _mat("zlew", Color(0.7, 0.72, 0.74)))
+		sink.set_meta("sink", house)
+		x += 0.9
+	if kind == "salon" and main.devices != null and x + 0.9 < x_end - 0.3:
+		var zt := rect.position.y + WALL / 2.0 + 0.25 if at_z0 else rect.end.y - WALL / 2.0 - 0.25
+		var tv := _box("Telewizor_%d_%d" % [house, room], Vector3(x + 0.4, y0 + 0.55, zt), Vector3(0.7, 0.5, 0.4), _mat("telewizor", Color(0.08, 0.08, 0.09)))
+		var face := 1.0 if at_z0 else -1.0
+		main.devices.add_tv(house, tv, Vector3(x + 0.4, y0 + 0.57, zt + face * 0.205), 0.0 if face > 0.0 else PI)
+		_box("Szafka_TV_%d_%d" % [house, room], Vector3(x + 0.4, y0 + 0.15, zt), Vector3(0.9, 0.3, 0.45), _mat("mebel_regal", Color(0.4, 0.3, 0.2)))
+		x += 1.2
 	if kind == "sypialnia" and x + 0.9 < x_end - 0.2:
 		var bed := _box("Lozko_%d_%d" % [house, room], Vector3(x + 0.45, y0 + 0.22, rect.get_center().y), Vector3(0.9, 0.44, 1.9), _mat("posciel", Color(0.4, 0.38, 0.45)))
 		bed.set_meta("bed", 1.15)  # łóżko: sen lepszy niż na materacu
@@ -459,12 +494,13 @@ func _door(house: int, at: Vector3, id: String = ""):
 	var body := RoomBuilder._rigid("drzwi_" + id, center, 30.0)
 	body.angular_damp = 4.0
 	RoomBuilder._add_box(body, size, Tex.material("wood", false, 1.0))
-	world.add_child(body)
+	var par: Node3D = _parent if _parent != null else world
+	par.add_child(body)
 	var joint := HingeJoint3D.new()
 	joint.name = "Zawias_" + id
 	joint.position = at + Vector3(0.02, center.y, 0)
 	joint.rotation_degrees = Vector3(90, 0, 0)
-	world.add_child(joint)
+	par.add_child(joint)
 	joint.node_a = joint.get_path_to(body)
 	joint.set_flag(HingeJoint3D.FLAG_USE_LIMIT, true)
 	joint.set_param(HingeJoint3D.PARAM_LIMIT_LOWER, deg_to_rad(-100.0))
@@ -552,7 +588,7 @@ func _address(info: Dictionary) -> void:
 	plate.outline_size = 8
 	plate.position = Vector3(float(info["door_x"]) + 0.9, 2.15, fz + out_dir * (WALL / 2.0 + 0.01))
 	plate.rotation.y = 0.0 if out_dir > 0.0 else PI
-	world.add_child(plate)
+	house_nodes[i].add_child(plate)
 	var mat_id := "wycieraczka_%d" % i
 	var mat := _box("Wycieraczka_%d" % i, Vector3(float(info["door_x"]), 0.025, fz + out_dir * (WALL / 2.0 + 0.35)), Vector3(0.8, 0.03, 0.5), _mat("wycieraczka", Color(0.3, 0.22, 0.12)))
 	mat.collision_layer = 1 << 9  # nie potyka się o nią nikt; da się ją podnieść (F)
@@ -633,7 +669,7 @@ func spawn_residents() -> int:
 
 func _pane(house: int, center: Vector3, size: Vector2) -> void:
 	var p := GlassScript.new()
-	world.add_child(p)
+	(_parent if _parent != null else world).add_child(p)
 	p.global_position = center
 	p.setup(main, "dom%d_%d" % [house, panes.size()], size)
 	panes.append(p)
@@ -697,6 +733,15 @@ func fill_residents_loot() -> void:
 		if bool(h["spare_key"]):
 			for g in main.inventory.containers["wycieraczka_%d" % i]["grids"]:
 				main.inventory.place_now(make_key(h), g)
+		# co czwarty dom: generator za domem i kanister z resztką benzyny
+		if lr.randf() < 0.25:
+			var rect: Rect2 = h["rect"]
+			var back_out: float = rect.position.y - 1.2 if absf(float(h["front_z"]) - rect.end.y) < 0.05 else rect.end.y + 1.2
+			var gx := lr.randf_range(rect.position.x + 1.0, rect.end.x - 1.0)
+			main.world_items.spawn(ItemScript.new("generator", 1), Transform3D(Basis(), Vector3(gx, 0.3, back_out)))
+			var can = ItemScript.new("kanister", 1)
+			can.liquid = {"type": "benzyna", "amount": snappedf(lr.randf_range(2.0, 7.0), 0.1)}
+			main.world_items.spawn(can, Transform3D(Basis(), Vector3(gx + 0.8, 0.2, back_out)))
 
 
 func _pick(entries: Array, lr: RandomNumberGenerator) -> Array:

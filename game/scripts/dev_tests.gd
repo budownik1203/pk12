@@ -2013,6 +2013,226 @@ static func run_tests(main: Node) -> void:
 	if main.map_view.showing_map:
 		errors.append("28f: mapa nie znika po odłożeniu")
 
+	# 28g. doczytywanie: daleki dom wyłączony, rzeczy i zombie w nim uśpione,
+	#      po powrocie wszystko na miejscu (nic nie spadło przez podłogę)
+	var stm = main.streaming
+	stm.enabled = true
+	var corner := Vector3(-45.0, 0.02, -20.0)  # róg osiedla: stąd najdalszy dom jest poza zasięgiem
+	var far_h: Dictionary = tn.houses[0]
+	for h in tn.houses:
+		if (h["rect"] as Rect2).get_center().distance_to(Vector2(corner.x, corner.z)) > (far_h["rect"] as Rect2).get_center().distance_to(Vector2(corner.x, corner.z)):
+			far_h = h
+	var far_i: int = far_h["index"]
+	var far_pos: Vector3 = far_h["inside"] + Vector3(0, 0.3, 0)
+	var far_item = main.world_items.spawn(ItemScript.new("puszka_fasoli", 1), Transform3D(Basis(), far_pos))
+	var far_z = main.zombies.spawn(far_h["inside"] + Vector3(0.5, 0.05, 0.5))
+	_place(main, far_h["front"] + Vector3(0, 0.02, 0), 0.0)
+	await _wait(tree, 40)
+	stm.update_now()
+	var rest_y: float = far_item.global_position.y
+	var cont_id: String = ""
+	for spot in tn.loot_spots:
+		if str(spot[0]).begins_with("dom%d_" % far_i):
+			cont_id = spot[0]
+			break
+	var cont_before: int = inv.containers[cont_id]["grids"][0].items.size() if cont_id != "" else 0
+	_place(main, corner, 0.0)
+	await _wait(tree, 5)
+	stm.update_now()
+	await _wait(tree, 60)
+	if tn.house_nodes[far_i].process_mode != Node.PROCESS_MODE_DISABLED:
+		errors.append("28g: daleki dom się nie wyłączył")
+	if not far_item.freeze or far_z.process_mode != Node.PROCESS_MODE_DISABLED:
+		errors.append("28g: rzecz albo zombie w dalekim domu nie zasnęły")
+	if stm.active_houses >= tn.houses.size():
+		errors.append("28g: wszystkie domy dalej aktywne")
+	_place(main, far_h["front"] + Vector3(0, 0.02, 0), 0.0)
+	await _wait(tree, 5)
+	stm.update_now()
+	await _wait(tree, 30)
+	if tn.house_nodes[far_i].process_mode == Node.PROCESS_MODE_DISABLED or far_item.freeze or far_z.process_mode == Node.PROCESS_MODE_DISABLED:
+		errors.append("28g: po powrocie dom, rzecz albo zombie się nie obudziły")
+	if absf(far_item.global_position.y - rest_y) > 0.05:
+		errors.append("28g: przedmiot w dalekim domu przesunął się (%.2f -> %.2f)" % [rest_y, far_item.global_position.y])
+	if cont_id != "" and inv.containers[cont_id]["grids"][0].items.size() != cont_before:
+		errors.append("28g: zawartość mebla zmieniła się po doczytaniu")
+	stm.enabled = false
+	stm.wake_all()
+	main.world_items.remove(far_item)
+	main.zombies.clear_all()
+	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
+	await _wait(tree, 10)
+
+	# 29a. sieć: prąd jest, migocze dzień przed awarią, potem pada; woda podobnie
+	var ut_29 = main.utilities
+	var dv_29 = main.devices
+	var keep_min_29: float = main.clock.minutes
+	main.clock.minutes = (ut_29.power_off_day - 3.0) * 1440.0
+	if ut_29.power_state() != "on" or not ut_29.grid_power():
+		errors.append("29a: na początku nie ma prądu")
+	main.clock.minutes = (ut_29.power_off_day - 1.5) * 1440.0
+	if ut_29.power_state() != "flicker":
+		errors.append("29a: dzień przed awarią prąd nie migocze (%s)" % ut_29.power_state())
+	main.clock.minutes = (ut_29.power_off_day - 0.5) * 1440.0 + 60.0
+	if ut_29.power_state() != "off" or ut_29.grid_power():
+		errors.append("29a: po dniu awarii prąd dalej jest")
+	# 29b. lampy domu: włącznik przy prądzie świeci, bez prądu nie
+	main.clock.minutes = (ut_29.power_off_day - 3.0) * 1440.0
+	if ut_29.house_lights.size() != main.town.houses.size():
+		errors.append("29b: lampy w %d domach na %d" % [ut_29.house_lights.size(), main.town.houses.size()])
+	ut_29.house_lights[0]["on"] = false
+	ut_29.toggle_house(0)
+	ut_29._apply_lights()
+	if not ut_29.house_lights[0]["lights"][0].visible:
+		errors.append("29b: włączona lampa przy prądzie nie świeci")
+	main.clock.minutes = (ut_29.power_off_day - 0.5) * 1440.0 + 60.0
+	ut_29._apply_lights()
+	if ut_29.house_lights[0]["lights"][0].visible:
+		errors.append("29b: lampa świeci bez prądu")
+	# 29c. generator przy domu: paliwo z kanistra, zasila dom, warczy, zużywa benzynę
+	var h0_29: Dictionary = main.town.houses[0]
+	var r0_29: Rect2 = h0_29["rect"]
+	var gen_29 = main.world_items.spawn(ItemScript.new("generator", 1), Transform3D(Basis(), Vector3(r0_29.get_center().x, 0.3, r0_29.position.y - 1.5)))
+	await _wait(tree, 20)
+	var can_29 = _hand(main, "kanister")
+	can_29.liquid = {"type": "benzyna", "amount": 3.0}
+	main.use_object(gen_29)
+	if absf(float(gen_29.get_meta("item").props.get("fuel", 0.0)) - 3.0) > 0.01 or not can_29.liquid.is_empty():
+		errors.append("29c: benzyna z kanistra nie trafiła do generatora")
+	inv.slots.erase("w_reku")
+	main.use_object(gen_29)
+	if not bool(gen_29.get_meta("item").props.get("on", false)):
+		errors.append("29c: generator się nie włączył")
+	if not ut_29.powered(0) or ut_29.powered(5):
+		errors.append("29c: generator nie zasila swojego domu (albo zasila cudzy)")
+	ut_29._apply_lights()
+	if not ut_29.house_lights[0]["lights"][0].visible:
+		errors.append("29c: lampa nie świeci na generatorze")
+	var fuel0_29: float = float(gen_29.get_meta("item").props["fuel"])
+	var gn0_29: int = main.noise.count_label("NOISE_GENERATOR")
+	for k in 12:
+		dv_29._process(main.clock.real_seconds_for(10.0))
+	if float(gen_29.get_meta("item").props["fuel"]) >= fuel0_29:
+		errors.append("29c: generator nie zużywa paliwa")
+	if main.noise.count_label("NOISE_GENERATOR") <= gn0_29 and main.noise.last().get("label", "") != "NOISE_GENERATOR":
+		errors.append("29c: generator nie hałasuje")
+	main.use_object(gen_29)
+	if ut_29.powered(0):
+		errors.append("29c: wyłączony generator dalej zasila")
+	main.world_items.remove(gen_29)
+	# 29d. woda: pełny strumień, słabe ciśnienie, resztka w rurach, sucho
+	main.clock.minutes = (ut_29.water_off_day - 3.0) * 1440.0
+	if absf(ut_29.take_water(0, 2.0) - 2.0) > 0.01:
+		errors.append("29d: kran przy sieci nie daje pełnej wody")
+	main.clock.minutes = (ut_29.water_off_day - 1.5) * 1440.0
+	if absf(ut_29.take_water(0, 2.0) - 1.0) > 0.01:
+		errors.append("29d: słabe ciśnienie nie daje połowy")
+	main.clock.minutes = (ut_29.water_off_day - 0.5) * 1440.0 + 60.0
+	ut_29.residual.erase("0")
+	var got1_29: float = ut_29.take_water(0, 3.0)
+	var got2_29: float = ut_29.take_water(0, 3.0)
+	var got3_29: float = ut_29.take_water(0, 3.0)
+	if absf(got1_29 - 3.0) > 0.01 or absf(got2_29 - 1.0) > 0.01 or got3_29 > 0.001:
+		errors.append("29d: resztka w rurach: %.1f, %.1f, %.1f" % [got1_29, got2_29, got3_29])
+	var pot29 = _hand(main, "garnek")
+	main.use_sink()
+	if not pot29.liquid.is_empty() and float(pot29.liquid.get("amount", 0.0)) > float(ut_29.RESIDUAL_WATER) + 0.01:
+		errors.append("29d: z suchego kranu nalało się za dużo")
+	inv.slots.erase("w_reku")
+	# 29e. lodówka z prądem spowalnia psucie, bez prądu nie
+	main.clock.minutes = (ut_29.power_off_day - 3.0) * 1440.0
+	var fridge_id_29 := ""
+	for spot in main.town.loot_spots:
+		if spot[1] == "lodowka" and str(spot[0]).begins_with("dom0_"):
+			fridge_id_29 = spot[0]
+	if fridge_id_29 == "":
+		errors.append("29e: dom 0 nie ma lodówki")
+	else:
+		var milk_29 = ItemScript.new("marchew", 1)
+		milk_29.props["made"] = 0.0
+		inv.place_now(milk_29, inv.containers[fridge_id_29]["grids"][0])
+		ut_29._fridges(24.0)
+		if absf(float(milk_29.props["made"]) - ut_29.FRIDGE_SLOW) > 0.01:
+			errors.append("29e: lodówka nie spowalnia psucia (%.2f)" % float(milk_29.props["made"]))
+		main.clock.minutes = (ut_29.power_off_day - 0.5) * 1440.0 + 60.0
+		var m0_29: float = float(milk_29.props["made"])
+		ut_29._fridges(24.0)
+		if absf(float(milk_29.props["made"]) - m0_29) > 0.001:
+			errors.append("29e: lodówka bez prądu chłodzi")
+		inv.containers[fridge_id_29]["grids"][0].remove(milk_29)
+	# 29f. alarm: wybita szyba przy prądzie włącza syrenę (raz)
+	main.clock.minutes = (ut_29.power_off_day - 3.0) * 1440.0
+	ut_29.add_alarm(0)
+	var al0_29: int = main.noise.count_label("NOISE_ALARM")
+	ut_29.on_break_in("dom0_1")
+	ut_29._process(1.6)
+	if float(ut_29.alarms[0]["siren"]) <= 0.0 or bool(ut_29.alarms[0]["armed"]):
+		errors.append("29f: alarm się nie włączył")
+	if main.noise.count_label("NOISE_ALARM") <= al0_29 and main.noise.last().get("label", "") != "NOISE_ALARM":
+		errors.append("29f: syrena nie hałasuje")
+	ut_29.alarms[0]["siren"] = 0.0
+	ut_29._siren.stop()
+	# 29g. radio_29: komunikaty pierwszych dni, potem szum; baterie się zużywają
+	var radio_29 = main.world_items.spawn(ItemScript.new("radio", 1), Transform3D(Basis(), Vector3(-1.5, 0.1, 0.5)))
+	await _wait(tree, 10)
+	main.use_object(radio_29)
+	if not bool(radio_29.get_meta("item").props.get("on", false)):
+		errors.append("29g: radio się nie włączyło")
+	if dv_29.broadcast_lines(1, false).is_empty() or not dv_29.broadcast_lines(20, false).is_empty() or not dv_29.broadcast_lines(20, true).is_empty():
+		errors.append("29g: komunikaty radia zależne od dnia")
+	dv_29._process(main.clock.real_seconds_for(60.0))
+	if float(radio_29.get_meta("item").props.get("battery", 12.0)) >= 12.0:
+		errors.append("29g: radio nie zużywa baterii")
+	main.use_object(radio_29)
+	main.world_items.remove(radio_29)
+	# 29h. budzik: nastawiony dzwoni i hałasuje (wabik)
+	var clock_it_29 = main.world_items.spawn(ItemScript.new("budzik", 1), Transform3D(Basis(), Vector3(-1.5, 0.1, 0.8)))
+	await _wait(tree, 10)
+	main.use_object(clock_it_29)
+	if int(clock_it_29.get_meta("item").props.get("set", 0)) != 5:
+		errors.append("29h: budzik nie nastawił się na 5 minut")
+	main.clock.minutes += 6.0
+	var ac0_29: int = main.noise.count_label("NOISE_ALARM_CLOCK")
+	dv_29._process(0.1)
+	dv_29._process(1.1)
+	if main.noise.count_label("NOISE_ALARM_CLOCK") <= ac0_29 and main.noise.last().get("label", "") != "NOISE_ALARM_CLOCK":
+		errors.append("29h: budzik nie zadzwonił")
+	main.world_items.remove(clock_it_29)
+	# 29i. czujnik ruchu: zombie obok, czujnik piszczy
+	var sensor_29 = main.world_items.spawn(ItemScript.new("czujnik_ruchu", 1), Transform3D(Basis(), Vector3(2.0, 0.1, 6.0)))
+	await _wait(tree, 10)
+	main.use_object(sensor_29)
+	var sz_29 = main.zombies.spawn(Vector3(3.5, 0.0, 6.5))
+	sz_29.set_physics_process(false)
+	dv_29._sensor(sensor_29, sensor_29.get_meta("item"))
+	if float(sensor_29.get_meta("item").props.get("beep_t", -99.0)) < 0.0:
+		errors.append("29i: czujnik nie wykrył zombie")
+	main.world_items.remove(sensor_29)
+	main.zombies.clear_all()
+	# 29j. telewizor na prąd z komunikatem
+	if dv_29.tvs.is_empty():
+		errors.append("29j: w domach nie ma telewizorów")
+	else:
+		main.clock.minutes = 1.5 * 1440.0
+		var tv0_29: Dictionary = dv_29.tvs[0]
+		tv0_29["on"] = false
+		dv_29.use_tv(0)
+		dv_29._update_tvs(main.clock.day())
+		if not tv0_29["label"].visible or tv0_29["label"].text == "":
+			errors.append("29j: telewizor nie pokazuje komunikatu")
+		tv0_29["on"] = false
+		dv_29._update_tvs(main.clock.day())
+	# 29k. zapis sieci
+	var usave_29: Dictionary = JSON.parse_string(JSON.stringify(ut_29.to_dict()))
+	var pd_29: int = ut_29.power_off_day
+	ut_29.power_off_day = 99
+	ut_29.from_dict(usave_29)
+	if ut_29.power_off_day != pd_29 or not bool(ut_29.house_lights[0]["on"]):
+		errors.append("29k: zapis sieci nie wraca")
+	ut_29.house_lights[0]["on"] = false
+	main.clock.minutes = keep_min_29
+	ut_29._apply_lights()
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position
@@ -2460,7 +2680,57 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	await _build11_shots(main, dir)
 	await _build12_shots(main, dir)
 	await _build13_shots(main, dir)
+	await _build14_shots(main, dir)
 	tree.quit(0)
+
+
+## Kadry buildu 14: dom oświetlony z generatora nocą po awarii sieci, telewizor
+## z komunikatem, radio w domu startowym.
+static func _build14_shots(main: Node, dir: String) -> void:
+	var tree := main.get_tree()
+	var ut = main.utilities
+	var dv = main.devices
+	var tn = main.town
+	main.zombies.clear_all()
+	main.weather.set_kind("pogodnie", true)
+	# telewizor z komunikatem (dzień 2, sieć działa)
+	main.clock.minutes = 1.0 * 1440.0 + 20.0 * 60.0
+	main.clock.advance(0.0)
+	for k in dv.tvs.size():
+		var tv: Dictionary = dv.tvs[k]
+		tv["on"] = true
+		ut.house_lights[int(tv["house"])]["on"] = true
+		ut._apply_lights()
+		dv._update_tvs(main.clock.day())
+		var body: Node3D = tv["body"]
+		var lbl: Node3D = tv["label"]
+		var outward: Vector3 = (lbl.global_position - body.global_position).normalized()
+		_place(main, body.global_position + outward * 2.2 + Vector3(0.0, -0.55, 0.0), 0.0, 0.0)
+		_aim(main, lbl.global_position)
+		await _shot(main, dir + "/telewizor.png", 20)
+		tv["on"] = false
+		ut.house_lights[int(tv["house"])]["on"] = false
+		break
+	# noc po awarii: ciemne osiedle, jeden dom świeci z generatora, który warczy za domem
+	main.clock.minutes = (ut.power_off_day + 0.0) * 1440.0 + 21.5 * 60.0
+	main.clock.advance(0.0)
+	var h: Dictionary = tn.houses[3]
+	var r: Rect2 = h["rect"]
+	var back_out: float = r.position.y - 1.3 if absf(float(h["front_z"]) - r.end.y) < 0.05 else r.end.y + 1.3
+	var gen = main.world_items.spawn(ItemScript.new("generator", 1), Transform3D(Basis(), Vector3(r.get_center().x, 0.3, back_out)))
+	gen.get_meta("item").props["fuel"] = 6.0
+	gen.get_meta("item").props["on"] = true
+	for k in ut.house_lights:
+		ut.house_lights[k]["on"] = true  # włączone wszędzie, świeci tylko dom z generatorem
+	ut._apply_lights()
+	await _wait(tree, 20)
+	_place(main, Vector3(r.get_center().x + 9.0, 0.02, float(h["front_z"]) + (9.0 if absf(float(h["front_z"]) - r.end.y) < 0.05 else -9.0)), 0.0, 0.0)
+	_aim(main, Vector3(r.get_center().x, 1.5, r.get_center().y))
+	await _shot(main, dir + "/generator_noc.png", 25)
+	for k in ut.house_lights:
+		ut.house_lights[k]["on"] = false
+	main.world_items.remove(gen)
+	ut._apply_lights()
 
 
 ## Kadry buildu 13: osiedle z góry, ulica z tabliczkami, piętro, piwnica,
