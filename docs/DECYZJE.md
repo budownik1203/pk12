@@ -251,3 +251,10 @@
 - **Elektronika:** budzik (wabik, nastawiany na 5, 15, 30 albo 60 minut gry, potem dzwoni głośno przez 20 s) i czujnik ruchu (bateria na 72 h, piszczy, gdy zombie przejdzie w promieniu 6 m, i daje znać graczowi w promieniu 40 m).
 - Zapis w wersji 11: dni awarii, resztki wody, włączniki, alarmy, telewizory. Stan generatorów, radia i budzików zapisuje się w przedmiotach.
 - Testy 29a–k.
+
+### Sterowanie: tryb walki domyślny, kółko opcji pod F (16.11.2026)
+
+- Zgodnie z prośbą: znika przełączanie trybu walki kliknięciem kółka myszy. Gra zaczyna w trybie walki (LPM cios lub strzał, PPM garda lub przyrządy celownicze).
+- Przytrzymanie F (0,3 s) otwiera kółko opcji (`scripts/ui/radial_menu.gd`), jak w Project Zomboid. Są w nim funkcje tego, na co patrzysz (urządzenia: włącz, wyłącz, budzik na 5/15/30/60 minut, dolanie benzyny; kuchenka; rozpalenie ogniska; podniesienie; otwarcie pojemnika; kran; sen; włącznik) i opcje stałe: tryb narzędziowy / walki, latarka, chwyt oburącz, chwytanie. Wybór ruchem myszy w stronę opcji, puszczenie F albo LPM wykonuje, PPM albo Esc anuluje. Krótkie F działa jak dotąd.
+- Tryb narzędziowy przywraca dawny podział: LPM i PPM to lewa i prawa dłoń (praca narzędziem, znaczniki punktów pracy). W trybie walki znaczników pracy nie ma.
+- Nowe opcje dla kolejnych urządzeń dopisuje się w jednym miejscu: `radial_options` w `devices.gd` albo w `main.gd`.

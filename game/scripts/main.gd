@@ -30,6 +30,8 @@ const SawScript := preload("res://scripts/craft/saw.gd")
 const RecorderScript := preload("res://scripts/recorder.gd")
 const GunsScript := preload("res://scripts/combat/guns.gd")
 const MapViewScript := preload("res://scripts/ui/map_view.gd")
+const RadialScript := preload("res://scripts/ui/radial_menu.gd")
+const ItemDB := preload("res://scripts/inventory/item_db.gd")
 const StreamingScript := preload("res://scripts/world/streaming.gd")
 const UtilitiesScript := preload("res://scripts/world/utilities.gd")
 const DevicesScript := preload("res://scripts/world/devices.gd")
@@ -76,7 +78,12 @@ var sink: StaticBody3D
 var zombies: ZombiesScript
 var weather: WeatherScript
 var heat: HeatScript
-var creating_character := false  # ekran tworzenia postaci: kursor wolny
+var creating_character := false
+var tool_mode := false        # domyślnie tryb walki; narzędziowy z kółka pod F
+var radial                    # kółko opcji pod przytrzymanym F
+var _f_down := false
+var _f_time := 0.0
+const RADIAL_HOLD := 0.3  # ekran tworzenia postaci: kursor wolny
 var saw: SawScript
 var recorder: RecorderScript
 var guns: GunsScript
@@ -254,6 +261,7 @@ func _ready() -> void:
 		if a == "--test" or a.begins_with("--zrzuty"):
 			dev_run = true
 	if not dev_run:
+		combat.set_active(true)  # gra zaczyna w trybie walki; narzędziowy z kółka pod F
 		_show_char_create()  # zombie pojawią się po rozpoczęciu (mapa nawigacji stoi w pauzie)
 	else:
 		streaming.enabled = false  # testy przenoszą gracza po całym świecie; doczytywanie ma własny test
@@ -262,6 +270,10 @@ func _ready() -> void:
 		character.levels["majsterkowanie"] = 3
 		character.levels["pierwsza_pomoc"] = 3
 	player.health = health
+
+	radial = RadialScript.new()
+	radial.name = "KolkoF"
+	hud.add_child(radial)
 
 	map_view = MapViewScript.new()
 	map_view.name = "MapaWRekach"
@@ -349,11 +361,98 @@ func use_object(target: Object) -> void:
 	elif target.has_meta("item") and _use_world_item(target):
 		pass
 	elif target.has_meta("item"):
-		var at: Vector3 = (target as Node3D).global_position
-		if not inventory.pick_up(target):
-			hud.show_message(tr(inventory.last_error))
+		pick_up_world(target)
+
+
+func pick_up_world(target) -> void:
+	if not is_instance_valid(target):
+		return
+	var at: Vector3 = (target as Node3D).global_position
+	if not inventory.pick_up(target):
+		hud.show_message(tr(inventory.last_error))
+	else:
+		sound.play("pickup", at, -6.0)
+
+
+func toggle_stove(body) -> void:
+	var it = body.get_meta("item")
+	var d: Dictionary = it.get_def()
+	var on := not bool(it.props.get("on", false))
+	if on and float(it.props.get("gas", float(d["appliance"].get("gas", 240.0)))) <= 0.0:
+		hud.show_message(tr("MSG_STOVE_EMPTY"))
+		return
+	it.props["on"] = on
+	heat._stove_flame(body, on)
+	sound.play("switch", body.global_position, -6.0, 0.8)
+	hud.show_message(tr("MSG_STOVE_ON" if on else "MSG_STOVE_OFF"))
+
+
+# --- tryby i kółko pod F ------------------------------------------------------------
+
+## Tryb narzędziowy: lewy i prawy przycisk to dłonie (praca narzędziem, chwyt);
+## poza nim domyślnie tryb walki (cios, garda, strzał, przyrządy).
+func set_tool_mode(on: bool) -> void:
+	tool_mode = on
+	combat.set_active(not on)
+	if on:
+		hud.show_message(tr("MSG_TOOL_MODE_ON"))
+	else:
+		work.end()
+		hud.show_message(tr("MSG_COMBAT_GUN_ON") if guns.current() != null else tr("MSG_TOOL_MODE_OFF"))
+	hud.set_mode(tr("MODE_TOOLS") if on else "")
+
+
+## Opcje kółka dla tego, na co patrzysz, plus stałe.
+func radial_options(target) -> Array:
+	var out: Array = []
+	if target != null and is_instance_valid(target):
+		if target.has_meta("item"):
+			var it = target.get_meta("item")
+			var d: Dictionary = it.get_def()
+			if d.has("device"):
+				out.append_array(devices.radial_options(target))
+			if d.has("appliance"):
+				var on := bool(it.props.get("on", false))
+				out.append({"label": tr("RAD_TURN_OFF") if on else tr("RAD_TURN_ON"), "do": toggle_stove.bind(target), "on": on})
+			if d.has("fuel") and heat.has_lighter() != null:
+				out.append({"label": tr("RAD_LIGHT_FIRE"), "do": func(): heat.try_ignite(target)})
+			out.append({"label": tr("RAD_PICK_UP"), "do": pick_up_world.bind(target)})
+		elif target.has_meta("fire"):
+			out.append({"label": tr("RAD_ADD_FUEL"), "do": _feed_fire.bind(target.get_meta("fire"))})
+		elif target.has_meta("container_id"):
+			out.append({"label": tr("RAD_OPEN"), "do": open_inventory.bind(str(target.get_meta("container_id")))})
+		elif target.has_meta("sink"):
+			out.append({"label": tr("RAD_TAP"), "do": use_sink.bind(target)})
+		elif target.has_meta("bed"):
+			out.append({"label": tr("RAD_SLEEP"), "do": needs.try_sleep.bind(float(target.get_meta("bed")))})
+		elif target.has_meta("house_switch") or target.has_meta("switch_id") or target.has_meta("tv"):
+			out.append({"label": tr("RAD_SWITCH"), "do": use_object.bind(target)})
 		else:
-			sound.play("pickup", at, -6.0)
+			out.append({"label": tr("RAD_USE"), "do": use_object.bind(target)})
+	out.append({"label": tr("RAD_COMBAT_MODE") if tool_mode else tr("RAD_TOOL_MODE"), "do": set_tool_mode.bind(not tool_mode), "on": tool_mode})
+	out.append({"label": tr("RAD_FLASHLIGHT"), "do": player.toggle_flashlight, "on": player.lamp.visible})
+	var rh = inventory.hand("r")
+	if inventory.hands_two() or (rh != null and inventory.can_two_hand(rh)):
+		out.append({"label": tr("RAD_TWO_HANDS"), "do": func():
+			if not inventory.toggle_two_hands():
+				hud.show_message(tr(inventory.last_error)), "on": inventory.hands_two()})
+	out.append({"label": tr("RAD_GRAB_MODE"), "do": _toggle_grab, "on": interaction.grab_mode})
+	return out
+
+
+func _toggle_grab() -> void:
+	work.end()
+	interaction.toggle_grab_mode()
+	# chwytanie zajmuje przyciski myszy: walka wraca po wyjściu z chwytania
+	combat.set_active(not interaction.grab_mode and not tool_mode)
+
+
+func _open_radial() -> void:
+	var target = interaction.focus if interaction.held == null else null
+	var head := ""
+	if target != null and is_instance_valid(target) and target.has_meta("item"):
+		head = ItemDB.short_name_of(target.get_meta("item").def_id)
+	radial.open(radial_options(target), head)
 
 
 ## F na przedmiocie w świecie, zanim zostanie podniesiony: kuchenka (włącz,
@@ -362,14 +461,7 @@ func _use_world_item(body) -> bool:
 	var it = body.get_meta("item")
 	var d: Dictionary = it.get_def()
 	if d.has("appliance") and not Input.is_key_pressed(KEY_SHIFT):
-		var on := not bool(it.props.get("on", false))
-		if on and float(it.props.get("gas", float(d["appliance"].get("gas", 240.0)))) <= 0.0:
-			hud.show_message(tr("MSG_STOVE_EMPTY"))
-			return true
-		it.props["on"] = on
-		heat._stove_flame(body, on)
-		sound.play("switch", body.global_position, -6.0, 0.8)
-		hud.show_message(tr("MSG_STOVE_ON" if on else "MSG_STOVE_OFF"))
+		toggle_stove(body)
 		return true
 	if d.has("fuel") and heat.has_lighter() != null:
 		return heat.try_ignite(body)
@@ -600,8 +692,7 @@ func _on_died() -> void:
 	player.controls_locked = true
 	interaction.release()
 	work.end()
-	if combat.active:
-		combat.toggle()
+	radial.close()
 	if inv_ui.is_open():
 		close_inventory()
 	hud.show_death(true)
@@ -661,6 +752,30 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return  # resztę obsługuje okno ekwipunku; ruch postaci działa dalej
 	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if radial.is_open():
+		# kółko pod F: mysz wybiera, LPM wykonuje, PPM anuluje
+		if event is InputEventMouseMotion:
+			radial.aim(event.relative)
+		elif event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				radial.confirm()
+			elif event.button_index == MOUSE_BUTTON_RIGHT:
+				radial.close()
+			_f_down = false
+		elif event is InputEventKey and event.is_action("interact") and not event.pressed:
+			radial.confirm()
+			_f_down = false
+		elif event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
+			radial.close()
+			_f_down = false
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.is_action("interact") and not event.pressed:
+		# krótkie F: zwykła czynność (przytrzymane otwiera kółko w _process)
+		if _f_down and _f_time < RADIAL_HOLD:
+			interaction.use()
+		_f_down = false
+		return
 	if event is InputEventMouseMotion:
 		if captured:
 			if work.is_locked():
@@ -668,10 +783,6 @@ func _input(event: InputEvent) -> void:
 			else:
 				player.look(event.relative)
 	elif event is InputEventMouseButton:
-		if captured and event.button_index == MOUSE_BUTTON_MIDDLE:
-			if event.pressed:
-				combat.toggle()  # kółko: tryb walki
-			return
 		if combat.active and captured:
 			if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
 				if event.pressed:
@@ -713,17 +824,15 @@ func _input(event: InputEvent) -> void:
 				interaction.adjust_distance(-0.08)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.is_action("grab"):
-			work.end()
-			if combat.active:
-				combat.toggle()
-			interaction.toggle_grab_mode()
+			_toggle_grab()
 		elif event.physical_keycode == KEY_R and guns.current() != null:
 			guns.reload()  # broń w prawej ręce: przeładowanie albo usunięcie zacięcia
 		elif event.physical_keycode == KEY_Z:
 			if not inventory.toggle_two_hands():
 				hud.show_message(tr(inventory.last_error))
 		elif event.is_action("interact"):
-			interaction.use()
+			_f_down = true  # puszczone szybko: czynność; przytrzymane: kółko opcji
+			_f_time = 0.0
 		elif event.is_action("flashlight"):
 			player.toggle_flashlight()
 		elif event.is_action("drop_hand"):
@@ -812,6 +921,13 @@ func _dev_key(key: int) -> void:
 
 
 func _process(_delta: float) -> void:
+	if _f_down and not radial.is_open():
+		_f_time += _delta
+		if _f_time >= RADIAL_HOLD:
+			if Input.is_action_pressed("interact") and not inv_ui.is_open() and not health.dead:
+				_open_radial()
+			else:
+				_f_down = false
 	player.load_factor = inventory.speed_factor()
 	player.load_stamina = inventory.stamina_factor()
 	player.hand_items = {"l": inventory.hand("l"), "r": inventory.hand("r"), "two": inventory.hands_two()}

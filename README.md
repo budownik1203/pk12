@@ -15,7 +15,8 @@ Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do
 | --- | --- |
 | WASD, Shift, Ctrl, Q/E, Spacja | ruch, sprint, kucanie, wychylanie, skok i wspinanie |
 | T | tryb chwytania: lewy przycisk przytrzymany chwyta rzecz pod kursorem (też drzwi za klamkę), puszczony puszcza, prawy rzuca, kółko odsuwa; T ponownie wyłącza |
-| kółko (kliknięcie) | tryb walki: LPM cios, PPM przytrzymany garda, PPM + LPM odepchnięcie; ponowne kliknięcie wyłącza |
+| (domyślnie) | tryb walki: LPM cios, PPM przytrzymany garda, PPM + LPM odepchnięcie; z bronią palną LPM strzał, PPM przyrządy |
+| F przytrzymane | kółko opcji: tryb narzędziowy / walki, funkcje urządzenia, na które patrzysz (włącz, wyłącz, nastaw budzik, dolej benzyny, podnieś...), latarka, chwyt oburącz, chwytanie; wybór ruchem myszy, puszczenie F wykonuje, PPM anuluje |
 | Z | chwyt oburącz przedmiotu z prawej ręki (łom) i z powrotem; okienko „Oburącz” w ekwipunku |
 | H | okno zdrowia (razem z ekwipunkiem): przeciągnij bandaż, plaster, szmatę, spirytus, igłę, szynę albo tabletki na część ciała; PPM na części zdejmuje opatrunek lub szynę |
 | F8 / Shift+F8 | (dev) losowa rana / wyleczenie |
@@ -47,7 +48,7 @@ Praca narzędziem:
 - **Piła** (piłowanie 3): celuj w środek deski leżącej w świecie, prawy przycisk i ruchy myszy w dół. Deska rozpada się na dwie deszczułki (opał albo szyna).
 - **Nóż, nożyczki** (cięcie): warzywo albo ubranie w lewej ręce, prawy przycisk i ruchy w dół. Warzywa kroją się do zupy, ubrania tną się na szmaty (zawartość kieszeni wraca do ekwipunku).
 
-Broń palna (tryb walki, klik kółkiem): LPM strzał, PPM przytrzymany przyrządy celownicze (przybliżenie, mniejszy rozrzut), R przeładowanie. Magazynki ładuje się w ekwipunku: przeciągnij naboje na magazynek (albo na strzelbę), PPM na magazynku lub broni rozładowuje. Każdy strzał brudzi broń, a brud, zużycie i brak smaru grożą zacięciem. Czyszczenie: broń w lewej ręce, w prawej szmata (z grubsza), WD-40 (czyści i smaruje na 60 strzałów) albo wycior (do zera), PPM i ruchy w dół. Strzał słychać z daleka.
+Broń palna (tryb walki, domyślny): LPM strzał, PPM przytrzymany przyrządy celownicze (przybliżenie, mniejszy rozrzut), R przeładowanie. Magazynki ładuje się w ekwipunku: przeciągnij naboje na magazynek (albo na strzelbę), PPM na magazynku lub broni rozładowuje. Każdy strzał brudzi broń, a brud, zużycie i brak smaru grożą zacięciem. Czyszczenie: broń w lewej ręce, w prawej szmata (z grubsza), WD-40 (czyści i smaruje na 60 strzałów) albo wycior (do zera), PPM i ruchy w dół. Strzał słychać z daleka.
 
 Osiedle: 16 domów przy ulicach Lipowej, Polnej i Krótkiej, każdy z adresem i tabliczką z nazwiskiem. Część domów ma piętro (schody przy ścianie), część piwnicę z regałem zapasów. Mieszkańcy mają zawody, od których zależy, co jest w domu (u policjanta broń, u mechanika narzędzia, u kucharza garnki). Ci, którzy zmienili się w zombie, noszą przy sobie klucz do domu i swoje rzeczy, a ich zwłoki da się przeszukać (F). Domy, z których uciekli, bywają zamknięte na klucz, a zapasowy leży czasem pod wycieraczką (F na wycieraczce). Łupy losują się raz i nic się nie odnawia. Mapy osiedla i kompasu nie ma na start: trzeba je znaleźć. Trzymane w ręce pokazują plan ulic i kierunek, a mapa z kompasem w drugiej ręce obraca się zgodnie z kierunkiem patrzenia.
 

@@ -2233,6 +2233,36 @@ static func run_tests(main: Node) -> void:
 	main.clock.minutes = keep_min_29
 	ut_29._apply_lights()
 
+	# 30. kółko pod F: opcje urządzenia (budzik na 15 minut) i przełączanie trybu
+	var bud30 = main.world_items.spawn(ItemScript.new("budzik", 1), Transform3D(Basis(), Vector3(-1.5, 0.1, 0.8)))
+	await _wait(tree, 10)
+	var opts30: Array = main.radial_options(bud30)
+	var pick30 := -1
+	for k in opts30.size():
+		if str(opts30[k]["label"]) == main.tr("RAD_ALARM_MIN") % 15:
+			pick30 = k
+	if pick30 < 0:
+		errors.append("30: w kółku budzika nie ma opcji 15 minut")
+	else:
+		main.radial.open(opts30)
+		main.radial.aim(Vector2.from_angle(-PI / 2.0 + pick30 * TAU / opts30.size()) * 90.0)
+		main.radial.confirm()
+		if int(bud30.get_meta("item").props.get("set", 0)) != 15:
+			errors.append("30: wybór z kółka nie nastawił budzika")
+	var has_pick := false
+	for o in opts30:
+		if str(o["label"]) == main.tr("RAD_PICK_UP"):
+			has_pick = true
+	if not has_pick:
+		errors.append("30: w kółku brakuje podnoszenia")
+	main.world_items.remove(bud30)
+	var was_tool: bool = main.tool_mode
+	main.set_tool_mode(not was_tool)
+	if main.combat.active == main.tool_mode:
+		errors.append("30: tryb narzędziowy i walki się nie wykluczają")
+	main.set_tool_mode(was_tool)
+	main.combat.set_active(false)  # dalsze próby w trybie narzędziowym (jak cały zestaw testów)
+
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
 		var bp: Vector3 = b.global_position

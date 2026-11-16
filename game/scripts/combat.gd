@@ -62,8 +62,21 @@ func toggle() -> void:
 		main.interaction.release()
 	var gun_on: bool = active and main.guns != null and main.guns.current() != null
 	main.hud.show_message(tr("MSG_COMBAT_GUN_ON" if gun_on else ("MSG_COMBAT_ON" if active else "MSG_COMBAT_OFF")))
-	main.hud.set_mode(tr("MODE_COMBAT") if active else "")
+	main.hud.set_mode("" if active else tr("MODE_TOOLS"))
 	main.sound.play("pickup", main.player.camera.global_position, -10.0, 0.8)
+
+
+## Ustawia tryb walki bez komunikatu (domyślny tryb gry; kółko pod F przełącza).
+func set_active(on: bool) -> void:
+	if on == active:
+		return
+	active = on
+	blocking = false
+	state = "idle"
+	_switch = SWITCH_TIME
+	if active:
+		main.work.end()
+		main.interaction.release()
 
 
 func is_ready() -> bool:

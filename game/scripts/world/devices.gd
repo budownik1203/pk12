@@ -46,7 +46,7 @@ func _devices() -> Array:
 
 # --- obsługa F -------------------------------------------------------------------
 
-## F na urządzeniu leżącym w świecie. Zwraca, czy obsłużone.
+## F na urządzeniu leżącym w świecie (domyślna czynność). Zwraca, czy obsłużone.
 func use(body) -> bool:
 	var it = body.get_meta("item")
 	var kind := kind_of(it)
@@ -54,53 +54,94 @@ func use(body) -> bool:
 		return false
 	match kind:
 		"generator":
-			_use_generator(body, it)
+			if not generator_fuel(body):
+				toggle(body)
 		"radio", "sensor":
-			if not bool(it.props.get("on", false)) and float(it.props.get("battery", it.get_def()["device"].get("battery", 10.0))) <= 0.0:
-				main.hud.show_message(tr("MSG_BATTERY_DEAD"))
-				return true
-			it.props["on"] = not bool(it.props.get("on", false))
-			main.sound.play("switch", body.global_position, -6.0)
-			main.hud.show_message(tr("MSG_DEVICE_ON" if it.props["on"] else "MSG_DEVICE_OFF") % it.display_name())
-			if kind == "radio" and it.props["on"]:
-				_radio_t = 1.0
+			toggle(body)
 		"alarm_clock":
 			var cur := int(it.props.get("set", 0))
 			var idx := ALARM_STEPS.find(cur)
-			var nxt: int = ALARM_STEPS[(idx + 1) % ALARM_STEPS.size()]
-			it.props["set"] = nxt
-			it.props["ring_at"] = main.clock.minutes + nxt if nxt > 0 else -1.0
-			it.props["ringing"] = 0.0
-			main.sound.play("switch", body.global_position, -8.0, 1.6)
-			main.hud.show_message(tr("MSG_ALARM_SET") % nxt if nxt > 0 else tr("MSG_ALARM_UNSET"))
-	main.inventory.changed.emit()
+			set_alarm(body, ALARM_STEPS[(idx + 1) % ALARM_STEPS.size()])
 	return true
 
 
-func _use_generator(body, it) -> void:
-	# kanister z benzyną w ręce: dolewanie
+## Opcje urządzenia do kółka pod F: [etykieta, Callable, stan włączenia].
+func radial_options(body) -> Array:
+	var it = body.get_meta("item")
+	var out: Array = []
+	var on := bool(it.props.get("on", false))
+	match kind_of(it):
+		"generator":
+			out.append({"label": tr("RAD_TURN_OFF") if on else tr("RAD_TURN_ON"), "do": toggle.bind(body), "on": on})
+			if _held_petrol() != null:
+				out.append({"label": tr("RAD_FUEL"), "do": generator_fuel.bind(body)})
+		"radio", "sensor":
+			out.append({"label": tr("RAD_TURN_OFF") if on else tr("RAD_TURN_ON"), "do": toggle.bind(body), "on": on})
+		"alarm_clock":
+			for m in ALARM_STEPS:
+				var lbl: String = tr("RAD_ALARM_OFF") if m == 0 else tr("RAD_ALARM_MIN") % m
+				out.append({"label": lbl, "do": set_alarm.bind(body, m), "on": int(it.props.get("set", 0)) == m and m > 0})
+	return out
+
+
+## Włącz / wyłącz (generator, radio, czujnik).
+func toggle(body) -> void:
+	var it = body.get_meta("item")
+	var kind := kind_of(it)
+	var on := bool(it.props.get("on", false))
+	if not on:
+		if kind == "generator" and float(it.props.get("fuel", 0.0)) <= 0.0:
+			main.hud.show_message(tr("MSG_NO_FUEL"))
+			return
+		if kind != "generator" and float(it.props.get("battery", it.get_def()["device"].get("battery", 10.0))) <= 0.0:
+			main.hud.show_message(tr("MSG_BATTERY_DEAD"))
+			return
+	it.props["on"] = not on
+	main.sound.play("crank" if kind == "generator" and not on else "switch", body.global_position, -4.0)
+	main.hud.show_message(tr("MSG_DEVICE_ON" if it.props["on"] else "MSG_DEVICE_OFF") % it.display_name())
+	if kind == "radio" and it.props["on"]:
+		_radio_t = 1.0
+	main.inventory.changed.emit()
+
+
+func set_alarm(body, minutes: int) -> void:
+	var it = body.get_meta("item")
+	it.props["set"] = minutes
+	it.props["ring_at"] = main.clock.minutes + minutes if minutes > 0 else -1.0
+	it.props["ringing"] = 0.0
+	main.sound.play("switch", body.global_position, -8.0, 1.6)
+	main.hud.show_message(tr("MSG_ALARM_SET") % minutes if minutes > 0 else tr("MSG_ALARM_UNSET"))
+	main.inventory.changed.emit()
+
+
+func _held_petrol():
 	for side in ["r", "l"]:
 		var c = main.inventory.hand(side)
 		if c != null and str(c.liquid.get("type", "")) == "benzyna" and float(c.liquid.get("amount", 0.0)) > 0.01:
-			var cap := float(it.get_def()["device"].get("tank", 10.0))
-			var fuel := float(it.props.get("fuel", 0.0))
-			var pour := minf(cap - fuel, float(c.liquid["amount"]))
-			if pour <= 0.01:
-				main.hud.show_message(tr("MSG_TANK_FULL"))
-				return
-			it.props["fuel"] = fuel + pour
-			c.liquid["amount"] = float(c.liquid["amount"]) - pour
-			if float(c.liquid["amount"]) <= 0.01:
-				c.liquid = {}
-			main.sound.play("water", body.global_position, -8.0, 0.7)
-			main.hud.show_message(tr("MSG_FUELED") % pour)
-			return
-	if not bool(it.props.get("on", false)) and float(it.props.get("fuel", 0.0)) <= 0.0:
-		main.hud.show_message(tr("MSG_NO_FUEL"))
-		return
-	it.props["on"] = not bool(it.props.get("on", false))
-	main.sound.play("crank", body.global_position, 0.0)
-	main.hud.show_message(tr("MSG_DEVICE_ON" if it.props["on"] else "MSG_DEVICE_OFF") % it.display_name())
+			return c
+	return null
+
+
+## Dolewa benzynę z kanistra w ręce. Zwraca, czy był kanister.
+func generator_fuel(body) -> bool:
+	var it = body.get_meta("item")
+	var c = _held_petrol()
+	if c == null:
+		return false
+	var cap := float(it.get_def()["device"].get("tank", 10.0))
+	var fuel := float(it.props.get("fuel", 0.0))
+	var pour := minf(cap - fuel, float(c.liquid["amount"]))
+	if pour <= 0.01:
+		main.hud.show_message(tr("MSG_TANK_FULL"))
+		return true
+	it.props["fuel"] = fuel + pour
+	c.liquid["amount"] = float(c.liquid["amount"]) - pour
+	if float(c.liquid["amount"]) <= 0.01:
+		c.liquid = {}
+	main.sound.play("water", body.global_position, -8.0, 0.7)
+	main.hud.show_message(tr("MSG_FUELED") % pour)
+	main.inventory.changed.emit()
+	return true
 
 
 ## Telewizor: mebel w salonie (town.gd go stawia).

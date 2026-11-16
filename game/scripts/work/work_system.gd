@@ -193,6 +193,8 @@ func _physics_process(delta: float) -> void:
 
 ## Punkt pracy najbliżej linii wzroku (ten, w który celujesz), niezasłonięty.
 func find_candidate():
+	if main.combat != null and main.combat.active:
+		return null  # w trybie walki nie ma pracy narzędziem (ani znaczników)
 	var cam: Camera3D = main.player.camera
 	var o := cam.global_position
 	var dir := -cam.global_transform.basis.z

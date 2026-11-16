@@ -1,5 +1,5 @@
 extends Node
-## Broń palna. Działa w trybie walki (kółko myszy), gdy w prawej ręce jest broń:
+## Broń palna. Działa w trybie walki (domyślnym), gdy w prawej ręce jest broń:
 ##   lewy przycisk: strzał,
 ##   prawy przytrzymany: przyrządy celownicze (mniejszy rozrzut, przybliżenie),
 ##   R: przeładowanie (magazynek albo naboje do rury), a przy zacięciu: przeładowanie

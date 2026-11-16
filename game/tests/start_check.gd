@@ -28,6 +28,16 @@ func _key(code: Key) -> void:
 		await process_frame
 
 
+func _key_down(code: Key, pressed: bool) -> void:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.pressed = pressed
+	root.push_input(e)
+	Input.parse_input_event(e)
+	await process_frame
+
+
 func _check(ok: bool, what: String) -> void:
 	print("START: %s %s" % ["OK  " if ok else "BŁĄD", what])
 	if not ok:
@@ -39,6 +49,10 @@ func _initialize() -> void:
 	for i in 30:
 		await process_frame
 	var main = current_scene
+	if main == null or main.get("hud") == null:
+		print("START: BŁĄD scena gry się nie wczytała (błąd skryptu?)")
+		quit(1)
+		return
 	var cc = main.hud.get_node_or_null("TworzeniePostaci")
 	_check(cc != null and cc.visible, "ekran tworzenia postaci widoczny")
 	if cc == null:
@@ -60,6 +74,31 @@ func _initialize() -> void:
 	_check(Input.mouse_mode == Input.MOUSE_MODE_CAPTURED, "po „Rozpocznij” mysz steruje kamerą")
 	_check(not (is_instance_valid(cc) and cc.is_inside_tree()), "ekran postaci zamknięty")
 	_check(main.zombies.alive_count() > int(main.zombies.settings.get("start_zombies", 8)), "zombie na start (mieszkańcy i włóczędzy): %d" % main.zombies.alive_count())
+	# sterowanie: start w trybie walki, przytrzymane F otwiera kółko, wybór przełącza tryb
+	_check(main.combat.active and not main.tool_mode, "gra zaczyna w trybie walki")
+	for want in ["RAD_TOOL_MODE", "RAD_COMBAT_MODE"]:
+		await _key_down(KEY_F, true)
+		for i in 30:
+			await process_frame
+		_check(main.radial.is_open(), "przytrzymane F otwiera kółko opcji")
+		var idx := -1
+		for k in main.radial.options.size():
+			if str(main.radial.options[k]["label"]) == tr(want):
+				idx = k
+		_check(idx >= 0, "w kółku jest opcja: %s" % tr(want))
+		var n: int = main.radial.options.size()
+		var mm := InputEventMouseMotion.new()
+		mm.relative = Vector2.from_angle(-PI / 2.0 + idx * TAU / n) * 90.0
+		root.push_input(mm)
+		await process_frame
+		await _key_down(KEY_F, false)
+		for i in 5:
+			await process_frame
+		_check(not main.radial.is_open(), "puszczone F zamyka kółko")
+		if want == "RAD_TOOL_MODE":
+			_check(main.tool_mode and not main.combat.active, "wybór z kółka: tryb narzędziowy")
+		else:
+			_check(not main.tool_mode and main.combat.active, "wybór z kółka: powrót do walki")
 	# ekwipunek: Tab pokazuje kursor, drugi Tab oddaje mysz kamerze;
 	# trzymana garda nie zostaje „wciśnięta” po otwarciu okna
 	main.combat.blocking = true
