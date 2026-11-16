@@ -45,6 +45,9 @@ var _climb_to := Vector3.ZERO
 var _stuck_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _fwd := Vector3.FORWARD
+var carry: Array = []              # rzeczy przy sobie (słowniki przedmiotów); po śmierci w zwłokach
+var who := ""                       # mieszkaniec osiedla: imię, zawód, adres
+var corpse: Node3D = null
 var _door = null                    # drzwi, w które wali (door_system albo simple_door)
 
 
@@ -433,5 +436,10 @@ func _climb_step(delta: float) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"pos": [global_position.x, global_position.y, global_position.z], "hp": hp,
-			"dead": state == "dead", "fwd": [_fwd.x, _fwd.z]}
+	var d := {"pos": [global_position.x, global_position.y, global_position.z], "hp": hp,
+			"dead": state == "dead", "fwd": [_fwd.x, _fwd.z], "who": who}
+	if state == "dead":
+		d["loot"] = manager.corpse_items(self)
+	else:
+		d["carry"] = carry
+	return d

@@ -15,6 +15,8 @@ var _closed: Transform3D
 var _relatch := 0.0
 var _closing := false
 var _bang := 0.0
+var locked := false                # zamknięte na klucz (domy osiedla)
+var key_id := -1
 var _width_axis := Vector3.RIGHT   # lokalnie: od zawiasu do wolnej krawędzi
 var _half_width := 0.47
 
@@ -51,6 +53,9 @@ func door_angle() -> float:
 func try_unlatch() -> bool:
 	if not latched:
 		return true
+	if locked:
+		main.sound.play("handle", door.global_position, -4.0, 0.8)
+		return false
 	_set_latched(false)
 	_relatch = 0.8
 	main.noise.emit_noise(door.global_position, 25.0, "NOISE_HANDLE")
@@ -63,6 +68,15 @@ func handle_pull(pitch_drop: float) -> void:
 
 
 func on_use(_hit: Vector3) -> void:
+	if locked and latched:
+		if main.inventory.has_key(key_id):
+			locked = false
+			main.sound.play("screw_tight", door.global_position, -4.0, 1.6)
+			main.hud.show_message(tr("MSG_DOOR_UNLOCKED"))
+		else:
+			main.sound.play("handle", door.global_position, -4.0, 0.8)
+			main.hud.show_message(tr("MSG_DOOR_LOCKED_KEY"))
+		return
 	if latched:
 		try_unlatch()
 		_push_from(main.player.global_position, 30.0)
@@ -115,8 +129,9 @@ func zombie_bang(delta: float, from: Vector3 = Vector3.ZERO) -> void:
 	_bang += delta
 	if int(_bang * 1.5) != int((_bang - delta) * 1.5):
 		main.noise.emit_noise(door.global_position, 65.0, "NOISE_DOOR_BANG")
-	if _bang >= BANG_NEEDED:
+	if _bang >= BANG_NEEDED * (1.6 if locked else 1.0):
 		_bang = 0.0
+		locked = false  # wyważone: zamek puścił
 		_set_latched(false)
 		_relatch = 1.5
 		main.noise.emit_noise(door.global_position, 80.0, "NOISE_DOOR_BREAK")
@@ -125,12 +140,13 @@ func zombie_bang(delta: float, from: Vector3 = Vector3.ZERO) -> void:
 
 func to_dict() -> Dictionary:
 	var t := door.global_transform
-	return {"latched": latched, "o": [t.origin.x, t.origin.y, t.origin.z],
+	return {"latched": latched, "locked": locked, "o": [t.origin.x, t.origin.y, t.origin.z],
 			"q": [t.basis.get_rotation_quaternion().x, t.basis.get_rotation_quaternion().y,
 				t.basis.get_rotation_quaternion().z, t.basis.get_rotation_quaternion().w]}
 
 
 func from_dict(d: Dictionary) -> void:
+	locked = bool(d.get("locked", locked))
 	if bool(d.get("latched", true)):
 		_set_latched(true)
 		return

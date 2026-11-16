@@ -59,7 +59,7 @@ func _initialize() -> void:
 	_check(not paused, "po „Rozpocznij” świat rusza")
 	_check(Input.mouse_mode == Input.MOUSE_MODE_CAPTURED, "po „Rozpocznij” mysz steruje kamerą")
 	_check(not (is_instance_valid(cc) and cc.is_inside_tree()), "ekran postaci zamknięty")
-	_check(main.zombies.alive_count() == int(main.zombies.settings.get("start_zombies", 10)), "zombie na start: %d" % main.zombies.alive_count())
+	_check(main.zombies.alive_count() > int(main.zombies.settings.get("start_zombies", 8)), "zombie na start (mieszkańcy i włóczędzy): %d" % main.zombies.alive_count())
 	# ekwipunek: Tab pokazuje kursor, drugi Tab oddaje mysz kamerze;
 	# trzymana garda nie zostaje „wciśnięta” po otwarciu okna
 	main.combat.blocking = true

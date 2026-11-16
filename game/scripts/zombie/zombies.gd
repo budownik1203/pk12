@@ -1,4 +1,6 @@
 extends Node
+
+const ItemScript := preload("res://scripts/inventory/item.gd")
 ## Zombie w świecie: ustawienia piaskownicy (data/sandbox.json), siatka
 ## nawigacji pieczona przy starcie z brył statycznych, strefy (grunt za oknem
 ## i pokój), zasięg wzroku zależny od światła, słuch z hałasu, rany zadawane
@@ -36,6 +38,8 @@ func start_population() -> void:
 		if NavigationServer3D.map_get_iteration_id(m) > 0:
 			break
 		await get_tree().physics_frame
+	if main.town != null and main.town.has_method("spawn_residents"):
+		main.town.spawn_residents()
 	var placed := 0
 	var tries := 0
 	while placed < int(settings.get("start_zombies", 10)) and tries < 200:
@@ -53,8 +57,11 @@ func _bake_navigation() -> void:
 	var nm := NavigationMesh.new()
 	# wymiary w pełnych oczkach siatki (0,25 m), żeby wypiekanie nie zaokrąglało
 	nm.agent_radius = 0.25
-	nm.agent_height = 1.75
-	nm.agent_max_climb = 0.25
+	nm.agent_height = 1.7
+	# drobna siatka w pionie: stopnie schodów (0,2 m) i krawężniki bez zaokrągleń
+	nm.cell_height = 0.1
+	nm.agent_max_climb = 0.3
+	NavigationServer3D.map_set_cell_height(main.world.get_world_3d().navigation_map, 0.1)
 	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nm.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
 	var src := NavigationMeshSourceGeometryData3D.new()
@@ -141,12 +148,57 @@ func alive_count() -> int:
 	return n
 
 
-func on_zombie_died(_z) -> void:
+func on_zombie_died(z) -> void:
 	kills += 1
+	make_corpse(z, z.carry)
+	z.carry = []
+
+
+## Zwłoki: płaska bryła do przeszukania (F), na własnej warstwie, więc nikt się
+## o nią nie potyka. Rzeczy, które zombie miał przy sobie, leżą w jej siatce.
+func make_corpse(z, items: Array) -> void:
+	var id := "zwloki_%d" % z.zid
+	var body := StaticBody3D.new()
+	body.name = "Zwloki%d" % z.zid
+	body.collision_layer = 1 << 9
+	body.collision_mask = 0
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.6, 0.3, 1.6)
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	body.add_child(col)
+	main.world.add_child(body)
+	var fwd: Vector3 = z._fwd
+	body.global_transform = Transform3D(Basis.looking_at(fwd if fwd.length() > 0.1 else Vector3.FORWARD, Vector3.UP), z.global_position + Vector3.UP * 0.15 + fwd * 0.6)
+	body.set_meta("container_id", id)
+	# nagłówek okna: kim był mieszkaniec (imię, zawód, adres), inaczej po prostu „Zwłoki”
+	main.inventory.register_container(id, [[4, 4]], body, z.who if z.who != "" else "INV_CONTAINER_zwloki")
+	var g = main.inventory.containers[id]["grids"][0]
+	for d in items:
+		var it = ItemScript.from_dict(d, ItemScript)
+		var spot: Dictionary = g.find_space(it)
+		if not spot.is_empty():
+			g.place(it, spot["pos"], spot["rot"])
+	z.corpse = body
+
+
+## Rzeczy w zwłokach (do zapisu).
+func corpse_items(z) -> Array:
+	var out: Array = []
+	var id := "zwloki_%d" % z.zid
+	if main.inventory.containers.has(id):
+		for g in main.inventory.containers[id]["grids"]:
+			for it in g.items:
+				out.append(it.to_dict())
+	return out
 
 
 func clear_all() -> void:
 	for z in zombies:
+		var id := "zwloki_%d" % z.zid
+		main.inventory.containers.erase(id)
+		if z.corpse != null and is_instance_valid(z.corpse):
+			z.corpse.queue_free()
 		z.queue_free()
 	zombies.clear()
 
@@ -203,6 +255,10 @@ func from_dict(list: Array) -> void:
 		var p: Array = d.get("pos", [0, 0, 0])
 		var z = spawn(Vector3(float(p[0]), float(p[1]), float(p[2])))
 		z.hp = float(d.get("hp", 100.0))
+		z.who = str(d.get("who", ""))
 		if bool(d.get("dead", false)):
+			z.carry = d.get("loot", [])
 			z.die(Vector3(float(d.get("fwd", [0, 1])[0]), 0, float(d.get("fwd", [0, 1])[1])))
 			kills -= 1
+		else:
+			z.carry = d.get("carry", [])

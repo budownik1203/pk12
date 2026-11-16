@@ -1414,8 +1414,8 @@ static func run_tests(main: Node) -> void:
 
 	# 24a. ulica: domy, łupy w pojemnikach, pod dachem / na dworze
 	var tw = main.town
-	if tw.buildings.size() != 5:
-		errors.append("24a: domów %d zamiast 5" % tw.buildings.size())
+	if tw.buildings.size() != 16:
+		errors.append("24a: domów %d zamiast 16" % tw.buildings.size())
 	var looted := 0
 	for spot in tw.loot_spots:
 		for g in inv.containers[spot[0]]["grids"]:
@@ -1445,6 +1445,11 @@ static func run_tests(main: Node) -> void:
 			errors.append("24a2: droga na ulicę nie prowadzi przez drzwi wyjściowe")
 	# 24b. drzwi domu: F otwiera, drugie F domyka i zaskakują; zombie je wyważa
 	var dr = tw.doors[1]
+	for cand in tw.doors.slice(1):
+		if not cand.locked:
+			dr = cand
+			break
+	dr.locked = false
 	_place(main, dr.door.global_position + dr.door.global_transform.basis.x * 1.2 - Vector3(0, dr.door.global_position.y, 0), 0.0)
 	await _wait(tree, 4)
 	dr.on_use(dr.door.global_position)
@@ -1496,9 +1501,10 @@ static func run_tests(main: Node) -> void:
 	await zm.start_population()
 	var far_ok := true
 	for z in zm.zombies:
-		if z.global_position.distance_to(player.global_position) < 13.5 or zm.zone_of(z.global_position) != "out":
+		# mieszkańcy co najmniej 8 m od gracza, włóczędzy 14 m
+		if z.global_position.distance_to(player.global_position) < 7.9 or zm.zone_of(z.global_position) != "out":
 			far_ok = false
-	if zm.zombies.size() != 10 or not far_ok:
+	if zm.zombies.size() <= int(zm.settings.get("start_zombies", 8)) or not far_ok:
 		errors.append("24e: zombie na start: %d, z dala od gracza: %s" % [zm.zombies.size(), far_ok])
 	zm.clear_all()
 	await _wait(tree, 20)
@@ -1878,6 +1884,134 @@ static func run_tests(main: Node) -> void:
 	inv.changed.emit()
 	_place(main, Vector3(-1.0, 0.02, 0.0), 0.0)
 	await _wait(tree, 20)
+
+	# 28a. osiedle: 16 domów, piętra i piwnice, do każdego miejsca da się dojść
+	var tn = main.town
+	var nm28: RID = main.world.get_world_3d().navigation_map
+	var floors2 := 0
+	var cellars := 0
+	var families := {}
+	for h in tn.houses:
+		families[h["family"]] = true
+		var segs: Array = [[h["front"], h["inside"], "wejście"]]
+		if h.has("stair_bottom"):
+			floors2 += 1
+			segs.append_array([[h["inside"], h["stair_bottom"], "do schodów"], [h["stair_bottom"], h["stair_top"], "schody"], [h["stair_top"], h["upstairs"], "wyjście na piętro"]])
+		if h.has("cellar_entry"):
+			cellars += 1
+			segs.append_array([[h["inside"], h["cellar_entry"], "do piwnicy"], [h["cellar_entry"], h["cellar_bottom"], "w dół"]])
+		for sg2 in segs:
+			var na28 := NavigationServer3D.map_get_closest_point(nm28, sg2[0])
+			var nb28 := NavigationServer3D.map_get_closest_point(nm28, sg2[1])
+			var pth: PackedVector3Array = NavigationServer3D.map_get_path(nm28, na28, nb28, true)
+			if pth.is_empty() or pth[pth.size() - 1].distance_to(nb28) > 0.3 or nb28.distance_to(sg2[1]) > 0.8:
+				errors.append("28a: %s %d: nie da się przejść (%s)" % [h["street"], h["number"], sg2[2]])
+	if tn.houses.size() != 16 or floors2 < 4 or cellars < 2:
+		errors.append("28a: domów %d, piętrowych %d, z piwnicą %d" % [tn.houses.size(), floors2, cellars])
+	if families.size() != tn.houses.size():
+		errors.append("28a: nazwiska się powtarzają (%d na %d domów)" % [families.size(), tn.houses.size()])
+	# indoors na piętrze i w piwnicy
+	for h in tn.houses:
+		if h.has("upstairs") and not tn.indoors(h["upstairs"]):
+			errors.append("28a: piętro nie liczy się jako wnętrze")
+			break
+	# 28b. mieszkańcy-zombie z kluczem do swojego domu i rzeczami z życia
+	main.zombies.clear_all()
+	var res_n28: int = tn.spawn_residents()
+	if res_n28 < 5:
+		errors.append("28b: mieszkańców-zombie tylko %d" % res_n28)
+	var key_z28 = null
+	for zz in main.zombies.zombies:
+		for d2 in zz.carry:
+			if str(d2.get("def", "")) == "klucz":
+				key_z28 = zz
+		if key_z28 != null:
+			break
+	if key_z28 == null:
+		errors.append("28b: żaden mieszkaniec-zombie nie ma klucza")
+	elif key_z28.who == "":
+		errors.append("28b: zombie-mieszkaniec bez opisu, kim był")
+	# 28c. zwłoki do przeszukania: klucz leży w zwłokach, przeżywa zapis i odczyt
+	if key_z28 != null:
+		var kid28: int = int(key_z28.carry[0]["props"]["key_id"])
+		key_z28.die(Vector3.FORWARD)
+		var cid28 := "zwloki_%d" % key_z28.zid
+		var found_key28 := false
+		if inv.containers.has(cid28):
+			for x in inv.containers[cid28]["grids"][0].items:
+				if x.def_id == "klucz" and int(x.props.get("key_id", -1)) == kid28:
+					found_key28 = true
+		if not found_key28:
+			errors.append("28c: w zwłokach nie ma klucza")
+		if key_z28.corpse == null or not key_z28.corpse.has_meta("container_id"):
+			errors.append("28c: zwłok nie da się przeszukać (F)")
+		var zsave28: Array = JSON.parse_string(JSON.stringify(main.zombies.to_dict()))
+		main.zombies.from_dict(zsave28)
+		await _wait(tree, 3)
+		var keys_after28 := 0
+		for cid2 in inv.containers:
+			if str(cid2).begins_with("zwloki_"):
+				for x in inv.containers[cid2]["grids"][0].items:
+					if x.def_id == "klucz" and int(x.props.get("key_id", -1)) == kid28:
+						keys_after28 += 1
+		if keys_after28 != 1:
+			errors.append("28c: po odczycie kluczy w zwłokach %d zamiast 1" % keys_after28)
+		# 28d. drzwi zamknięte na klucz: bez klucza nie, z kluczem tak
+		var hk28: Dictionary = {}
+		for h in tn.houses:
+			if int(h["key_id"]) == kid28:
+				hk28 = h
+		var dk28 = hk28["door"]
+		dk28.locked = true
+		dk28._set_latched(true)
+		dk28.on_use(dk28.door.global_position)
+		await _wait(tree, 10)
+		if not dk28.locked or not dk28.latched:
+			errors.append("28d: zamknięte drzwi otworzyły się bez klucza")
+		var key_item28 = tn.make_key(hk28)
+		inv.give(key_item28)
+		dk28.on_use(dk28.door.global_position)
+		if dk28.locked:
+			errors.append("28d: klucz nie otworzył zamka")
+		dk28.on_use(dk28.door.global_position)
+		await _wait(tree, 40)
+		if dk28.door_angle() < 0.5:
+			errors.append("28d: otwarte kluczem drzwi się nie uchylają")
+		var dsave28: Dictionary = dk28.to_dict()
+		dk28.locked = true
+		dk28.from_dict(dsave28)
+		if dk28.locked:
+			errors.append("28d: zapis drzwi nie pamięta otwartego zamka")
+		inv.remove_item(key_item28)
+	main.zombies.clear_all()
+	# 28e. wycieraczki: zapasowe klucze tam, gdzie wylosowano
+	var spare_ok28 := true
+	for h in tn.houses:
+		var mid28 := "wycieraczka_%d" % int(h["index"])
+		if not inv.containers.has(mid28):
+			spare_ok28 = false
+			continue
+		var has_k28: bool = inv.containers[mid28]["grids"][0].items.size() > 0
+		if has_k28 != bool(h["spare_key"]):
+			spare_ok28 = false
+	if not spare_ok28:
+		errors.append("28e: wycieraczki i zapasowe klucze się nie zgadzają")
+	# 28f. mapa i kompas w rękach
+	_hand(main, "mapa_osiedla", {}, "l")
+	await _wait(tree, 3)
+	if not main.map_view.showing_map:
+		errors.append("28f: mapa w ręce się nie pokazuje")
+	_hand(main, "kompas")
+	inv.slots["w_lewej"] = ItemScript.new("mapa_osiedla", 1)
+	inv.slots["w_lewej"].slot = "w_lewej"
+	await _wait(tree, 3)
+	if not main.map_view.showing_compass or not main.map_view.showing_map:
+		errors.append("28f: kompas z mapą się nie pokazują")
+	inv.slots.erase("w_lewej")
+	inv.slots.erase("w_reku")
+	await _wait(tree, 3)
+	if main.map_view.showing_map:
+		errors.append("28f: mapa nie znika po odłożeniu")
 
 	# 11b. Po wszystkich próbach żadna bryła nie wyleciała poza pokój.
 	for b in main.bodies:
@@ -2325,7 +2459,92 @@ static func take_screenshots(main: Node, args: PackedStringArray) -> void:
 	ws.end()
 	await _build11_shots(main, dir)
 	await _build12_shots(main, dir)
+	await _build13_shots(main, dir)
 	tree.quit(0)
+
+
+## Kadry buildu 13: osiedle z góry, ulica z tabliczkami, piętro, piwnica,
+## mapa z kompasem w rękach, przeszukiwanie zwłok mieszkańca.
+static func _build13_shots(main: Node, dir: String) -> void:
+	var tree := main.get_tree()
+	var inv = main.inventory
+	var tn = main.town
+	main.zombies.clear_all()
+	main.clock.minutes = 12.5 * 60.0
+	main.clock.advance(0.0)
+	main.weather.set_kind("pogodnie", true)
+	inv.slots.erase("w_lewej")
+	inv.slots.erase("w_reku")
+	inv.slots.erase("oburacz")
+	var top := Camera3D.new()
+	main.world.add_child(top)
+	top.global_position = Vector3(3.0, 70.0, 75.0)
+	top.look_at(Vector3(3.0, 0.0, 22.0))
+	top.make_current()
+	await _shot(main, dir + "/osiedle_z_gory.png", 12)
+	main.player.camera.make_current()
+	top.queue_free()
+	# ulica Polna: tabliczki z adresem i nazwiskiem
+	var hp: Dictionary = tn.houses[10]
+	_place(main, hp["front"] + Vector3(-1.5, 0.02, 0.0) + (hp["front"] - hp["inside"]).normalized() * 2.0, 0.0, 0.0)
+	_aim(main, Vector3(float(hp["door_x"]), 1.6, float(hp["front_z"])))
+	await _shot(main, dir + "/ulica_adres.png", 20)
+	# piętro: widok z wyjścia ze schodów
+	for h in tn.houses:
+		if h.has("upstairs"):
+			_place(main, h["upstairs"] + Vector3(0.6, 0.05, 0.0), 0.0, -10.0)
+			_aim(main, (h["rect"] as Rect2).get_center().x * Vector3.RIGHT + Vector3(0, 4.0, (h["rect"] as Rect2).get_center().y))
+			main.player.lamp.visible = true
+			await _shot(main, dir + "/pietro.png", 20)
+			_place(main, h["stair_bottom"] + Vector3(0.0, 0.05, 0.0), 0.0, 10.0)
+			_aim(main, h["stair_top"] + Vector3(0, 1.4, 0))
+			await _shot(main, dir + "/schody.png", 20)
+			break
+	# piwnica: zejście i regał z zapasami
+	for h in tn.houses:
+		if h.has("cellar_bottom"):
+			_place(main, h["cellar_bottom"] + Vector3(0.0, 0.05, 0.0), 0.0, 0.0)
+			var shelf: Node3D = inv.containers["dom%d_piwnica" % int(h["index"])]["node"]
+			_aim(main, shelf.global_position)
+			main.player.lamp.visible = true
+			await _shot(main, dir + "/piwnica.png", 20)
+			break
+	main.player.lamp.visible = false
+	# mapa i kompas w rękach na ulicy
+	_place(main, Vector3(10.0, 0.02, 12.0), 135.0, 0.0)
+	inv.slots["w_lewej"] = ItemScript.new("mapa_osiedla", 1)
+	inv.slots["w_lewej"].slot = "w_lewej"
+	inv.slots["w_reku"] = ItemScript.new("kompas", 1)
+	inv.slots["w_reku"].slot = "w_reku"
+	inv.changed.emit()
+	await _shot(main, dir + "/mapa_kompas.png", 20)
+	inv.slots.erase("w_lewej")
+	inv.slots.erase("w_reku")
+	inv.changed.emit()
+	# zwłoki mieszkańca: przeszukanie (F) pokazuje klucz z adresem i jego rzeczy
+	tn.spawn_residents()
+	var zr = main.zombies.zombies[0]
+	zr.global_position = Vector3(10.0, 0.0, 11.0)
+	zr.die(Vector3.FORWARD)
+	await _wait(tree, 10)
+	main.open_inventory("zwloki_%d" % zr.zid)
+	for k in 300:
+		await tree.process_frame
+		if main.inv_ui.icons.pending() == 0 and k > 20:
+			break
+	var ui = main.inv_ui
+	var cgrid = inv.containers["zwloki_%d" % zr.zid]["grids"][0]
+	for it in cgrid.items:
+		if it.def_id == "klucz":
+			ui.hover_item = it
+			for b in ui.blocks:
+				if b["grid"] == cgrid:
+					ui.mouse = (b["rect"] as Rect2).position + Vector2(it.pos) * ui.CELL + Vector2(20, 20)
+	ui.queue_redraw()
+	await _wait(tree, 4)
+	await _shot(main, dir + "/zwloki.png")
+	main.close_inventory()
+	main.zombies.clear_all()
 
 
 ## Kadry buildu 12: pistolet z biodra i przez przyrządy, przeładowanie,

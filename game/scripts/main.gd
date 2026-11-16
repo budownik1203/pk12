@@ -29,6 +29,7 @@ const HeatScript := preload("res://scripts/craft/heat.gd")
 const SawScript := preload("res://scripts/craft/saw.gd")
 const RecorderScript := preload("res://scripts/recorder.gd")
 const GunsScript := preload("res://scripts/combat/guns.gd")
+const MapViewScript := preload("res://scripts/ui/map_view.gd")
 const CharacterScript := preload("res://scripts/character/character.gd")
 const CharCreateScript := preload("res://scripts/ui/char_create.gd")
 const CharPanelScript := preload("res://scripts/ui/char_panel.gd")
@@ -76,6 +77,7 @@ var creating_character := false  # ekran tworzenia postaci: kursor wolny
 var saw: SawScript
 var recorder: RecorderScript
 var guns: GunsScript
+var map_view: MapViewScript
 var character: CharacterScript
 var char_panel: CharPanelScript
 var town: TownScript
@@ -182,6 +184,7 @@ func _ready() -> void:
 		sandbox_seed = int(JSON.parse_string(sf.get_as_text()).get("world_seed", 1203))
 	town.setup(self, sandbox_seed)
 	town.fill_loot()
+	town.fill_residents_loot()
 
 	health = HealthScript.new()
 	health.name = "Zdrowie"
@@ -239,6 +242,11 @@ func _ready() -> void:
 		character.levels["majsterkowanie"] = 3
 		character.levels["pierwsza_pomoc"] = 3
 	player.health = health
+
+	map_view = MapViewScript.new()
+	map_view.name = "MapaWRekach"
+	hud.add_child(map_view)
+	map_view.setup(self)
 
 	char_panel = CharPanelScript.new()
 	char_panel.name = "OknoPostaci"

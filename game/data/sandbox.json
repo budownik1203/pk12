@@ -1,6 +1,6 @@
 {
 	"_opis": "Ustawienia piaskownicy (jak w PZ). speed: powolne / zwykle / szybkie / biegacze. infection: szansa zakażenia na ranę od zombie (0 = wyłączone, 1 = zawsze). wound_types: wagi rodzaju rany przy trafieniu. knox_hours: godziny gry od zakażenia do śmierci. world_seed: ziarno ulicy i domów (ten sam świat po śmierci i wczytaniu).",
-	"start_zombies": 10,
+	"start_zombies": 8,
 	"speed": "zwykle",
 	"zombie_hp": 100,
 	"wound_types": {

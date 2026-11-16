@@ -7,7 +7,7 @@ Pierwszoosobowy, fizyczny sandbox survivalowy w duchu Project Zomboid. Godot 4.7
 1. Otwórz Godota 4.7 i wybierz **Importuj**, wskaż plik `game/project.godot`.
 2. Wciśnij **F5**.
 
-## Stan: build 12, broń palna
+## Stan: build 13, osiedle
 
 Koniec fundamentu (buildy 1–4). W pokoju: okno zabite trzema deskami, drzwi do komórki na zatrzasku z klamką, w szafce nakładka, zamek i wkręty, na stole klucz.
 
@@ -48,6 +48,8 @@ Praca narzędziem:
 - **Nóż, nożyczki** (cięcie): warzywo albo ubranie w lewej ręce, prawy przycisk i ruchy w dół. Warzywa kroją się do zupy, ubrania tną się na szmaty (zawartość kieszeni wraca do ekwipunku).
 
 Broń palna (tryb walki, klik kółkiem): LPM strzał, PPM przytrzymany przyrządy celownicze (przybliżenie, mniejszy rozrzut), R przeładowanie. Magazynki ładuje się w ekwipunku: przeciągnij naboje na magazynek (albo na strzelbę), PPM na magazynku lub broni rozładowuje. Każdy strzał brudzi broń, a brud, zużycie i brak smaru grożą zacięciem. Czyszczenie: broń w lewej ręce, w prawej szmata (z grubsza), WD-40 (czyści i smaruje na 60 strzałów) albo wycior (do zera), PPM i ruchy w dół. Strzał słychać z daleka.
+
+Osiedle: 16 domów przy ulicach Lipowej, Polnej i Krótkiej, każdy z adresem i tabliczką z nazwiskiem. Część domów ma piętro (schody przy ścianie), część piwnicę z regałem zapasów. Mieszkańcy mają zawody, od których zależy, co jest w domu (u policjanta broń, u mechanika narzędzia, u kucharza garnki). Ci, którzy zmienili się w zombie, noszą przy sobie klucz do domu i swoje rzeczy, a ich zwłoki da się przeszukać (F). Domy, z których uciekli, bywają zamknięte na klucz, a zapasowy leży czasem pod wycieraczką (F na wycieraczce). Łupy losują się raz i nic się nie odnawia. Mapy osiedla i kompasu nie ma na start: trzeba je znaleźć. Trzymane w ręce pokazują plan ulic i kierunek, a mapa z kompasem w drugiej ręce obraca się zgodnie z kierunkiem patrzenia.
 
 Gotowanie: patelnia albo garnek postawione na ognisku lub włączonej kuchence gotują zawartość. Ziemniak na patelni piecze się w 40 minut gry, zostawiony dłużej robi się spalenizną. Garnek ze zlewu z wodą i pokrojonymi warzywami daje zupę, którą je się porcjami (przeciągnij garnek na postać w oknie zdrowia, H).
 

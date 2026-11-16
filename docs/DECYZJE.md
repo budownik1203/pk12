@@ -223,3 +223,16 @@
 - **Na start:** w szafce pistolet z magazynkiem na 6 naboi i dwie paczki 9 mm, w komórce strzelba z 2 nabojami, 8 nabojów śrutowych, zapasowy magazynek, wycior i WD-40. W domach broń i amunicja trafiają się w szafach i na regałach.
 - Testy 27a–g: strzał i trafienie, hałas, przyrządy, opróżnienie i przeładowanie, ładowanie i rozładowanie magazynka, zacięcie i jego usunięcie, czyszczenie wyciorem i WD-40, strzelba z rurą, pompką i śrutem.
 - Poprawka testu zapisu: krew i wilgoć na ubraniu zmieniają się z czasem, więc porównanie zapisu je pomija (stąd brało się sporadyczne „ekwipunek po odczycie różni się”).
+
+## Build 13 (16.11.2026): osiedle
+
+- **Układ:** trzy ulice (Lipowa i Polna wzdłuż X, łącząca je Krótka), teren 106 × 90 m, 16 działek z adresami (numery nieparzyste po północnej stronie ulicy, parzyste po południowej) i tabliczki z nazwami ulic. Kod: `scripts/world/town.gd`.
+- **Moduły domów:** parter zawsze; piętro (około co drugi dom) ze schodami z pełnych bloków przy ścianie zachodniej, stropem z otworem, barierkami i własnymi pokojami (sypialnia, łazienka); piwnica (około co trzeci dom) pod pokojem wschodnim, z zejściem od tylnej ściany i regałem zapasów (tabela łupów „piwnica”). Grunt i podłogi mają prawdziwe otwory nad zejściami (`subtract_rects`).
+- **Nawigacja zombie** obejmuje piętra i piwnice: drobniejsza siatka w pionie (0,1 m, wspinanie 0,3 m). Przy okazji wyszły dwa stare błędy generatora: ścianka działowa potrafiła stanąć w drzwiach wejściowych, a przejście między pokojami bywało zastawione meblami. Oba są poprawione, a test 28a sprawdza przejście do każdego domu, na każde piętro i do każdej piwnicy.
+- **Mieszkańcy** (`data/residents.json`): 1–3 osoby na dom, nazwisko rodziny (bez powtórzeń), imiona, zawody i losy (zombie w domu, zombie przed domem, ucieczka). Zawód dokłada rzeczy do mebli domu. Mieszkaniec-zombie nosi klucz do domu (z adresem w podpowiedzi) i rzeczy z życia, a nagłówek przeszukiwanych zwłok mówi, kim był.
+- **Zwłoki** to płaska bryła na osobnej warstwie: nikt się o nią nie potyka, a F otwiera ją jak pojemnik. Zawartość zapisuje się razem z zombie.
+- **Zamki:** dom, z którego wszyscy uciekli, jest zwykle zamknięty (85%), z zombie w środku czasem (55%). Klucz w ekwipunku otwiera zamek przy F. Zombie wyważa zamknięte drzwi wolniej. Zapasowy klucz bywa pod wycieraczką (45%), a wycieraczka to też pojemnik (F).
+- **Nic się nie odnawia:** łupy, zapasowe klucze i mieszkańcy losują się raz, przy nowej grze. Stan pojemników, drzwi i zwłok zapisuje się.
+- **Mapa i kompas** (nie ma ich na start, trafiają się na regałach, w szafach i u listonosza czy harcerza): kartka z planem ulic i numerami domów w lewym dolnym rogu ekranu, bez kropki gracza, i tarcza kompasu. Mapa z kompasem obraca się zgodnie z kierunkiem patrzenia. Kod: `scripts/ui/map_view.gd`.
+- **Na start:** 8 włóczęgów (co najmniej 14 m od gracza) plus mieszkańcy-zombie (co najmniej 8 m).
+- **Pominięte:** doczytywanie obszarów z planu. Całe osiedle mieści się w jednej scenie, a stan i tak się zapisuje, więc wróci przy regionie (build 17).

@@ -1,0 +1,43 @@
+{
+	"_opis": "Mieszkańcy domów osiedla. Zawód decyduje o dodatkowych rzeczach w domu (house: [przedmiot, sztuk, rodzaje mebli w kolejności szukania]) i o tym, co mieszkaniec-zombie ma przy sobie (carry: [przedmiot, szansa, sztuk]). Losy: zombie w domu, zombie na ulicy, uciekł (zabrał klucze, dom zamknięty).",
+	"first_m": ["Jan", "Piotr", "Krzysztof", "Andrzej", "Tomasz", "Paweł", "Marek", "Michał", "Grzegorz", "Józef", "Stanisław", "Adam", "Zbigniew", "Ryszard", "Jerzy", "Kamil"],
+	"first_f": ["Anna", "Maria", "Katarzyna", "Małgorzata", "Agnieszka", "Barbara", "Ewa", "Krystyna", "Elżbieta", "Joanna", "Zofia", "Teresa", "Monika", "Halina", "Danuta", "Natalia"],
+	"surnames": [
+		["Kowalski", "Kowalska", "Kowalscy"], ["Nowak", "Nowak", "Nowakowie"], ["Wiśniewski", "Wiśniewska", "Wiśniewscy"],
+		["Wójcik", "Wójcik", "Wójcikowie"], ["Kamiński", "Kamińska", "Kamińscy"], ["Lewandowski", "Lewandowska", "Lewandowscy"],
+		["Zieliński", "Zielińska", "Zielińscy"], ["Szymański", "Szymańska", "Szymańscy"], ["Woźniak", "Woźniak", "Woźniakowie"],
+		["Dąbrowski", "Dąbrowska", "Dąbrowscy"], ["Kozłowski", "Kozłowska", "Kozłowscy"], ["Jankowski", "Jankowska", "Jankowscy"],
+		["Mazur", "Mazur", "Mazurowie"], ["Krawczyk", "Krawczyk", "Krawczykowie"], ["Piotrowski", "Piotrowska", "Piotrowscy"],
+		["Grabowski", "Grabowska", "Grabowscy"], ["Pawlak", "Pawlak", "Pawlakowie"], ["Michalski", "Michalska", "Michalscy"]
+	],
+	"fates": {"zombie_dom": 45, "zombie_ulica": 25, "uciekl": 30},
+	"professions": {
+		"mechanik": {"pl": "mechanik", "en": "mechanic", "weight": 10,
+			"house": [["wd40", 1, ["skrzynka_narzedziowa", "szafa"]], ["lom", 1, ["skrzynka_narzedziowa", "szafa"]], ["srubokret", 1, ["skrzynka_narzedziowa"]]],
+			"carry": [["srubokret", 0.6, 1], ["wd40", 0.25, 1], ["szmata", 0.5, 2]]},
+		"policjant": {"pl": "policjant", "en": "police officer", "weight": 5,
+			"house": [["pistolet", 1, ["szafa", "regal"]], ["magazynek_9mm", 1, ["szafa"]], ["naboje_9mm", 18, ["szafa", "regal"]]],
+			"carry": [["naboje_9mm", 0.6, 9], ["magazynek_9mm", 0.4, 1]]},
+		"kucharz": {"pl": "kucharz", "en": "cook", "weight": 7,
+			"house": [["garnek", 1, ["szafka_kuchenna"]], ["patelnia", 1, ["szafka_kuchenna"]], ["noz", 1, ["szafka_kuchenna"]], ["ksiazka_gotowanie", 1, ["regal", "szafka_kuchenna"]]],
+			"carry": [["noz", 0.5, 1], ["zapalniczka", 0.4, 1]]},
+		"ratownik": {"pl": "ratownik medyczny", "en": "paramedic", "weight": 6,
+			"house": [["apteczka", 1, ["apteczka_scienna", "szafa"]], ["bandaz", 3, ["apteczka_scienna", "szafa"]], ["ksiazka_pierwsza_pomoc", 1, ["regal"]]],
+			"carry": [["bandaz", 0.7, 2], ["nozyczki", 0.4, 1]]},
+		"ciesla": {"pl": "cieśla", "en": "carpenter", "weight": 7,
+			"house": [["pila", 1, ["skrzynka_narzedziowa", "szafa"]], ["mlotek", 1, ["skrzynka_narzedziowa"]], ["gwozdzie", 20, ["skrzynka_narzedziowa", "szafa"]], ["ksiazka_stolarstwo", 1, ["regal"]]],
+			"carry": [["gwozdzie", 0.5, 8], ["mlotek", 0.2, 1]]},
+		"listonosz": {"pl": "listonosz", "en": "postman", "weight": 3,
+			"house": [["mapa_osiedla", 1, ["regal", "szafa"]]],
+			"carry": [["mapa_osiedla", 0.8, 1], ["batonik", 0.4, 1]]},
+		"emeryt": {"pl": "emeryt", "en": "pensioner", "weight": 12,
+			"house": [["puszka_fasoli", 2, ["szafka_kuchenna", "lodowka"]], ["zapalki", 1, ["szafka_kuchenna"]], ["mapa_osiedla", 1, ["regal"]]],
+			"carry": [["moneta", 0.6, 3], ["kompas", 0.1, 1]]},
+		"student": {"pl": "student", "en": "student", "weight": 8,
+			"house": [["batonik", 2, ["regal", "szafka_kuchenna"]], ["ksiazka_majsterkowanie", 1, ["regal"]]],
+			"carry": [["batonik", 0.5, 1], ["zapalniczka", 0.3, 1]]},
+		"harcerz": {"pl": "instruktor harcerski", "en": "scout leader", "weight": 3,
+			"house": [["kompas", 1, ["szafa", "regal"]], ["mapa_osiedla", 1, ["regal"]], ["zapalki", 2, ["szafa"]]],
+			"carry": [["kompas", 0.6, 1], ["zapalki", 0.5, 1]]}
+	}
+}
