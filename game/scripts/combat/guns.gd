@@ -25,6 +25,7 @@ extends Node
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
 const WorldItems := preload("res://scripts/world_items.gd")
+const Anim := preload("res://scripts/pracownia/anim.gd")
 
 const ADS_TIME := 0.2
 const HIP_POS := Vector3(0.16, -0.19, -0.42)
@@ -250,7 +251,7 @@ func _fire(gun, g: Dictionary) -> void:
 		if jammed:
 			gun.props["jammed"] = true
 		else:
-			_begin([[float(g.get("pump_time", 0.55)) * (1.0 - skill * 0.05), "pump"]], "pump")
+			_begin([[_dur(g, "pump", float(g.get("pump_time", 0.55))) * (1.0 - skill * 0.05), "pump"]], "pump")
 	if bool(gun.props.get("jammed", false)):
 		main.hud.show_message(tr("MSG_GUN_JAMMED"))
 	# efekty: dźwięk, hałas dla zombie, błysk, odrzut
@@ -330,7 +331,7 @@ func reload() -> bool:
 	var g := gun_def(gun)
 	var speed: float = 1.0 - main.character.level("bron_palna") * 0.07
 	if bool(gun.props.get("jammed", false)):
-		_begin([[0.7 * speed, "clear"]], "rack")
+		_begin([[_dur(g, "clear", 0.7) * speed, "clear"]], "rack")
 		return true
 	if str(g.get("action", "")) == "break":
 		var missing: int = int(g.get("capacity", 1)) + 1 - int(gun.props.get("tube", 0)) - (1 if bool(gun.props.get("chamber", false)) else 0)
@@ -340,10 +341,10 @@ func reload() -> bool:
 		if have <= 0:
 			main.hud.show_message(tr("MSG_NO_AMMO"))
 			return false
-		var bsteps: Array = [[0.45 * speed, "open"]]
+		var bsteps: Array = [[_dur(g, "open", 0.45) * speed, "open"]]
 		for k in mini(missing, have):
-			bsteps.append([0.42 * speed, "bshell"])
-		bsteps.append([0.35 * speed, "close"])
+			bsteps.append([_dur(g, "bshell", 0.42) * speed, "bshell"])
+		bsteps.append([_dur(g, "close", 0.35) * speed, "close"])
 		_begin(bsteps, "break")
 		return true
 	if str(g.get("feed", "mag")) == "tube":
@@ -352,7 +353,7 @@ func reload() -> bool:
 		if main.inventory.count_of(str(g.get("ammo", ""))) <= 0:
 			main.hud.show_message(tr("MSG_NO_AMMO"))
 			return _rack_if_empty(gun, speed)
-		_begin([[0.5 * speed, "shell"]], "load")
+		_begin([[_dur(g, "shell", 0.5) * speed, "shell"]], "load")
 		return true
 	var best = _best_mag(gun)
 	if best == null:
@@ -362,10 +363,10 @@ func reload() -> bool:
 		return false
 	var steps: Array = []
 	if gun.props.get("mag") is Dictionary:
-		steps.append([0.45 * speed, "mag_out"])
-	steps.append([0.6 * speed, "mag_in"])
+		steps.append([_dur(g, "mag_out", 0.45) * speed, "mag_out"])
+	steps.append([_dur(g, "mag_in", 0.6) * speed, "mag_in"])
 	if not bool(gun.props.get("chamber", false)):
-		steps.append([0.4 * speed, "rack"])
+		steps.append([_dur(g, "rack", 0.4) * speed, "rack"])
 	_begin(steps, "reload")
 	return true
 
@@ -373,8 +374,16 @@ func reload() -> bool:
 func _rack_if_empty(gun, speed: float) -> bool:
 	if bool(gun.props.get("chamber", false)) or rounds(gun)[0] == 0:
 		return false
-	_begin([[0.45 * speed, "rack"]], "rack")
+	_begin([[_dur(gun_def(gun), "rack", 0.45) * speed, "rack"]], "rack")
 	return true
+
+
+## Czas kroku: z animacji Pracowni (jeśli projekt broni ją zmienia), inaczej domyślny.
+static func _dur(g: Dictionary, step: String, fallback: float) -> float:
+	var a: Dictionary = g.get("anim", {})
+	if a.has(step):
+		return float(a[step].get("time", fallback))
+	return fallback
 
 
 ## Najpełniejszy pasujący magazynek w ekwipunku (pełniejszy niż ten w broni).
@@ -660,6 +669,28 @@ func update_pose() -> void:
 				"close":
 					pitch = deg_to_rad(-25.0) + deg_to_rad(45.0) * e
 					left_off = Vector3(0.0, 0.0, -0.22)
+	# animacja z Pracowni: ścieżki kroku zastępują ruchy wpisane wyżej
+	var anim: Dictionary = g.get("anim", {})
+	if state != "idle" and anim.has(step):
+		var ap := Anim.pose(anim[step], clampf(u, 0.0, 1.0))
+		if ap.has("x") or ap.has("y") or ap.has("z"):
+			p = hip + Vector3(float(ap.get("x", 0.0)), float(ap.get("y", 0.0)), float(ap.get("z", 0.0)))
+		if ap.has("pochyl"):
+			pitch = deg_to_rad(float(ap["pochyl"]))
+		if ap.has("odchyl"):
+			yaw_in = deg_to_rad(float(ap["odchyl"]))
+		if ap.has("przechyl"):
+			roll = deg_to_rad(float(ap["przechyl"]))
+		left_off = Vector3(float(ap.get("lewa_x", left_off.x)), float(ap.get("lewa_y", left_off.y)), float(ap.get("lewa_z", left_off.z)))
+	elif anim.has("fire") and _kick > 0.001 and state in ["idle", "pump"]:
+		# odrzut z Pracowni zamiast wpisanego: chwila kroku „strzał” z pozostałego odrzutu
+		var fp := Anim.pose(anim["fire"], clampf(1.0 - _kick, 0.0, 1.0))
+		p.z -= kick_up * (0.06 if long_gun else 0.035)
+		p.y -= kick_up * 0.012
+		pitch -= kick_up * deg_to_rad(22.0 if long_gun else 15.0)
+		p += Vector3(float(fp.get("x", 0.0)), float(fp.get("y", 0.0)), float(fp.get("z", 0.0)))
+		pitch += deg_to_rad(float(fp.get("pochyl", 0.0)))
+		roll += deg_to_rad(float(fp.get("przechyl", 0.0)))
 	var dir := Vector3(sin(yaw_in) * cos(pitch), sin(pitch), -cos(yaw_in) * cos(pitch)).normalized()
 	var base: Basis = main.combat._hand_basis(dir, false)
 	var hb_local: Basis = Basis(dir, roll) * base if absf(roll) > 0.0001 else base
@@ -691,6 +722,10 @@ func _apply_parts(gun, g: Dictionary) -> void:
 	var u := _step_u()
 	var e := sin(clampf(u, 0.0, 1.0) * PI)
 	var step := _cur_step()
+	var anim: Dictionary = g.get("anim", {})
+	if state != "idle" and anim.has(step):
+		_apply_parts_anim(vis, gun, Anim.pose(anim[step], clampf(u, 0.0, 1.0)))
+		return
 	var zamek: Node3D = vis.get_node_or_null("zamek")
 	if zamek != null:
 		var back := _slide
@@ -723,6 +758,24 @@ func _apply_parts(gun, g: Dictionary) -> void:
 		if state in ["pump", "rack"]:
 			tr_back = float(g.get("pump_travel", 0.07)) * e
 		czol.transform = (czol.get_meta("rest") as Transform3D).translated(Vector3(-tr_back, 0, 0))
+
+
+## Części ruchome według ścieżek z Pracowni (zamek i czółenko w metrach do tyłu,
+## magazynek w dół, lufy i kurek w stopniach).
+func _apply_parts_anim(vis, gun, ap: Dictionary) -> void:
+	for part in ["zamek", "czolenko", "magazynek", "lufy", "kurek", "beben"]:
+		var n: Node3D = vis.get_node_or_null(part)
+		if n == null or not n.has_meta("rest"):
+			continue
+		var rest: Transform3D = n.get_meta("rest")
+		var v := float(ap.get(part, 0.0))
+		match part:
+			"zamek", "czolenko": n.transform = rest.translated(Vector3(-v, 0, 0))
+			"magazynek":
+				n.transform = rest.translated(Vector3(0, -v, 0))
+				n.visible = gun.props.get("mag") is Dictionary or _cur_step() == "mag_in"
+			"lufy", "kurek": n.transform = rest * Transform3D(Basis(Vector3.BACK, -deg_to_rad(v)), Vector3.ZERO)
+			"beben": n.transform = rest * Transform3D(Basis(Vector3.RIGHT, deg_to_rad(v)), Vector3.ZERO)
 
 
 func _vis():
@@ -769,7 +822,8 @@ func _eject(gun, n: int) -> void:
 		b.add_child(col)
 		main.world.add_child(b)
 		b.add_collision_exception_with(main.player)  # wylatuje z wnętrza bryły gracza
-		var at: Vector3 = xf * (Vector3(0.03, 0.068, 0.0) if kind == "luska_9mm" else Vector3(0.09, 0.025, 0.0))
+		var ej: Array = g.get("eject_at", [0.03, 0.068, 0.0] if kind == "luska_9mm" else [0.09, 0.025, 0.0])
+		var at: Vector3 = xf * Vector3(float(ej[0]), float(ej[1]), float(ej[2]))  # kotwica „wyrzutnik” z Pracowni
 		b.global_transform = Transform3D(xf.basis.orthonormalized() * Basis(Vector3.UP, _rng.randf_range(-0.4, 0.4)), at + Vector3(0, 0.01 * k, 0))
 		var right: Vector3 = xf.basis.z.normalized()   # bok modelu (+Z) to prawa strona broni
 		var up: Vector3 = xf.basis.y.normalized()

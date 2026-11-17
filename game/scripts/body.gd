@@ -473,7 +473,11 @@ func _physics_process(delta: float) -> void:
 		var def: Dictionary = player.hand_items[side].get_def()
 		var model: Dictionary = def.get("model", {})
 		var length := float(model.get("size", [0.4])[0]) if model.get("type", "box") == "box" else 0.12
-		if str(def.get("grip", "")) == "gun":
+		if model.has("workshop") and str(def.get("grip", "")) != "gun":
+			# model z Pracowni: początek układu = miejsce chwytu, oś X wzdłuż trzonka
+			var up_grip := str(def.get("grip", "")) == "up"
+			vis.global_transform = Transform3D(hb * (Basis(Vector3.BACK, PI / 2.0) if up_grip else Basis(Vector3.UP, PI / 2.0)), joints["dlon_" + side])
+		elif str(def.get("grip", "")) == "gun":
 			# broń: chwyt modelu (pole grip_at) w dłoni, lufa (+X modelu) do przodu
 			var ga: Array = model.get("grip_at", [0.0, 0.0, 0.0])
 			var mb := hb * Basis(Vector3.UP, PI / 2.0)

@@ -60,18 +60,22 @@ Gotowanie: patelnia albo garnek postawione na ognisku lub włączonej kuchence g
 
 Zrzuty: `docs/build1/` do `docs/build4/`.
 
-## Warsztat broni
+## Pracownia (modele broni i narzędzi)
 
-Otwórz w Godocie scenę `scenes/warsztat_broni.tscn` i wciśnij F6.
+Otwórz w Godocie scenę `scenes/pracownia.tscn` i wciśnij F6. Pełna instrukcja:
+[docs/PRACOWNIA.md](docs/PRACOWNIA.md).
 
-- Lewa kolumna: id pliku i nazwa broni, wczytywanie, „Nowa” i „Zapisz”, szablon działania
-  (półautomat, pompka, łamana), lista modułów, dodawanie, usuwanie i duplikowanie.
-- Prawa kolumna: suwaki wybranego modułu (kształt), materiał, rola w animacji
-  (zamek, magazynek, lufy, czółenko) i położenie.
-- Podgląd: prawy przycisk myszy obraca, kółko przybliża, środkowy przycisk przesuwa.
-  Czerwony punkt to chwyt prawej dłoni, żółty to wylot lufy, niebieski to zawias.
-- „Zapisz” tworzy `data/bronie/<id>.json`. Gra wczytuje te pliki sama: broń jest dostępna
-  pod tym id (np. w `data/start.json` albo w łupie).
+- **1 Składanie**: szablony (pistolet, strzelba, dwururka, obrzyn, karabinek, młotek, łom,
+  siekiera, nóż, śrubokręt), zestawy modułów, szybkie suwaki całości (skala, długość lufy,
+  zużycie, drewno, metal), dane przedmiotu, „Testuj w grze”.
+- **2 Modelowanie**: drzewo modułów, parametry, położenie, obrót, skala, lustro,
+  powtórzenie, przypinanie do rodzica, profil rysowany punktami, obraz referencyjny.
+- **3 Teksturowanie**: 19 materiałów, odcień, przetarcia krawędzi, brud, rdza, rysy, połysk.
+- **4 Animacja**: kotwice (wylot, lewa dłoń, zawias, wyrzutnik), kroki szablonu, ścieżki
+  z kluczami na osi czasu, podgląd z oczu postaci.
+
+„Zapisz” tworzy `data/warsztat/<id>.json`. Gra wczytuje te pliki sama: nowy przedmiot
+pod tym id albo nowy model istniejącego przedmiotu (pole „podmiana modelu”).
 
 ## Układ repozytorium
 

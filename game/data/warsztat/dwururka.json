@@ -3,9 +3,10 @@
 	"pl": "Dwururka (TOZ)",
 	"en": "Over-under shotgun (TOZ)",
 	"anchors": {
-		"hinge": [
+		"zawias": [
 			0.08,
-			-0.004
+			-0.004,
+			0.0
 		]
 	},
 	"modules": [
@@ -25,9 +26,34 @@
 				0,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "drewno",
-			"part": ""
+			"part": "",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {
+				"zuzycie": 0.3,
+				"brud": 0.3
+			},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw0",
+			"name": "Kolba"
 		},
 		{
 			"type": "komora",
@@ -42,9 +68,34 @@
 				0.018,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "stal_grawer",
-			"part": ""
+			"part": "",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {
+				"zuzycie": 0.45,
+				"brud": 0.4
+			},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw1",
+			"name": "Baskila"
 		},
 		{
 			"type": "plytka",
@@ -59,9 +110,31 @@
 				-0.004,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "stal_jasna",
-			"part": ""
+			"part": "",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw2",
+			"name": "Zawias"
 		},
 		{
 			"type": "plytka",
@@ -76,9 +149,31 @@
 				0.042,
 				0
 			],
-			"rot": -6,
+			"rot": [
+				0.0,
+				0.0,
+				-6.0
+			],
 			"mat": "stal",
-			"part": ""
+			"part": "",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw3",
+			"name": "Dźwignia otwierania"
 		},
 		{
 			"type": "kablak",
@@ -92,9 +187,31 @@
 				-0.006,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "stal",
-			"part": ""
+			"part": "",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw4",
+			"name": "Kabłąk i spusty"
 		},
 		{
 			"type": "lufy",
@@ -111,9 +228,31 @@
 				0.022,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "stal",
-			"part": "lufy"
+			"part": "lufy",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw5",
+			"name": "Lufy"
 		},
 		{
 			"type": "czolenko",
@@ -128,9 +267,31 @@
 				-0.012,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "drewno",
-			"part": "lufy"
+			"part": "lufy",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw6",
+			"name": "Czółenko"
 		},
 		{
 			"type": "muszka",
@@ -143,9 +304,31 @@
 				0.0485,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "mosiadz",
-			"part": "lufy"
+			"part": "lufy",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw7",
+			"name": "Muszka"
 		},
 		{
 			"type": "plytka",
@@ -160,9 +343,31 @@
 				0.022,
 				0
 			],
-			"rot": 0,
+			"rot": [
+				0.0,
+				0.0,
+				0.0
+			],
 			"mat": "stal_jasna",
-			"part": "lufy"
+			"part": "lufy",
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"wear": {},
+			"mod": {
+				"lustro": 0,
+				"powtorz": 1,
+				"krok": [
+					0.01,
+					0.0,
+					0.0
+				]
+			},
+			"parent": "",
+			"uid": "dw8",
+			"name": "Czoło luf"
 		}
 	],
 	"item": {
@@ -211,5 +416,9 @@
 		},
 		"desc_pl": "Dwa strzały, potem R: łamiesz broń, puste łuski wypadają, wkładasz naboje po jednym i zatrzaskujesz. Oburącz (Z) trzyma się pewnie.",
 		"desc_en": "Two shots, then R: break it open, the spent shells fall out, load shells one by one and snap it shut. Hold with both hands (Z)."
-	}
+	},
+	"version": 2,
+	"kind": "gun",
+	"template": "break",
+	"anim": {}
 }

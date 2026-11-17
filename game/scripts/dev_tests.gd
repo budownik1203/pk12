@@ -2267,37 +2267,75 @@ static func run_tests(main: Node) -> void:
 	main.clock.minutes = keep_min_29
 	ut_29._apply_lights()
 
-	# 31. warsztat broni: dwururka z pliku, części ruchome, zapis i odczyt, scena warsztatu
-	var Gsm = load("res://scripts/gunsmith/gunsmith.gd")
+	# 31. Pracownia: dwururka z projektu, części ruchome, scena narzędzia (moduły, cofanie,
+	# hierarchia, lustro, zapis), animacja z kluczami czytana przez grę
+	var Core31 = load("res://scripts/pracownia/core.gd")
+	var Anim31 = load("res://scripts/pracownia/anim.gd")
 	var dwd: Dictionary = ItemDB.get_def("dwururka")
-	if str(dwd.get("model", {}).get("gunsmith", "")) != "dwururka":
-		errors.append("31: dwururka nie jest wczytana z warsztatu")
+	if str(dwd.get("model", {}).get("workshop", "")) != "dwururka":
+		errors.append("31: dwururka nie jest wczytana z Pracowni")
 	var dvis = WorldItemsScript.make_visual(ItemScript.new("dwururka"))
 	if dvis.get_node_or_null("lufy") == null:
-		errors.append("31: dwururka z warsztatu nie ma ruchomych luf")
+		errors.append("31: dwururka z Pracowni nie ma ruchomych luf")
 	var dmz: Array = dwd.get("gun", {}).get("muzzle", [0, 0, 0])
 	if float(dmz[0]) < 0.6:
 		errors.append("31: wylot lufy dwururki policzony źle (%s)" % str(dmz))
 	dvis.free()
-	var ws_scene: Node = load("res://scenes/warsztat_broni.tscn").instantiate()
+	var ws_scene: Node = load("res://scenes/pracownia.tscn").instantiate()
 	tree.root.add_child(ws_scene)
 	await _wait(tree, 3)
-	ws_scene.new_gun("pump")
-	ws_scene.add_module("kurek")
+	ws_scene.new_project("strzelba")
+	var n31: int = (ws_scene.data["modules"] as Array).size()
+	var k31: int = ws_scene.add_module("kurek")
+	if (ws_scene.data["modules"] as Array).size() != n31 + 1:
+		errors.append("31: Pracownia nie dodała modułu")
 	ws_scene.set_param(0, "dlugosc", 0.3)
-	ws_scene._id_edit.text = "test_warsztatu"
-	ws_scene._name_edit.text = "Strzelba testowa"
-	if not ws_scene.save("user://test_warsztatu.json"):
-		errors.append("31: warsztat nie zapisał broni")
+	ws_scene._commit()
+	ws_scene.undo()
+	if absf(Core31.param(ws_scene.data["modules"][0], "dlugosc") - 0.3) < 0.0001:
+		errors.append("31: cofanie nie przywraca parametru")
+	ws_scene.redo()
+	# hierarchia: kurek przypięty do kolby porusza się razem z nią
+	ws_scene.select(k31)
+	ws_scene.select(0, true)
+	ws_scene.parent_selected()
+	var before31: Vector3 = Core31.module_xform(ws_scene.data, ws_scene.data["modules"][k31]).origin
+	ws_scene.data["modules"][0]["pos"][1] = 0.05
+	var after31: Vector3 = Core31.module_xform(ws_scene.data, ws_scene.data["modules"][k31]).origin
+	if absf(after31.y - before31.y - 0.05) > 0.0005:
+		errors.append("31: przypięty moduł nie idzie za rodzicem (%s -> %s)" % [before31, after31])
+	# lustro i powtórzenie dają więcej kawałków geometrii
+	var plain31: int = Core31.build(ws_scene.data, k31).size()
+	ws_scene.data["modules"][k31]["mod"] = {"lustro": 1, "powtorz": 3, "krok": [0.01, 0.0, 0.0]}
+	if Core31.build(ws_scene.data, k31).size() != plain31 * 6:
+		errors.append("31: lustro × powtórzenie nie daje 6 kopii")
+	# animacja: klucz w kroku pompki trafia do projektu i do przedmiotu w grze
+	ws_scene.set_tab("animacja")
+	ws_scene._select_step("pump")
+	Anim31.set_key(ws_scene._anim_step_edit("pump"), "czolenko", 0.5, 0.1)
+	ws_scene.data["id"] = "test_pracowni"
+	ws_scene.data["pl"] = "Strzelba testowa"
+	if not ws_scene.save_project("user://test_pracowni.json"):
+		errors.append("31: Pracownia nie zapisała projektu")
 	else:
-		var back = JSON.parse_string(FileAccess.get_file_as_string("user://test_warsztatu.json"))
-		if typeof(back) != TYPE_DICTIONARY or (back["modules"] as Array).size() != 7 or absf(float(back["modules"][0]["params"]["dlugosc"]) - 0.3) > 0.0001:
-			errors.append("31: zapis warsztatu nie odpowiada modułom")
+		var back = JSON.parse_string(FileAccess.get_file_as_string("user://test_pracowni.json"))
+		if typeof(back) != TYPE_DICTIONARY or (back["modules"] as Array).size() != n31 + 1:
+			errors.append("31: zapis Pracowni nie odpowiada modułom")
+		elif absf(float(Anim31.sample(back["anim"]["pump"], "czolenko", 0.5)) - 0.1) > 0.0001:
+			errors.append("31: zapis nie zawiera klucza animacji")
 		elif str(back["item"].get("gun", {}).get("action", "")) != "pump":
 			errors.append("31: zapisana broń nie ma działania z szablonu")
 	ws_scene.queue_free()
 	await _wait(tree, 2)
+	ItemDB.defs = {}
+	ItemDB.ensure_loaded()
 	player.camera.current = true
+	# szablony narzędzi budują się bez błędów i mają kształt w ekwipunku
+	var Tpl31 = load("res://scripts/pracownia/templates.gd")
+	for key31 in Tpl31.LIST:
+		var pd31: Dictionary = Tpl31.make(key31)
+		if key31 != "pusty" and Core31.build(pd31).is_empty():
+			errors.append("31: szablon %s nie ma geometrii" % key31)
 
 	# 30. kółko pod F: opcje urządzenia (budzik na 15 minut) i przełączanie trybu
 	var bud30 = main.world_items.spawn(ItemScript.new("budzik", 1), Transform3D(Basis(), Vector3(-1.5, 0.1, 0.8)))

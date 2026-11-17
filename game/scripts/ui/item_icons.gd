@@ -97,9 +97,7 @@ func _stage(def_id: String) -> void:
 	var mi: MeshInstance3D = WorldItems.make_visual(item)
 	mi.set_meta("psx_skip", true)  # bez drgań wierzchołków PS1 w małym kadrze
 	var aabb: AABB = mi.get_aabb()
-	for ch in mi.get_children():
-		if ch is MeshInstance3D:
-			aabb = aabb.merge((ch as MeshInstance3D).transform * (ch as MeshInstance3D).get_aabb())
+	aabb = _merged_aabb(mi, Transform3D.IDENTITY, aabb)
 	mi.position = -aabb.get_center()
 	var holder := Node3D.new()
 	holder.add_child(mi)
@@ -149,3 +147,15 @@ static func _lay_flat(size: Vector3, b: Vector2i) -> Basis:
 	if m.determinant() < 0.0:
 		m.z = -m.z
 	return m.transposed()
+
+
+## Obrys modelu razem z częściami-dziećmi (broń z Pracowni ma moduły w węzłach potomnych).
+static func _merged_aabb(node: Node, xf: Transform3D, acc: AABB) -> AABB:
+	for ch in node.get_children():
+		if ch is Node3D:
+			var cxf := xf * (ch as Node3D).transform
+			if ch is MeshInstance3D and (ch as MeshInstance3D).mesh != null:
+				var b := cxf * (ch as MeshInstance3D).get_aabb()
+				acc = b if acc.size == Vector3.ZERO else acc.merge(b)
+			acc = _merged_aabb(ch, cxf, acc)
+	return acc

@@ -3,7 +3,7 @@ extends RefCounted
 ## funkcje kształtów na siatce. Kod gry zna przedmioty tylko przez te dane.
 
 const PATH := "res://data/items.json"
-const Gunsmith := preload("res://scripts/gunsmith/gunsmith.gd")
+const Pracownia := preload("res://scripts/pracownia/core.gd")
 
 static var defs: Dictionary = {}
 static var slots: Array = []
@@ -97,25 +97,38 @@ static func bounds(cell_list: Array) -> Vector2i:
 	return b
 
 
-## Bronie z warsztatu (data/bronie/*.json): przedmiot z pola "item", model budowany z modułów.
+## Projekty z Pracowni (data/warsztat/*.json): nowy przedmiot z pola "item" albo podmiana
+## modelu istniejącego przedmiotu ("replace": id). Model budowany z modułów w grze.
 static func _load_gunsmith() -> void:
-	for id in Gunsmith.list_files():
-		var g: Dictionary = Gunsmith.load_gun(id)
+	for id in Pracownia.list_files():
+		var g: Dictionary = Pracownia.load_project(id)
 		if g.is_empty():
 			continue
-		var item: Dictionary = (g.get("item", {}) as Dictionary).duplicate(true)
 		var gid := str(g.get("id", id))
-		item["pl"] = str(g.get("pl", item.get("pl", gid)))
-		item["en"] = str(g.get("en", item.get("en", gid)))
-		var box: AABB = Gunsmith.aabb(g)
+		var replace := str(g.get("replace", ""))
+		var item: Dictionary
+		if replace != "" and defs.has(replace):
+			item = defs[replace]
+			gid = replace
+		else:
+			item = (g.get("item", {}) as Dictionary).duplicate(true)
+			item["pl"] = str(g.get("pl", item.get("pl", gid)))
+			item["en"] = str(g.get("en", item.get("en", gid)))
+		var box: AABB = Pracownia.aabb(g)
 		var c := box.get_center()
-		item["model"] = {"gunsmith": gid, "size": [box.size.x, box.size.y, box.size.z], "center": [c.x, c.y, c.z], "grip_at": [0.0, 0.0, 0.0]}
+		item["model"] = {"workshop": id, "size": [box.size.x, box.size.y, box.size.z], "center": [c.x, c.y, c.z], "grip_at": [0.0, 0.0, 0.0]}
 		if item.has("gun"):
-			var dv: Dictionary = Gunsmith.derived(g)
+			var dv: Dictionary = Pracownia.derived(g)
 			var gun: Dictionary = item["gun"]
 			gun["muzzle"] = dv["muzzle"]
 			gun["sight_y"] = float(dv["sight_y"]) + float(gun.get("ads_drop", 0.0))  # niżej przy oku: mniej kolby w kadrze
-			var h: Array = g.get("anchors", {}).get("hinge", [])
-			if h.size() == 2:
-				gun["hinge"] = h
+			if dv.has("support"):
+				gun["support"] = dv["support"]
+			gun["workshop"] = id
+			var anim: Dictionary = g.get("anim", {})
+			if not anim.is_empty():
+				gun["anim"] = anim  # kroki zmienione w Pracowni (reszta: ruchy domyślne)
+			var anchors: Dictionary = g.get("anchors", {})
+			if anchors.has("wyrzutnik"):
+				gun["eject_at"] = anchors["wyrzutnik"]
 		defs[gid] = item

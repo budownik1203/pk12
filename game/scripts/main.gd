@@ -32,6 +32,7 @@ const GunsScript := preload("res://scripts/combat/guns.gd")
 const MapViewScript := preload("res://scripts/ui/map_view.gd")
 const RadialScript := preload("res://scripts/ui/radial_menu.gd")
 const ItemDB := preload("res://scripts/inventory/item_db.gd")
+const BenchItem := preload("res://scripts/inventory/item.gd")
 const StreamingScript := preload("res://scripts/world/streaming.gd")
 const UtilitiesScript := preload("res://scripts/world/utilities.gd")
 const DevicesScript := preload("res://scripts/world/devices.gd")
@@ -260,7 +261,14 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a == "--test" or a.begins_with("--zrzuty"):
 			dev_run = true
-	if not dev_run:
+	var bench_id := str(Engine.get_meta("pracownia_test", "")) if Engine.has_meta("pracownia_test") else ""
+	if bench_id != "" and not dev_run:
+		# test z Pracowni: bez tworzenia postaci, przedmiot od razu w rękach
+		combat.set_active(true)
+		character.create("Test", "bezrobotny", [])
+		character.levels["bron_palna"] = 3
+		call_deferred("_bench_give", bench_id)
+	elif not dev_run:
 		combat.set_active(true)  # gra zaczyna w trybie walki; narzędziowy z kółka pod F
 		_show_char_create()  # zombie pojawią się po rozpoczęciu (mapa nawigacji stoi w pauzie)
 	else:
@@ -719,7 +727,25 @@ func awake_body_count() -> int:
 	return n
 
 
+## Test przedmiotu z Pracowni: daje przedmiot (broni dokłada pełny magazynek lub naboje).
+func _bench_give(id: String) -> void:
+	var it = BenchItem.new(id)
+	inventory.give(it)
+	var g: Dictionary = it.get_def().get("gun", {})
+	if not g.is_empty():
+		for ammo_id in [str(g.get("ammo", "")), str(g.get("mag", ""))]:
+			if ammo_id != "" and not ItemDB.get_def(ammo_id).is_empty():
+				inventory.give(BenchItem.new(ammo_id, int(ItemDB.get_def(ammo_id).get("stack", 1))))
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	hud.show_message("Test z Pracowni: %s · F10 wraca do Pracowni" % ItemDB.name_of(id))
+
+
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).keycode == KEY_F10 and Engine.has_meta("pracownia_test"):
+		Engine.remove_meta("pracownia_test")
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		get_tree().change_scene_to_file("res://scenes/pracownia.tscn")
+		return
 	if health != null and health.dead:
 		get_viewport().set_input_as_handled()  # przed przeładowaniem sceny: potem węzła już nie ma w drzewie
 		if event is InputEventKey and event.pressed and not event.echo:

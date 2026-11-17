@@ -5,7 +5,7 @@ extends Node
 
 const ItemScript := preload("res://scripts/inventory/item.gd")
 const GunMats := preload("res://scripts/gun_materials.gd")
-const Gunsmith := preload("res://scripts/gunsmith/gunsmith.gd")
+const Pracownia := preload("res://scripts/pracownia/core.gd")
 const LIBRARIES := ["res://models/przedmioty.glb", "res://models/bron.glb", "res://models/bron_cc0.glb"]  # późniejszy plik nadpisuje wcześniejszy
 
 var world: Node3D
@@ -38,10 +38,10 @@ static func library_mesh(mesh_name: String) -> Mesh:
 
 static func make_visual(item) -> MeshInstance3D:
 	var model: Dictionary = item.get_def().get("model", {})
-	if model.has("gunsmith"):
-		var g: Dictionary = Gunsmith.load_gun(str(model["gunsmith"]))
+	if model.has("workshop"):
+		var g: Dictionary = Pracownia.load_project(str(model["workshop"]))
 		if not g.is_empty():
-			return Gunsmith.make_visual(g)
+			return Pracownia.make_visual(g)
 	if model.has("mesh") and library_mesh(str(model["mesh"])) != null:
 		var mesh_name := str(model["mesh"])
 		var lm := MeshInstance3D.new()
